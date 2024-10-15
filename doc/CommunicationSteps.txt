@@ -1,0 +1,78 @@
+1. Client save base info in local
+	Token: "string"
+	ToolID: "string"
+	baseUrl: "http://134.122.177.35:8080/api/v1"
+	
+2. Client call Api to get Tool info => get RSA1 public key
+	GET baseUrl + "/tools/" + ToolID 
+	Sent with Bearer + Token
+	example response: 
+		{
+			"data": {
+				"_id": "617697a85946258887f714e6",
+				"createdAt": 1635162024565,
+				"describe": "Pubg pc hack",
+				"gameID": "6176979a5946258887f714e5",
+				"name": "Nangay",
+				"publicKey": "-----BEGIN RSA PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAooRzKq3vOewEJKo2h8Dq\nmeyu58TO/GWP4B2njANBtdtDeZp4stgoZbMhWg3R2Tj5je61v8mQzWu9Um73Aaq2\n4vr8LvfwgelpaxahWxBpl+V7e+7gyx31g9GTRGhoGCazmq1ksAXQj9T6yJAVg9hw\nAjaYOcejPadUOLDdZ00J4cLAVMN6iYrfr8eKdeBdupQXyefGhAxlbrreRPSdHvn7\nam6GXwKtj10aOWLPOap1uCXl04PLz1OaxxUuQ6nVflFSaAwYlaBCW4RoOylLZXcn\npBkOfFyS5l/vUapuD3ujcUDGrtafwwLym05MrbTXtvqCCgzi18/PgUBwYnr06BT8\n9DRogTk7k2FkCpONoX9FomhvWaR7r4VJrGXkXnpX5rxz5RQesTrKMN0cBcKEcBKx\nuu6azwmsrQBCxA1S9xWsFLY+0c+zf74rFdSi4zEiTNkBdwJj7mhWta9kS6HR2Gnj\nHIs9OyYoTwM5qWS9+/t+hCzZyI9vcxZWJJcTetx22JaIQdWkLHe0iqrL2V+MVqzI\n4LSD0aH6W2yiRRwDmYm/DMPV5SPT+PuwUb7IqDwtYuMA/cF6CgmGEihxu82RonNx\nx76ZdWkYvf3TMQE/PxYXyH5AfMLmcw1yvKAaqvgKqMXAxP5zt++muFcG4BrAPxc0\nfI0IJhHiHt7ELG6lNzm5DQcCAwEAAQ==\n-----END RSA PUBLIC KEY-----\n",
+				"status": "Safe",
+				"tags": "pubg, pc"
+			},
+			"message": "Successful manipulation!",
+			"status": "success"
+		}
+	PublicKey is encoded to string by function ExportRsaPublicKeyAsPemStr (in cipher.go). 
+	So you need decode it to rsa.PublicKey by function ParseRsaPublicKeyFromPemStr (in cipher.go).
+	
+	=> Got PublicKey to encrypt RSA1 (called PublicKey_1)
+	
+2. Client create RSA2 key pair. 
+
+	To sent the new PublicKey (called PublicKey_2) to server to use to encrypt response.
+	Encode PublicKey_2 to string by function ExportRsaPublicKeyAsPemStr (in cipher.go).
+
+3. Client prepare data to checkkey
+	requestdata:
+		{
+			"key" : "xxx key string",
+			"hwid":	"hwid string",
+			"publicKey" : "PublicKey_2 string at step 2",
+			"data": "Core data"
+		}
+		
+4. Client encrypt requestdata => encrypted_requestdata (by RSA1 publickey)
+	requestdata => encrypted_requestdata use function EncryptOAEP (in cipher.go) with PublicKey_1
+
+5. Client sent to server by check key api
+	POST baseUrl + "/keys/check"
+	Sent with Bearer + Token
+	Body: 
+	{
+		"toolID": ToolID,
+		"data": encrypted_requestdata ([]byte)
+	}
+	Response:
+	{
+		"data": encrypted_responsedata ([]byte), <= encrypted by PublicKey_2
+		"message": "Successful manipulation!",
+		"status": "success"
+	}
+
+
+6. Server decrypt encrypted_responsedata => responsedata (by RSA1 privatekey)
+7. Server check key and calculated requestdata => responsedata
+8. Server encrypt responsedata => encrypted_responsedata (by RSA2 publickey)
+9. Server response encrypted_requestdata to client
+10. Client decrypt encrypted_responsedata => responsedata (by RSA2 privatekey)
+	encrypted_responsedata => responsedata use function DecryptOAEP (in cipher.go) with PrivateKey_2
+	example response: 
+	{
+		"data": {
+			"data": "Core data", <= the data you have passed at step 3
+			"result": {
+				"remain_time": 86247686 <= remaining time of key
+			}
+		},
+		"message": "Successful manipulation!",
+		"status": "success"
+	}

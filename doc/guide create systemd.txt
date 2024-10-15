@@ -1,0 +1,49 @@
+B1: install nginx
+
+sudo fuser -k 443/tcp
+service nginx restart
+
+
+
+
+B2: Create systemd service
+
+1 cd /etc/systemd/system
+2 Create a file named your-service.service and include the following
+
+Unit]
+Description= license key.
+
+[Service]
+Type=simple
+WorkingDirectory=/root/go
+EnvironmentFile=/root/go/.env
+ExecStart=/root/go/main
+
+[Install]
+WantedBy=multi-user.target
+
+3 Reload the service files to include the new service.
+sudo systemctl daemon-reload
+
+
+4 Start your service
+chmod +x main
+sudo systemctl start licensekey.service
+sudo systemctl restart licensekey.service
+
+5 To check the status of your service
+sudo systemctl status licensekey.service
+
+6 Stop your service
+sudo systemctl stop licensekey.service
+
+7 To enable your service on every reboot
+sudo systemctl enable licensekey.service
+
+8 To disable your service on every reboot
+sudo systemctl disable licensekey.service
+
+
+B3: Install mongodb
+

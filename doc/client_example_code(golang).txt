@@ -1,0 +1,152 @@
+func (service *TestCipherService) CallCheckKey(ctx *fasthttp.RequestCtx,
+	Token string,
+	ToolID primitive.ObjectID,
+	Key string,
+	Hwid string,
+	Data string) (CreateKeyResult interface{}, err error) {
+
+	var bearer = "Bearer " + Token
+	// 1 - Client call Api to get Tool info, include RSA1 public key
+	urlGetTool := "http://localhost:8080/api/v1/tools/" + utility.ObjectID2String(ToolID)
+
+	reqGetTool, err := http.NewRequest("GET", urlGetTool, nil)
+	reqGetTool.Header.Add("Authorization", bearer)
+
+	client := &http.Client{}
+	resGetTool, err := client.Do(reqGetTool)
+	if err != nil {
+		return nil, err
+	}
+
+	bodyGetTool, err := ioutil.ReadAll(resGetTool.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	mapResGetTool := map[string]interface{}{}
+	err = json.Unmarshal(bodyGetTool, &mapResGetTool)
+	if err != nil {
+		return string(bodyGetTool), err
+	}
+
+	if mapResGetTool["status"] == nil ||
+		mapResGetTool["status"] != "success" {
+
+		return bodyGetTool, errors.New("Gọi API lấy publicKey lỗi!")
+	}
+
+	if mapResGetTool["data"] == nil {
+		return bodyGetTool, errors.New("Không tìm thấy data trong response!")
+	}
+
+	dataGetTool := mapResGetTool["data"]
+	var mTool models.Tool
+	bsonBytes, err := bson.Marshal(dataGetTool)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bson.Unmarshal(bsonBytes, &mTool)
+	if err != nil {
+		return nil, err
+	}
+
+	requestPublicKey, err := utility.ParseRsaPublicKeyFromPemStr(mTool.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2 - Client create RSA2 key pair
+	//_, publicKey_2, err := utility.GenerateKeyPair(4096)
+	privateKey_2, publicKey_2, err := utility.GenerateKeyPair(4096)
+	if err != nil {
+		return nil, err
+	}
+
+	strpublicKey_2, err := utility.ExportRsaPublicKeyAsPemStr(publicKey_2)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3 - Client prepare data to checkkey
+	requestData := new(models.RequestStruct)
+	requestData.Key = Key
+	requestData.Hwid = Hwid
+	requestData.Data = Data
+	requestData.PublicKey = strpublicKey_2
+
+	byteRequestData, err := json.Marshal(requestData)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4 - Client encrypt requestdata => encrypted_requestdata (by RSA1 publickey)
+
+	encryptedRequestData, err := utility.EncryptOAEP(requestPublicKey, byteRequestData)
+	if err != nil {
+		return nil, err
+	}
+
+	// 5 - Client sent to server by check_key api
+	mCheckKeyInput := new(models.CheckKeyInput)
+	mCheckKeyInput.ToolID = mTool.ID
+	mCheckKeyInput.Data = encryptedRequestData
+
+	payloadBuf := new(bytes.Buffer)
+	json.NewEncoder(payloadBuf).Encode(&mCheckKeyInput)
+	//strCheckKeyInputData := string(byteCheckKeyInputData)
+
+	urlCheckKey := "http://localhost:8080/api/v1/keys/check"
+
+	reqCheckKey, err := http.NewRequest("POST", urlCheckKey, payloadBuf)
+	if err != nil {
+		return nil, err
+	}
+
+	reqCheckKey.Header.Add("Authorization", bearer)
+	resCheckKey, err := client.Do(reqCheckKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// 10 - Client decrypt encrypted_responsedata => responsedata (by RSA2 privatekey)
+	bodyCheckKey, err := ioutil.ReadAll(resCheckKey.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	mapResCheckKey := map[string]interface{}{}
+	err = json.Unmarshal(bodyCheckKey, &mapResCheckKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if mapResCheckKey["status"] == nil ||
+		mapResCheckKey["status"] != "success" {
+
+		return bodyGetTool, errors.New("Gọi API check key lỗi!")
+	}
+
+	if mapResCheckKey["data"] == nil {
+		return bodyGetTool, errors.New("Không tìm thấy data trong response!")
+	}
+
+	encryptedResponse := mapResCheckKey["data"].(string)
+	sDec, err := b64.StdEncoding.DecodeString(encryptedResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	decryptedResponse, err := utility.DecryptOAEP(privateKey_2, sDec)
+	if err != nil {
+		return nil, err
+	}
+
+	mapDecryptedCheckKey := map[string]interface{}{}
+	err = json.Unmarshal(decryptedResponse, &mapDecryptedCheckKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapDecryptedCheckKey, nil
+}

@@ -1,0 +1,8 @@
+>> build with linux
+    set GOARCH=amd64
+    set GOOS=linux
+    go build main.go
+
+>> 
+    service immohunter restart
+    service immohunter status

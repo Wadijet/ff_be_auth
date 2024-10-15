@@ -1,0 +1,1753 @@
+{
+	"info": {
+		"_postman_id": "ebe9070d-4254-4bc6-ad24-c1f85c88d035",
+		"name": "SS_key_server",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth&Users",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"kernelminer\",\r\n  \"email\": \"kernelminer@gmail.com\",\r\n  \"password\": \"123456789\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Đăng ký tài khoản mới"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"kernelminer@gmail.com\",\r\n  \"password\": \"123456789\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Đăng nhập."
+					},
+					"response": []
+				},
+				{
+					"name": "Get my info",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"daomanhdung86@gmail.com\",\r\n  \"name\": \"daomanhdung\",\r\n  \"password\": \"12345678\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me"
+							]
+						},
+						"description": "Lấy thông tin user hiện tại"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Init server (USE ONLY ONETIME)",
+					"item": [
+						{
+							"name": "Create permissions",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/init/permissions",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"init",
+										"permissions"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create roles",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/init/roles",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"init",
+										"roles"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Set system admin",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"email\":\"kernelminer@gmail.com\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/init/setadmin",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"init",
+										"setadmin"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Permissions",
+					"item": [
+						{
+							"name": "Create one",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"test\",\r\n  \"describe\": \"daomanhdung\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/permissions",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"permissions"
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						},
+						{
+							"name": "Update one by id",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"test 24556\",\r\n  \"describe\": \"daomanhdung 1253456\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/permissions/60d78c23add78a1cdba467ed",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"permissions",
+										"60d78c23add78a1cdba467ed"
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						},
+						{
+							"name": "Read one by id",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/permissions/60d5aff64c93216dbebf1257",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"permissions",
+										"60d5aff64c93216dbebf1257"
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						},
+						{
+							"name": "Read all",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/permissions?limit=10&page=0",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"permissions"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "10"
+										},
+										{
+											"key": "page",
+											"value": "0"
+										}
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						},
+						{
+							"name": "Delete one by id",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/permissions/60d5b0ac4c93216dbebf1258",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"permissions",
+										"60d5b0ac4c93216dbebf1258"
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Roles",
+					"item": [
+						{
+							"name": "Create one",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"test\",\r\n  \"describe\": \"daomanhdung\"\r\n  \"permissions\": [\r\n      \"60d78a7caf7f71417c581e2f\",\r\n      \"60d78a7caf7f71417c581e2f\"\r\n  ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/roles",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"roles"
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						},
+						{
+							"name": "Update one by id",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"test\",\r\n  \"describe\": \"daomanhdung\",\r\n  \"permissions\": [\r\n      \"60d78a7caf7f71417c581e2f\"\r\n  ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/roles/60d83d05b61f711794b37a86",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"roles",
+										"60d83d05b61f711794b37a86"
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						},
+						{
+							"name": "Read one by id",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"test\",\r\n  \"describe\": \"daomanhdung\",\r\n  \"permissions\": [\r\n      \"60d78a7caf7f71417c581e2f\"\r\n  ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/roles/60d83d05b61f711794b37a86",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"roles",
+										"60d83d05b61f711794b37a86"
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						},
+						{
+							"name": "Read all",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"test\",\r\n  \"describe\": \"daomanhdung\",\r\n  \"permissions\": [\r\n      \"60d78a7caf7f71417c581e2f\"\r\n  ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/roles?limit=10&page=0",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"roles"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "10"
+										},
+										{
+											"key": "page",
+											"value": "0"
+										}
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						},
+						{
+							"name": "Delete one by id",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"test\",\r\n  \"describe\": \"daomanhdung\",\r\n  \"permissions\": [\r\n      \"60d78a7caf7f71417c581e2f\"\r\n  ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/roles/60d83d05b61f711794b37a86",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"roles",
+										"60d83d05b61f711794b37a86"
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Measure static",
+					"item": [
+						{
+							"name": "Test",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/static/test",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"static",
+										"test"
+									]
+								},
+								"description": "Kiểm tra hệ thống API có hoạt động không"
+							},
+							"response": []
+						},
+						{
+							"name": "Get system static",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"email\": \"daomanhdung86@gmail.com\",\r\n  \"name\": \"daomanhdung\",\r\n  \"password\": \"12345678\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/static/system",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"static",
+										"system"
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						},
+						{
+							"name": "Get API static",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"email\": \"daomanhdung86@gmail.com\",\r\n  \"name\": \"daomanhdung\",\r\n  \"password\": \"12345678\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/static/api?inseconds=900",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"static",
+										"api"
+									],
+									"query": [
+										{
+											"key": "inseconds",
+											"value": "900"
+										}
+									]
+								},
+								"description": "Lấy thống kê API gửi về server trong x giây gần đây"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Users&Balance",
+					"item": [
+						{
+							"name": "Read all user",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"test\",\r\n  \"describe\": \"daomanhdung\",\r\n  \"permissions\": [\r\n      \"60d78a7caf7f71417c581e2f\"\r\n  ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/users?limit=10&page=0",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"users"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "10"
+										},
+										{
+											"key": "page",
+											"value": "0"
+										}
+									]
+								},
+								"description": "Lấy thống kê hệ thống của server, gồm chỉ số cpu và ram"
+							},
+							"response": []
+						},
+						{
+							"name": "Set role",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"email\":\"kernelminer@gmail.com\",\r\n    \"roleID\":\"61712c9e3deef1cd087440b0\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/admin/set_role",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"admin",
+										"set_role"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add balance",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"userId\":\"617692805d36aafad3a71f02\",\r\n    \"addValue\":1000\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/admin/add_balance",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"admin",
+										"add_balance"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Block user",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"email\":\"kernelminer@gmail.com\",\r\n    \"note\":\"Rất ngu\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/admin/block_user",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"admin",
+										"block_user"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Unblock user",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"email\":\"kernelminer@gmail.com\",\r\n    \"note\":\"Rất ngu\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/admin/unblock_user",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"admin",
+										"unblock_user"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Games",
+			"item": [
+				{
+					"name": "Create Game",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\":\"PUBG PC\",\r\n    \"describe\":\"PUBG on PC\",\r\n    \"tags\":\"pung, pc\",\r\n    \"image\":\"\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/games",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"games"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all games",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/games?page=0&limit=5",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"games"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get one game",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/games/614d962ccdf515374fc3e1e3",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"games",
+								"614d962ccdf515374fc3e1e3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Game Copy",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\":\"PUBG Mobile\",\r\n    \"describe\":\"PUBG on mobile\",\r\n    \"tags\":\"pubg, mobile\",\r\n    \"image\":\"123\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/games/614d962ccdf515374fc3e1e3",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"games",
+								"614d962ccdf515374fc3e1e3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get one game Copy",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/games/614d962ccdf515374fc3e1e3",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"games",
+								"614d962ccdf515374fc3e1e3"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tools",
+			"item": [
+				{
+					"name": "Create Tool",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"gameID\": \"6172b702bcbfa93d949ead61\",\r\n    \"name\": \"Nangay\",\r\n    \"describe\":\"Pubg pc hack\",\r\n    \"status\":\"Safe\",\r\n    \"tags\":\"pubg, pc\",\r\n    \"image\":\"\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tools",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tools"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all Tools",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tools?page=0&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tools"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get one Tool",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tools/61736f7a3d71b0c597117486",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tools",
+								"61736f7a3d71b0c597117486"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update one Tool",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"gameID\": \"614d9843e1e20ca8639c517f\",\r\n    \"name\": \"NinjaCheat\",\r\n    \"describe\":\"Pubg mobile hack\",\r\n    \"status\":\"Safe\",\r\n    \"tags\":\"pubg, mobile, external\",\r\n    \"image\":\"\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tools/614d98ab29540d73e19cc9dd",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tools",
+								"614d98ab29540d73e19cc9dd"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete one Tool",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tools/614d98ab29540d73e19cc9dd",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tools",
+								"614d98ab29540d73e19cc9dd"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ToolPrices",
+			"item": [
+				{
+					"name": "Create Tool price",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"toolID\": \"61714f5b5c850e9d4345e0e7\",\r\n    \"periodHours\": 24,\r\n    \"price\": 1.1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tools/prices",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tools",
+								"prices"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all tool prices",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tools/prices?limit=10&page=0",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tools",
+								"prices"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "page",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get one tool prices",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tools/prices/614d9b09f04ef9646323d8f3",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tools",
+								"prices",
+								"614d9b09f04ef9646323d8f3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tool price Copy",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"toolID\": \"614d994e29540d73e19cc9de\",\r\n    \"periodHours\": 24,\r\n    \"price\":1.2\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tools/prices/614d9b09f04ef9646323d8f3",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tools",
+								"prices",
+								"614d9b09f04ef9646323d8f3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get one tool prices Copy",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tools/prices/614d9b09f04ef9646323d8f3",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tools",
+								"prices",
+								"614d9b09f04ef9646323d8f3"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Keys",
+			"item": [
+				{
+					"name": "Get all keys",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"toolIDs\":[],\r\n    \"toolPriceIDs\":[],\r\n    \"createUserIDs\":[],\r\n    \"keys\":[],\r\n    \"periodHours\":[],\r\n    \"hwids\":[]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/keys?limit=10&page=0",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"keys"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "page",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get my keys",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"toolIDs\":[],\r\n    \"toolPriceIDs\":[],\r\n    \"keys\":[],\r\n    \"periodHours\":[],\r\n    \"hwids\":[]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/keys/my?limit=10&page=0",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"keys",
+								"my"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "page",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Buy keys",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"toolPriceID\":\"6172b71fbcbfa93d949ead63\",\r\n    \"amount\":3\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/keys/buy",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"keys",
+								"buy"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check key",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"toolID\":\"61756eacccc4345f9fbb7add\",\r\n    \"data\":[1,2]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/keys/check",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"keys",
+								"check"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Test Cipher (client emulator)",
+			"item": [
+				{
+					"name": "Call Check key",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYxNzY5NzU1NjRiMDRkN2I2OGM5MDgxYSIsInRpbWUiOiI2MTc2OTc1OSIsInJhbmRvbU51bSI6IjU2In0.UAtFsWTbgIV0n88tcbRICPclaKbVb-c3wGBdjFv5hLY\",\r\n    \"toolID\":\"617697a85946258887f714e6\",\r\n    \"key\":\"QYhYzRyWJjPjzpfRFEgm\",\r\n    \"hwid\":\"testhwid\",\r\n    \"data\":\"abcdefghijklmnopqrstuvwxyz0123456789\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/test_cipher",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"test_cipher"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
