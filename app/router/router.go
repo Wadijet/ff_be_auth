@@ -72,7 +72,7 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 
 	r.POST(preV1+"/users/check_token", middle.CheckMtServiceAuth(nil, ApiUser.CheckToken)) // Kiểm tra token
 
-	// ====================================  USERS API =============================================
+	// ====================================  MUTI SERVICES API =============================================
 	// Các API liên quan đến dịch vụ MT
 	ApiMtService := handler.NewMtServiceHandler(c, db)
 	r.POST(preV1+"/mtservices/register", ApiMtService.Registry)                                                           // Đăng ký dịch vụ MT

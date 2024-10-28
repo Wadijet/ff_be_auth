@@ -152,6 +152,24 @@ func (jt *JwtToken) CheckUserAuth(requirePermissions []string, next fasthttp.Req
 
 // CheckMtServiceAuth , kiểm tra xác thực dịch vụ
 // Dành cho các service giao tiếp với nhau
+// CheckMtServiceAuth là một middleware để kiểm tra quyền truy cập của dịch vụ MtService.
+// Hàm này nhận vào một danh sách các quyền yêu cầu và một fasthttp.RequestHandler tiếp theo.
+// Nếu người dùng có quyền truy cập hợp lệ, hàm sẽ gọi hàm tiếp theo, ngược lại sẽ trả về lỗi không có quyền truy cập.
+//
+// Các bước thực hiện:
+// 1. Lấy chuỗi token từ header "Authorization".
+// 2. Kiểm tra và tách chuỗi token nếu có.
+// 3. Giải mã token và kiểm tra tính hợp lệ của token.
+// 4. Tìm kiếm người dùng dựa trên ID từ token.
+// 5. Kiểm tra trạng thái của người dùng (bị khóa hay không).
+// 6. Kiểm tra token có hợp lệ với người dùng hay không.
+// 7. Nếu không có quyền yêu cầu, gọi hàm tiếp theo.
+// 8. Nếu có quyền yêu cầu, kiểm tra quyền của người dùng.
+// 9. Nếu người dùng có đủ quyền, gọi hàm tiếp theo, ngược lại trả về lỗi không có quyền.
+//
+// Các thông báo lỗi:
+// - "An unauthorized access!": Khi không có quyền truy cập.
+// - "You do not have permission to perform the action!": Khi không có quyền thực hiện hành động.
 func (jt *JwtToken) CheckMtServiceAuth(requirePermissions []string, next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 
