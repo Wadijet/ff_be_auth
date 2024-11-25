@@ -81,3 +81,5 @@ func main() {
 	initGlobal()  // Khởi tạo các biến toàn cục
 	main_thread() // Chạy server
 }
+
+// test
