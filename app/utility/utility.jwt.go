@@ -1,7 +1,7 @@
 package utility
 
 import (
-	"atk-go-server/app/models"
+	"atk-go-server/app/models/mongodb"
 
 	"github.com/dgrijalva/jwt-go"
 )

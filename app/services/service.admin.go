@@ -5,7 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"atk-go-server/app/models"
+	"atk-go-server/app/models/mongodb"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
@@ -24,9 +24,9 @@ type AdminService struct {
 // trả về interface gắn với RepositoryImp
 func NewAdminService(c *config.Configuration, db *mongo.Client) *AdminService {
 	newService := new(AdminService)
-	newService.UserCRUD = *NewRepository(c, db, global.ColNames.Users)
-	newService.PermissionCRUD = *NewRepository(c, db, global.ColNames.Permissions)
-	newService.RoleCRUD = *NewRepository(c, db, global.ColNames.Roles)
+	newService.UserCRUD = *NewRepository(c, db, global.MongoDB_ColNames.Users)
+	newService.PermissionCRUD = *NewRepository(c, db, global.MongoDB_ColNames.Permissions)
+	newService.RoleCRUD = *NewRepository(c, db, global.MongoDB_ColNames.Roles)
 	return newService
 }
 

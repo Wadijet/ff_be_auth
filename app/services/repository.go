@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"atk-go-server/app/models"
+	"atk-go-server/app/models/mongodb"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
@@ -25,14 +25,14 @@ type Repository struct {
 func GetDBName(c *config.Configuration, collectionName string) string {
 	switch collectionName {
 	// AUTH
-	case global.ColNames.Users:
-		return c.DataBaseNameAuth
-	case global.ColNames.Permissions:
-		return c.DataBaseNameAuth
-	case global.ColNames.Roles:
-		return c.DataBaseNameAuth
-	case global.ColNames.MtServices:
-		return c.DataBaseNameAuth
+	case global.MongoDB_ColNames.Users:
+		return c.MongoDB_DBNameAuth
+	case global.MongoDB_ColNames.Permissions:
+		return c.MongoDB_DBNameAuth
+	case global.MongoDB_ColNames.Roles:
+		return c.MongoDB_DBNameAuth
+	case global.MongoDB_ColNames.MtServices:
+		return c.MongoDB_DBNameAuth
 	// LOG
 
 	default:

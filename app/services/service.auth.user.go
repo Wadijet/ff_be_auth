@@ -1,7 +1,7 @@
 package services
 
 import (
-	"atk-go-server/app/models"
+	"atk-go-server/app/models/mongodb"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
@@ -28,8 +28,8 @@ type UserService struct {
 // Khởi tạo UserService với cấu hình và kết nối cơ sở dữ liệu
 func NewUserService(c *config.Configuration, db *mongo.Client) *UserService {
 	newService := new(UserService)
-	newService.crudUser = *NewRepository(c, db, global.ColNames.Users)
-	newService.crudRole = *NewRepository(c, db, global.ColNames.Roles)
+	newService.crudUser = *NewRepository(c, db, global.MongoDB_ColNames.Users)
+	newService.crudRole = *NewRepository(c, db, global.MongoDB_ColNames.Roles)
 	return newService
 }
 
@@ -71,7 +71,7 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	rdNumber := rand.Intn(100)
 	currentTime := time.Now().Unix()
 
-	tokenMap, err := utility.CreateToken(global.ServerConfig.JwtSecret, user.ID.Hex(), strconv.FormatInt(currentTime, 16), strconv.Itoa(rdNumber))
+	tokenMap, err := utility.CreateToken(global.MongoDB_ServerConfig.JwtSecret, user.ID.Hex(), strconv.FormatInt(currentTime, 16), strconv.Itoa(rdNumber))
 	if err != nil {
 		return nil, err
 	}

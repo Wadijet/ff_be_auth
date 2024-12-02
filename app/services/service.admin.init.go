@@ -6,7 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"atk-go-server/app/models"
+	"atk-go-server/app/models/mongodb"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
@@ -22,9 +22,9 @@ type InitService struct {
 // NewInitService khởi tạo các repository và trả về một đối tượng InitService
 func NewInitService(c *config.Configuration, db *mongo.Client) *InitService {
 	newService := new(InitService)
-	newService.UserCRUD = *NewRepository(c, db, global.ColNames.Users)
-	newService.PermissionCRUD = *NewRepository(c, db, global.ColNames.Permissions)
-	newService.RoleCRUD = *NewRepository(c, db, global.ColNames.Roles)
+	newService.UserCRUD = *NewRepository(c, db, global.MongoDB_ColNames.Users)
+	newService.PermissionCRUD = *NewRepository(c, db, global.MongoDB_ColNames.Permissions)
+	newService.RoleCRUD = *NewRepository(c, db, global.MongoDB_ColNames.Roles)
 	return newService
 }
 

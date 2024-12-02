@@ -21,7 +21,7 @@ type RoleHandler struct {
 // NewRoleHandler khởi tạo một RoleHandler mới
 func NewRoleHandler(c *config.Configuration, db *mongo.Client) *RoleHandler {
 	newHandler := new(RoleHandler)
-	newHandler.crud = *services.NewRepository(c, db, global.ColNames.Roles)
+	newHandler.crud = *services.NewRepository(c, db, global.MongoDB_ColNames.Roles)
 	return newHandler
 }
 

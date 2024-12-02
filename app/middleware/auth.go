@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"atk-go-server/app/models"
+	"atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
@@ -31,10 +31,10 @@ func NewJwtToken(c *config.Configuration, db *mongo.Client) *JwtToken {
 
 	newHandler := new(JwtToken)
 	newHandler.C = c
-	newHandler.UserCRUD = *services.NewRepository(c, db, global.ColNames.Users)
-	newHandler.RoleCRUD = *services.NewRepository(c, db, global.ColNames.Roles)
-	newHandler.PermissionCRUD = *services.NewRepository(c, db, global.ColNames.Permissions)
-	newHandler.MtServiceCRUD = *services.NewRepository(c, db, global.ColNames.MtServices)
+	newHandler.UserCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Users)
+	newHandler.RoleCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Roles)
+	newHandler.PermissionCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Permissions)
+	newHandler.MtServiceCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.MtServices)
 
 	return newHandler
 }

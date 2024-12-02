@@ -23,11 +23,11 @@ import (
 // Notes:
 // - This function will log and return an error if there is an issue during connection or connection check.
 func GetInstance(c *config.Configuration) (*mongo.Client, error) {
-	if c.DataBaseConnectionURL == "" {
+	if c.MongoDB_ConnectionURL == "" {
 		return nil, fmt.Errorf("database connection URL is empty")
 	}
 
-	clientOptions := options.Client().ApplyURI(c.DataBaseConnectionURL).
+	clientOptions := options.Client().ApplyURI(c.MongoDB_ConnectionURL).
 		SetConnectTimeout(10 * time.Second) // Set a connection timeout
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

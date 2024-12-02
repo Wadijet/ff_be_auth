@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"atk-go-server/app/models"
+	"atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
@@ -27,8 +27,8 @@ type UserHandler struct {
 // NewUserHandler khởi tạo một UserHandler mới
 func NewUserHandler(c *config.Configuration, db *mongo.Client) *UserHandler {
 	newHandler := new(UserHandler)
-	newHandler.UserCRUD = *services.NewRepository(c, db, global.ColNames.Users)
-	newHandler.RoleCRUD = *services.NewRepository(c, db, global.ColNames.Roles)
+	newHandler.UserCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Users)
+	newHandler.RoleCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Roles)
 	newHandler.UserService = *services.NewUserService(c, db)
 
 	return newHandler
@@ -286,7 +286,7 @@ func (h *UserHandler) CheckToken(ctx *fasthttp.RequestCtx) {
 	if response == nil { // Kiểm tra dữ liệu đầu vào
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { //
-			response = utility.FinalResponse(h.UserService.CheckToken(ctx, global.ServerConfig.JwtSecret, inputStruct.Token, inputStruct.Permissions))
+			response = utility.FinalResponse(h.UserService.CheckToken(ctx, global.MongoDB_ServerConfig.JwtSecret, inputStruct.Token, inputStruct.Permissions))
 		}
 	}
 

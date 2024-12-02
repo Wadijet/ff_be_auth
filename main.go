@@ -23,10 +23,10 @@ func initGlobal() {
 
 // Hàm khởi tạo tên các collection trong database
 func initColNames() {
-	global.ColNames.Permissions = "permissions"
-	global.ColNames.Roles = "roles"
-	global.ColNames.Users = "users"
-	global.ColNames.MtServices = "mtservices"
+	global.MongoDB_ColNames.Permissions = "permissions"
+	global.MongoDB_ColNames.Roles = "roles"
+	global.MongoDB_ColNames.Users = "users"
+	global.MongoDB_ColNames.MtServices = "mtservices"
 	logrus.Info("Initialized collection names") // Ghi log thông báo đã khởi tạo tên các collection
 }
 
@@ -39,7 +39,7 @@ func initValidator() {
 // Hàm khởi tạo cấu hình server
 func initConfig() {
 	var err error
-	global.ServerConfig = config.NewConfig()
+	global.MongoDB_ServerConfig = config.NewConfig()
 	if err != nil {
 		logrus.Fatalf("Failed to initialize config: %v", err) // Ghi log lỗi nếu khởi tạo cấu hình thất bại
 	}
@@ -49,11 +49,17 @@ func initConfig() {
 // Hàm khởi tạo kết nối database
 func initDatabase() {
 	var err error
-	global.DbSession, err = database.GetInstance(global.ServerConfig)
+	global.MongoDB_Session, err = database.GetInstance(global.MongoDB_ServerConfig)
 	if err != nil {
 		logrus.Fatalf("Failed to get database instance: %v", err) // Ghi log lỗi nếu kết nối database thất bại
 	}
 	logrus.Info("Connected to database") // Ghi log thông báo đã kết nối database thành công
+
+	global.MySQL_Session, err = database.GetMySQLInstance(global.MongoDB_ServerConfig)
+	if err != nil {
+		logrus.Fatalf("Failed to get MySQL instance: %v", err)
+	}
+	logrus.Info("Connected to MySQL")
 }
 
 // Hàm xử lý panic
@@ -66,8 +72,8 @@ func panicHandler(ctx *fasthttp.RequestCtx, data interface{}) {
 func main_thread() {
 	// Khởi tạo router
 	r := router.New()
-	api.InitRounters(r, global.ServerConfig, global.DbSession) // Khởi tạo các route cho API
-	r.PanicHandler = panicHandler                              // Đặt hàm xử lý panic
+	api.InitRounters(r, global.MongoDB_ServerConfig, global.MongoDB_Session) // Khởi tạo các route cho API
+	r.PanicHandler = panicHandler                                            // Đặt hàm xử lý panic
 
 	// Chạy server
 	logrus.Info("Starting server...") // Ghi log thông báo bắt đầu chạy server

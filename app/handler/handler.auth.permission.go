@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"atk-go-server/app/models"
+	"atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
@@ -22,7 +22,7 @@ type PermissionHandler struct {
 // NewPermissionHandler khởi tạo một PermissionHandler mới
 func NewPermissionHandler(c *config.Configuration, db *mongo.Client) *PermissionHandler {
 	newHandler := new(PermissionHandler)
-	newHandler.crud = *services.NewRepository(c, db, global.ColNames.Permissions)
+	newHandler.crud = *services.NewRepository(c, db, global.MongoDB_ColNames.Permissions)
 	return newHandler
 }
 

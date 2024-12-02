@@ -23,9 +23,9 @@ type AdminHandler struct {
 // NewAdminHandler khởi tạo một AdminHandler mới với cấu hình và kết nối cơ sở dữ liệu
 func NewAdminHandler(c *config.Configuration, db *mongo.Client) *AdminHandler {
 	newHandler := new(AdminHandler)
-	newHandler.UserCRUD = *services.NewRepository(c, db, global.ColNames.Users)
-	newHandler.PermissionCRUD = *services.NewRepository(c, db, global.ColNames.Permissions)
-	newHandler.RoleCRUD = *services.NewRepository(c, db, global.ColNames.Roles)
+	newHandler.UserCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Users)
+	newHandler.PermissionCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Permissions)
+	newHandler.RoleCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Roles)
 	newHandler.InitService = *services.NewInitService(c, db)
 	newHandler.AdminService = *services.NewAdminService(c, db)
 	return newHandler

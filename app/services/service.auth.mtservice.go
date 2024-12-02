@@ -1,7 +1,7 @@
 package services
 
 import (
-	"atk-go-server/app/models"
+	"atk-go-server/app/models/mongodb"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
@@ -29,8 +29,8 @@ type MtServiceService struct {
 // trả về interface gắn với RepositoryImp
 func NewMtServiceService(c *config.Configuration, db *mongo.Client) *MtServiceService {
 	newService := new(MtServiceService)
-	newService.crudUser = *NewRepository(c, db, global.ColNames.MtServices)
-	newService.crudRole = *NewRepository(c, db, global.ColNames.Roles)
+	newService.crudUser = *NewRepository(c, db, global.MongoDB_ColNames.MtServices)
+	newService.crudRole = *NewRepository(c, db, global.MongoDB_ColNames.Roles)
 	return newService
 }
 
@@ -72,7 +72,7 @@ func (h *MtServiceService) Login(ctx *fasthttp.RequestCtx, credential *models.Mt
 	rdNumber := rand.Intn(100)
 	currentTime := time.Now().Unix()
 
-	tokenMap, err := utility.CreateToken(global.ServerConfig.JwtSecret, user.ID.Hex(), strconv.FormatInt(currentTime, 16), strconv.Itoa(rdNumber))
+	tokenMap, err := utility.CreateToken(global.MongoDB_ServerConfig.JwtSecret, user.ID.Hex(), strconv.FormatInt(currentTime, 16), strconv.Itoa(rdNumber))
 	if err != nil {
 		return nil, err
 	}

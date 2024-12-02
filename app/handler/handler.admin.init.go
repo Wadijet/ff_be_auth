@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"atk-go-server/app/models"
+	"atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
@@ -24,9 +24,9 @@ type InitHandler struct {
 // NewInitHandler khởi tạo InitHandler mới
 func NewInitHandler(c *config.Configuration, db *mongo.Client) *InitHandler {
 	newHandler := new(InitHandler)
-	newHandler.UserCRUD = *services.NewRepository(c, db, global.ColNames.Users)
-	newHandler.PermissionCRUD = *services.NewRepository(c, db, global.ColNames.Permissions)
-	newHandler.RoleCRUD = *services.NewRepository(c, db, global.ColNames.Roles)
+	newHandler.UserCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Users)
+	newHandler.PermissionCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Permissions)
+	newHandler.RoleCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Roles)
 	newHandler.InitService = *services.NewInitService(c, db)
 	return newHandler
 }
