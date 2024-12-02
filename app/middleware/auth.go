@@ -23,7 +23,7 @@ type JwtToken struct {
 	UserCRUD       services.Repository
 	RoleCRUD       services.Repository
 	PermissionCRUD services.Repository
-	MtServiceCRUD  services.Repository
+	RolePermissionCRUD services.Repository
 }
 
 // NewJwtToken , khởi tạo một JwtToken mới
@@ -34,7 +34,7 @@ func NewJwtToken(c *config.Configuration, db *mongo.Client) *JwtToken {
 	newHandler.UserCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Users)
 	newHandler.RoleCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Roles)
 	newHandler.PermissionCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Permissions)
-	newHandler.MtServiceCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.MtServices)
+	newHandler.RolePermissionCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.RolePermissions)
 
 	return newHandler
 }
@@ -42,7 +42,7 @@ func NewJwtToken(c *config.Configuration, db *mongo.Client) *JwtToken {
 // CheckUserAuth , kiểm tra xác thực người dùng
 // Dành cho user
 // CheckUserAuth là middleware kiểm tra quyền truy cập của người dùng dựa trên JWT token và các quyền yêu cầu.
-// 
+//
 // Tham số:
 // - requirePermissions: Danh sách các quyền yêu cầu để truy cập vào tài nguyên.
 // - next: fasthttp.RequestHandler tiếp theo sẽ được gọi nếu người dùng có quyền hợp lệ.
@@ -98,8 +98,7 @@ func (jt *JwtToken) CheckUserAuth(requirePermissions []string, next fasthttp.Req
 									isRightToken := false
 									for _, _token := range user.Tokens {
 										if _token.Token == tokenString {
-											ctx.SetUserValue("userId", t.ID)                               // set loggedIn user id in context
-											ctx.SetUserValue("roleId", utility.ObjectID2String(user.Role)) // set loggedIn user id in context
+											ctx.SetUserValue("userId", t.ID) // set loggedIn user id in context
 											isRightToken = true
 											break
 										}
@@ -107,7 +106,6 @@ func (jt *JwtToken) CheckUserAuth(requirePermissions []string, next fasthttp.Req
 
 									if isRightToken == false {
 										utility.JSON(ctx, utility.Payload(false, nil, notAuthError))
-
 									} else {
 										if len(requirePermissions) == 0 {
 											next(ctx)
