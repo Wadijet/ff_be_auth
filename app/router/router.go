@@ -70,16 +70,4 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	r.POST(preV1+"/users/change_password", middle.CheckUserAuth(nil, ApiUser.ChangePassword))         // Đổi mật khẩu
 	r.POST(preV1+"/users/change_info", middle.CheckUserAuth(nil, ApiUser.ChangeInfo))                 // Đổi thông tin cá nhân
 
-	r.POST(preV1+"/users/check_token", middle.CheckMtServiceAuth(nil, ApiUser.CheckToken)) // Kiểm tra token
-
-	// ====================================  MUTI SERVICES API =============================================
-	// Các API liên quan đến dịch vụ MT
-	ApiMtService := handler.NewMtServiceHandler(c, db)
-	r.POST(preV1+"/mtservices/register", ApiMtService.Registry)                                                           // Đăng ký dịch vụ MT
-	r.POST(preV1+"/mtservices/login", ApiMtService.Login)                                                                 // Đăng nhập dịch vụ MT
-	r.GET(preV1+"/mtservices/me", middle.CheckMtServiceAuth(nil, ApiMtService.GetMyInfo))                                 // Lấy thông tin cá nhân dịch vụ MT
-	r.GET(preV1+"/mtservices", middle.CheckMtServiceAuth([]string{"mtservice.read_all"}, ApiMtService.FindAllWithFilter)) // Lấy tất cả dịch vụ MT với bộ lọc
-	r.POST(preV1+"/mtservices/change_password", middle.CheckMtServiceAuth(nil, ApiMtService.ChangePassword))              // Đổi mật khẩu dịch vụ MT
-	r.POST(preV1+"/mtservices/change_info", middle.CheckMtServiceAuth(nil, ApiMtService.ChangeInfo))                      // Đổi thông tin dịch vụ MT
-	r.POST(preV1+"/mtservices/check_token", middle.CheckMtServiceAuth(nil, ApiMtService.CheckToken))                      // Kiểm tra token dịch vụ MT
 }
