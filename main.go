@@ -23,10 +23,12 @@ func initGlobal() {
 
 // Hàm khởi tạo tên các collection trong database
 func initColNames() {
+	global.MongoDB_ColNames.Users = "users"
 	global.MongoDB_ColNames.Permissions = "permissions"
 	global.MongoDB_ColNames.Roles = "roles"
-	global.MongoDB_ColNames.Users = "users"
-	global.MongoDB_ColNames.MtServices = "mtservices"
+	global.MongoDB_ColNames.RolePermission = "role_permission"
+	global.MongoDB_ColNames.UserRole = "user_role"
+
 	logrus.Info("Initialized collection names") // Ghi log thông báo đã khởi tạo tên các collection
 }
 
@@ -53,7 +55,8 @@ func initDatabase() {
 	if err != nil {
 		logrus.Fatalf("Failed to get database instance: %v", err) // Ghi log lỗi nếu kết nối database thất bại
 	}
-	logrus.Info("Connected to database") // Ghi log thông báo đã kết nối database thành công
+	logrus.Info("Connected to MongoDB") // Ghi log thông báo đã kết nối database thành công
+	database.EnsureDatabaseAndCollections(global.MongoDB_Session)
 
 	global.MySQL_Session, err = database.GetMySQLInstance(global.MongoDB_ServerConfig)
 	if err != nil {

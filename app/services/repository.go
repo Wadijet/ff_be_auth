@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"atk-go-server/app/models/mongodb"
+	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
@@ -31,7 +31,9 @@ func GetDBName(c *config.Configuration, collectionName string) string {
 		return c.MongoDB_DBNameAuth
 	case global.MongoDB_ColNames.Roles:
 		return c.MongoDB_DBNameAuth
-	case global.MongoDB_ColNames.MtServices:
+	case global.MongoDB_ColNames.RolePermission:
+		return c.MongoDB_DBNameAuth
+	case global.MongoDB_ColNames.UserRole:
 		return c.MongoDB_DBNameAuth
 	// LOG
 

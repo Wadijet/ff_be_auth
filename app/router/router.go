@@ -21,10 +21,10 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	// ====================================  INIT API ===============================================
 	// Các API khởi tạo hệ thống
 	if c.InitMode == true {
-		ApiInit := handler.NewInitHandler(c, db)
-		r.GET(preV1+"/init/permissions", ApiInit.InitPermission) // Khởi tạo quyền
-		r.GET(preV1+"/init/roles", ApiInit.InitRole)             // Khởi tạo vai trò
-		r.POST(preV1+"/init/setadmin", ApiInit.SetAdmin)         // Thiết lập admin
+		//ApiInit := handler.NewInitHandler(c, db)
+		//r.GET(preV1+"/init/permissions", ApiInit.InitPermission) // Khởi tạo quyền
+		//r.GET(preV1+"/init/roles", ApiInit.InitRole)             // Khởi tạo vai trò
+		//r.POST(preV1+"/init/setadmin", ApiInit.SetAdmin)         // Thiết lập admin
 	}
 
 	// ====================================  STATIC API ===============================================

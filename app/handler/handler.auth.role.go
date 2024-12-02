@@ -27,39 +27,6 @@ func NewRoleHandler(c *config.Configuration, db *mongo.Client) *RoleHandler {
 
 // CRUD functions ==========================================================================
 
-// Tạo một vai trò mới
-// func (h *RoleHandler) Create(ctx *fasthttp.RequestCtx) {
-// 	var response map[string]interface{} = nil
-
-// 	// Lấy dữ liệu từ yêu cầu
-// 	postValues := ctx.PostBody()
-// 	inputStruct := new(models.RoleCreateInput)
-// 	response = utility.Convert2Struct(postValues, inputStruct)
-// 	if response == nil { // Kiểm tra dữ liệu đầu vào
-// 		response = utility.ValidateStruct(inputStruct)
-
-// 		// Chuyển đổi chuỗi thành ObjectId
-// 		newRole := new(models.Role)
-// 		newRole.Name = inputStruct.Name
-// 		newRole.Describe = inputStruct.Describe
-// 		var listObjectID []models.PermissionDetail
-// 		for _, s := range inputStruct.Permissions {
-// 			newPermissonDetail := new(models.PermissionDetail)
-// 			newPermissonDetail.ID = permissionMap["_id"].(primitive.ObjectID)
-// 			newPermissonDetail.Name = permissionMap["name"].(string)
-
-// 			listObjectID = append(listObjectID, *newPermissonDetail)
-// 		}
-// 		newRole.Permissions = listObjectID
-
-// 		if response == nil { // Gọi hàm xử lý logic
-// 			response = utility.FinalResponse(h.crud.InsertOne(ctx, newRole))
-// 		}
-// 	}
-
-// 	utility.JSON(ctx, response)
-// }
-
 // Tìm một vai trò theo ID
 func (h *RoleHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
@@ -98,53 +65,5 @@ func (h *RoleHandler) FindAll(ctx *fasthttp.RequestCtx) {
 
 	utility.JSON(ctx, response)
 }
-
-// Cập nhật một vai trò theo ID
-// func (h *RoleHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
-// 	var response map[string]interface{} = nil
-
-// 	// Lấy ID từ yêu cầu
-// 	id := ctx.UserValue("id").(string)
-// 	response = utility.FinalResponse(h.crud.FindOneById(ctx, id))
-
-// 	// Lấy dữ liệu từ yêu cầu
-// 	postValues := ctx.PostBody()
-// 	inputStruct := new(models.RoleUpdateInput)
-// 	response = utility.Convert2Struct(postValues, inputStruct)
-// 	if response == nil { // Kiểm tra dữ liệu đầu vào
-// 		response = utility.ValidateStruct(inputStruct)
-
-// 		// Chuyển đổi chuỗi thành ObjectId
-// 		newRole := new(models.Role)
-// 		newRole.Name = inputStruct.Name
-// 		newRole.Describe = inputStruct.Describe
-// 		var listObjectID []primitive.ObjectID
-// 		for _, s := range inputStruct.Permissions {
-// 			listObjectID = append(listObjectID, utility.String2ObjectID(s))
-// 		}
-// 		newRole.Permissions = listObjectID
-
-// 		if response == nil { // Gọi hàm tạo json changes
-// 			var change map[string]interface{}
-// 			response = utility.CreateChangeMap(newRole, &change)
-// 			if response == nil { // Gọi hàm xử lý logic
-// 				response = utility.FinalResponse(h.crud.UpdateOneById(ctx, id, change))
-// 			}
-// 		}
-// 	}
-
-// 	utility.JSON(ctx, response)
-// }
-
-// Xóa một vai trò theo ID
-// func (h *RoleHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
-// 	var response map[string]interface{} = nil
-
-// 	// Lấy ID từ yêu cầu
-// 	id := ctx.UserValue("id").(string)
-// 	response = utility.FinalResponse(h.crud.DeleteOneById(ctx, id))
-
-// 	utility.JSON(ctx, response)
-// }
 
 // Other functions =========================================================================

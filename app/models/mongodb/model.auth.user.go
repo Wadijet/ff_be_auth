@@ -7,18 +7,17 @@ import (
 
 // User , định nghĩa mô hình người dùng
 type User struct {
-	ID        primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`              // ID của người dùng
-	Name      string             `json:"name,omitempty" bson:"name,omitempty"`           // Tên của người dùng
-	Email     string             `json:"email,omitempty" bson:"email,omitempty"`         // Email của người dùng
-	Password  string             `json:"-" bson:"password,omitempty"`                    // Mật khẩu của người dùng
-	Salt      string             `json:"-" bson:"salt,omitempty"`                        // Muối để mã hóa mật khẩu
-	Token     string             `json:"token" bson:"token,omitempty"`                   // Token xác thực
-	Tokens    []Token            `json:"tokens" bson:"tokens,omitempty"`                 // Danh sách các token
-	Role      primitive.ObjectID `json:"-" bson:"role,omitempty"`                        // Vai trò của người dùng
-	IsBlock   bool               `json:"isBlock,omitempty" bson:"isBlock,omitempty"`     // Trạng thái bị khóa
-	BlockNote string             `json:"blockNote,omitempty" bson:"blockNote,omitempty"` // Ghi chú về việc bị khóa
-	CreatedAt int64              `json:"createdAt,omitempty" bson:"createdAt,omitempty"` // Thời gian tạo
-	UpdatedAt int64              `json:"updatedAt,omitempty" bson:"updatedAt,omitempty"` // Thời gian cập nhật
+	ID       primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`      // ID của người dùng
+	Name     string             `json:"name,omitempty" bson:"name,omitempty"`   // Tên của người dùng
+	Email    string             `json:"email,omitempty" bson:"email,omitempty"` // Email của người dùng
+	Password string             `json:"-" bson:"password,omitempty"`            // Mật khẩu của người dùng
+	Salt     string             `json:"-" bson:"salt,omitempty"`                // Muối để mã hóa mật khẩu
+	Token    string             `json:"token" bson:"token,omitempty"`           // Token xác thực
+	Tokens   []Token            `json:"tokens" bson:"tokens,omitempty"`         // Danh sách các token
+	IsBlock   bool   `json:"isBlock,omitempty" bson:"isBlock,omitempty"`     // Trạng thái bị khóa
+	BlockNote string `json:"blockNote,omitempty" bson:"blockNote,omitempty"` // Ghi chú về việc bị khóa
+	CreatedAt int64  `json:"createdAt,omitempty" bson:"createdAt,omitempty"` // Thời gian tạo
+	UpdatedAt int64  `json:"updatedAt,omitempty" bson:"updatedAt,omitempty"` // Thời gian cập nhật
 }
 
 // ComparePassword so sánh mật khẩu
@@ -63,12 +62,5 @@ type UserChangeInfoInput struct {
 
 // UserFilterInput , đầu vào lọc người dùng
 type UserFilterInput struct {
-	Emails  []string             `json:"emails" bson:"emails"`   // Danh sách email
-	RoleIDs []primitive.ObjectID `json:"roleIDs" bson:"roleIDs"` // Danh sách ID vai trò
-}
-
-// UserCheckTokenInput , đầu vào kiểm tra token người dùng
-type UserCheckTokenInput struct {
-	Token       string   `json:"token" bson:"token,omitempty"`             // Token xác thực
-	Permissions []string `json:"permissions" bson:"permissions,omitempty"` // Danh sách quyền hạn
+	Emails []string `json:"emails" bson:"emails"` // Danh sách email
 }

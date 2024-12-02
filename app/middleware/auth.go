@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"atk-go-server/app/models/mongodb"
+	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
@@ -41,6 +41,23 @@ func NewJwtToken(c *config.Configuration, db *mongo.Client) *JwtToken {
 
 // CheckUserAuth , kiểm tra xác thực người dùng
 // Dành cho user
+// CheckUserAuth là middleware kiểm tra quyền truy cập của người dùng dựa trên JWT token và các quyền yêu cầu.
+// 
+// Tham số:
+// - requirePermissions: Danh sách các quyền yêu cầu để truy cập vào tài nguyên.
+// - next: fasthttp.RequestHandler tiếp theo sẽ được gọi nếu người dùng có quyền hợp lệ.
+//
+// Chức năng:
+// - Kiểm tra xem header "Authorization" có chứa JWT token hợp lệ hay không.
+// - Giải mã và xác thực JWT token.
+// - Tìm kiếm người dùng dựa trên ID trong token.
+// - Kiểm tra xem người dùng có bị khóa hay không.
+// - Kiểm tra xem token có hợp lệ với người dùng hay không.
+// - Nếu có quyền yêu cầu, kiểm tra xem người dùng có quyền đó hay không.
+// - Nếu tất cả các kiểm tra đều thành công, gọi fasthttp.RequestHandler tiếp theo.
+//
+// Trả về:
+// - fasthttp.RequestHandler: Handler sẽ được gọi nếu người dùng có quyền hợp lệ, nếu không sẽ trả về lỗi JSON.
 func (jt *JwtToken) CheckUserAuth(requirePermissions []string, next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 
@@ -149,5 +166,3 @@ func (jt *JwtToken) CheckUserAuth(requirePermissions []string, next fasthttp.Req
 		}
 	}
 }
-
-

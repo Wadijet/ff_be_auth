@@ -11,10 +11,11 @@ import (
 
 // MongoDB_CollectionName chứa tên các collection trong MongoDB
 type MongoDB_CollectionName struct {
-	Permissions string // Tên collection cho quyền
-	Roles       string // Tên collection cho vai trò
-	Users       string // Tên collection cho người dùng
-	MtServices  string // Tên collection cho dịch vụ MT
+	Users          string // Tên collection cho người dùng
+	Permissions    string // Tên collection cho quyền
+	Roles          string // Tên collection cho vai trò
+	RolePermission string // Tên collection cho vai trò và quyền
+	UserRole       string // Tên collection cho người dùng và vai trò
 }
 
 // Các biến toàn cục

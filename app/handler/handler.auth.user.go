@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"atk-go-server/app/models/mongodb"
+	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
@@ -88,9 +87,6 @@ func (h *UserHandler) FindAllWithFilter(ctx *fasthttp.RequestCtx) {
 			if len(inputStruct.Emails) > 0 {
 				filterMap["email"] = bson.M{"$in": inputStruct.Emails}
 			}
-			if len(inputStruct.RoleIDs) > 0 {
-				filterMap["role"] = bson.M{"$in": inputStruct.RoleIDs}
-			}
 
 			var filter bson.M
 			data, err := bson.Marshal(filterMap)
@@ -128,33 +124,19 @@ func (h *UserHandler) Registry(ctx *fasthttp.RequestCtx) {
 				response = utility.Payload(false, nil, "User already exists!")
 			} else {
 
-				// Tìm Role User
-				userRole, err := h.RoleCRUD.FindOne(ctx, bson.M{"name": "User"}, nil)
-				if userRole != nil {
-					userRoleMap, err := utility.ToMap(userRole)
-					if err != nil {
-						response = utility.Payload(false, err, "Can not create user!")
-					} else {
-						userRoleID := userRoleMap["_id"].(primitive.ObjectID)
+				newUser := new(models.User)
+				newUser.Name = inputStruct.Name
+				newUser.Email = inputStruct.Email
 
-						newUser := new(models.User)
-						newUser.Name = inputStruct.Name
-						newUser.Email = inputStruct.Email
-						newUser.Role = userRoleID
+				newUser.Salt = uuid.New().String()
+				passwordBytes := []byte(inputStruct.Password + newUser.Salt)
 
-						newUser.Salt = uuid.New().String()
-						passwordBytes := []byte(inputStruct.Password + newUser.Salt)
-
-						hash, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
-						if err != nil {
-							response = utility.Payload(false, err.Error(), "Can not create hash password!")
-						} else {
-							newUser.Password = string(hash[:])
-							response = utility.FinalResponse(h.UserCRUD.InsertOne(ctx, newUser))
-						}
-					}
+				hash, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
+				if err != nil {
+					response = utility.Payload(false, err.Error(), "Can not create hash password!")
 				} else {
-					response = utility.Payload(false, err, "Can not create user!")
+					newUser.Password = string(hash[:])
+					response = utility.FinalResponse(h.UserCRUD.InsertOne(ctx, newUser))
 				}
 
 			}
@@ -269,24 +251,6 @@ func (h *UserHandler) ChangeInfo(ctx *fasthttp.RequestCtx) {
 				response = utility.Payload(true, nil, "An unauthorized access!")
 			}
 
-		}
-	}
-
-	utility.JSON(ctx, response)
-}
-
-// CheckToken kiểm tra token của người dùng
-func (h *UserHandler) CheckToken(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu
-	postValues := ctx.PostBody()
-	inputStruct := new(models.UserCheckTokenInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { //
-			response = utility.FinalResponse(h.UserService.CheckToken(ctx, global.MongoDB_ServerConfig.JwtSecret, inputStruct.Token, inputStruct.Permissions))
 		}
 	}
 

@@ -68,7 +68,7 @@ func (service *AdminService) SetRole(ctx *fasthttp.RequestCtx, Email string, Rol
 	}
 
 	// Gán Role cho User
-	user.Role = resultRole.ID
+	//user.Role = resultRole.ID
 
 	CustomBson := &utility.CustomBson{}
 	change, err := CustomBson.Set(user)

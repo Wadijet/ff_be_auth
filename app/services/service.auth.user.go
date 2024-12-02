@@ -1,17 +1,14 @@
 package services
 
 import (
-	"atk-go-server/app/models/mongodb"
+	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
-	"context"
-	"errors"
 	"math/rand"
 	"strconv"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
@@ -46,6 +43,8 @@ func (h *UserService) IsEmailExist(ctx *fasthttp.RequestCtx, email string) bool 
 
 // Đăng nhập người dùng
 func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLoginInput) (*models.User, error) {
+	
+	// Tìm người dùng theo email
 	query := bson.M{"email": credential.Email}
 	result, err := h.crudUser.FindOne(ctx, query, nil)
 	if result == nil {
@@ -63,6 +62,7 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 		return nil, err
 	}
 
+	// So sánh mật khẩu
 	if err = user.ComparePassword(credential.Password); err != nil {
 		return nil, err
 	}
@@ -71,6 +71,7 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	rdNumber := rand.Intn(100)
 	currentTime := time.Now().Unix()
 
+	// Tạo token mới
 	tokenMap, err := utility.CreateToken(global.MongoDB_ServerConfig.JwtSecret, user.ID.Hex(), strconv.FormatInt(currentTime, 16), strconv.Itoa(rdNumber))
 	if err != nil {
 		return nil, err
@@ -78,15 +79,18 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 
 	var idTokenExist int = -1
 
+	// Kiểm tra token đã tồn tại hay chưa
 	for i, _token := range user.Tokens {
 		if _token.Hwid == credential.Hwid {
 			idTokenExist = i
 		}
 	}
 
+	// Cập nhật token nếu đã tồn tại
 	if idTokenExist != -1 {
 		user.Tokens[idTokenExist].Token = tokenMap["token"]
 	} else {
+		// Thêm token mới nếu chưa tồn tại
 		var newToken models.Token
 		newToken.Hwid = credential.Hwid
 		newToken.Token = tokenMap["token"]
@@ -100,11 +104,13 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 		return nil, err
 	}
 
+	// Cập nhật thông tin người dùng trong cơ sở dữ liệu
 	_, err = h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
 	if err != nil {
 		return nil, err
 	}
 
+	// Gán token mới cho người dùng
 	user.Token = tokenMap["token"]
 
 	return &user, nil
@@ -225,98 +231,4 @@ func (h *UserService) ChangeInfo(ctx *fasthttp.RequestCtx, userID string, creden
 	}
 
 	return h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
-}
-
-// Kiểm tra token người dùng
-func (h *UserService) CheckToken(ctx *fasthttp.RequestCtx, JwtSecret string, tokenString string, requirePermissions []string) (CheckTokenResult interface{}, err error) {
-	unauthError := errors.New("An unauthorized access!")
-	userBlockedError := errors.New("User has been blocked!")
-	notPermissionError := errors.New("You do not have permission to perform the action!")
-
-	// Giải mã token
-	t := models.JwtToken{}
-	token, err := jwt.ParseWithClaims(tokenString, &t, func(token *jwt.Token) (interface{}, error) {
-		return []byte(JwtSecret), nil
-	})
-
-	if err != nil || !token.Valid {
-		return nil, unauthError
-	} else {
-		findUser, err := h.crudUser.FindOneById(context.TODO(), t.ID, nil)
-		if err != nil {
-			return nil, unauthError
-		}
-
-		var user models.User
-		bsonBytes, err := bson.Marshal(findUser)
-		if err != nil {
-			return nil, unauthError
-		}
-
-		err = bson.Unmarshal(bsonBytes, &user)
-		if err != nil {
-			return nil, unauthError
-		}
-
-		if user.IsBlock {
-			return nil, userBlockedError
-		}
-
-		isRightToken := false
-		for _, _token := range user.Tokens {
-			if _token.Token == tokenString {
-				ctx.SetUserValue("userId", t.ID)                               // đặt ID người dùng đã đăng nhập vào context
-				ctx.SetUserValue("roleId", utility.ObjectID2String(user.Role)) // đặt ID vai trò người dùng đã đăng nhập vào context
-				isRightToken = true
-				break
-			}
-		}
-
-		if isRightToken == false {
-			return nil, unauthError
-		}
-
-		if len(requirePermissions) == 0 {
-			return user, nil
-		}
-
-		strRoleID := utility.ObjectID2String(user.Role)
-		findRole, err := h.crudRole.FindOneById(context.TODO(), strRoleID, nil)
-		if err != nil {
-			return nil, notPermissionError
-		}
-
-		var result_findRole models.Role
-		bsonBytes, err = bson.Marshal(findRole)
-		if err != nil {
-			return nil, notPermissionError
-		}
-
-		err = bson.Unmarshal(bsonBytes, &result_findRole)
-		if err != nil {
-			return nil, notPermissionError
-		}
-
-		totalCheck := true
-		for _, requirePermisson := range requirePermissions {
-			checkPermission := false
-			for _, s := range result_findRole.Permissions {
-				if requirePermisson == s.Name {
-					checkPermission = true
-					break
-				}
-			}
-
-			if checkPermission == false {
-				totalCheck = false
-				break
-			}
-		}
-
-		if totalCheck == true {
-			return user, nil
-		} else {
-			return nil, notPermissionError
-		}
-	}
 }
