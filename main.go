@@ -18,13 +18,14 @@ func initGlobal() {
 	initColNames()  // Khởi tạo tên các collection trong database
 	initValidator() // Khởi tạo validator
 	initConfig()    // Khởi tạo cấu hình server
-	initDatabase()  // Khởi tạo kết nối database
+	initDatabase_MongoDB()  // Khởi tạo kết nối database
 }
 
 // Hàm khởi tạo tên các collection trong database
 func initColNames() {
 	global.MongoDB_ColNames.Users = "users"
 	global.MongoDB_ColNames.Permissions = "permissions"
+	global.MongoDB_ColNames.Organizations = "organizations"
 	global.MongoDB_ColNames.Roles = "roles"
 	global.MongoDB_ColNames.RolePermissions = "role_permissions"
 	global.MongoDB_ColNames.UserRoles = "user_roles"
@@ -49,7 +50,7 @@ func initConfig() {
 }
 
 // Hàm khởi tạo kết nối database
-func initDatabase() {
+func initDatabase_MongoDB() {
 	var err error
 	global.MongoDB_Session, err = database.GetInstance(global.MongoDB_ServerConfig)
 	if err != nil {
@@ -57,6 +58,12 @@ func initDatabase() {
 	}
 	logrus.Info("Connected to MongoDB") // Ghi log thông báo đã kết nối database thành công
 	database.EnsureDatabaseAndCollections(global.MongoDB_Session)
+
+}
+
+// Hàm khởi tạo kết nối database
+func initDatabase_MySql() {
+	var err error
 
 	global.MySQL_Session, err = database.GetMySQLInstance(global.MongoDB_ServerConfig)
 	if err != nil {

@@ -13,6 +13,7 @@ import (
 type MongoDB_CollectionName struct {
 	Users           string // Tên collection cho người dùng
 	Permissions     string // Tên collection cho quyền
+	Organizations   string // Tên collection cho tổ chức
 	Roles           string // Tên collection cho vai trò
 	RolePermissions string // Tên collection cho vai trò và quyền
 	UserRoles       string // Tên collection cho người dùng và vai trò

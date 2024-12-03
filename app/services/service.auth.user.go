@@ -41,9 +41,9 @@ func (h *UserService) IsEmailExist(ctx *fasthttp.RequestCtx, email string) bool 
 	}
 }
 
-// Đăng nhập người dùng
+// Đăng nhập người dùng bằng email và mật khẩu
 func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLoginInput) (*models.User, error) {
-	
+
 	// Tìm người dùng theo email
 	query := bson.M{"email": credential.Email}
 	result, err := h.crudUser.FindOne(ctx, query, nil)
@@ -67,7 +67,7 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 		return nil, err
 	}
 
-	// Tạo chuỗi tạm thời để tạo token mới
+	// Tạo chuỗi random và curentTime để tạo token mới
 	rdNumber := rand.Intn(100)
 	currentTime := time.Now().Unix()
 
@@ -79,7 +79,7 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 
 	var idTokenExist int = -1
 
-	// Kiểm tra token đã tồn tại hay chưa
+	// duyệt qua tất cả các token, kiểm tra hwid đó đã có token chưa, nếu có thì idTokenExist = i
 	for i, _token := range user.Tokens {
 		if _token.Hwid == credential.Hwid {
 			idTokenExist = i
@@ -87,13 +87,14 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	}
 
 	// Cập nhật token nếu đã tồn tại
-	if idTokenExist != -1 {
-		user.Tokens[idTokenExist].Token = tokenMap["token"]
-	} else {
+	if idTokenExist != -1 { // nếu idTokenExist != -1 thì cập nhật token mới
+		user.Tokens[idTokenExist].JwtToken = tokenMap["token"]
+	} else { // Thêm token mới nếu chưa tồn tại hwid
 		// Thêm token mới nếu chưa tồn tại
 		var newToken models.Token
 		newToken.Hwid = credential.Hwid
-		newToken.Token = tokenMap["token"]
+		newToken.JwtToken = tokenMap["token"]
+		newToken.RoleID = ""
 
 		user.Tokens = append(user.Tokens, newToken)
 	}
@@ -116,13 +117,12 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	return &user, nil
 }
 
-// Xóa token tại vị trí chỉ định
-func RemoveIndex(s []models.Token, index int) []models.Token {
-	return append(s[:index], s[index+1:]...)
-}
+// Chọn role để làm việc
+// Sau khi đăng nhập thành công, token của người dùng sẽ để trống RoleID,
+// Khi người dùng chọn RoleID để làm việc, token sẽ được gán RoleID
+func (h *UserService) SetWorkingRole(ctx *fasthttp.RequestCtx, userID string, currentToken string, roleID string) (*models.User, error) {
 
-// Đăng xuất người dùng
-func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential *models.UserLogoutInput) (LogoutResult interface{}, err error) {
+	// Tìm user theo ID
 	result, err := h.crudUser.FindOneById(ctx, userID, nil)
 	if result == nil {
 		return nil, err
@@ -139,12 +139,77 @@ func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential
 		return nil, err
 	}
 
+	// Tìm token theo currentToken
+	var idTokenExist int = -1
+	for i, _token := range user.Tokens {
+		if _token.JwtToken == currentToken {
+			idTokenExist = i
+		}
+	}
+
+	// Check xem roleID có tồn tại không
+	result, err = h.crudRole.FindOneById(ctx, roleID, nil)
+	if result == nil {
+		return nil, err
+	}
+
+	// Cập nhật RoleID
+	if idTokenExist != -1 {
+		user.Tokens[idTokenExist].RoleID = roleID
+	} else {
+		return nil, err
+	}
+
+	CustomBson := &utility.CustomBson{}
+	change, err := CustomBson.Set(user)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cập nhật thông tin người dùng trong cơ sở dữ liệu
+	_, err = h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+
+}
+
+// Xóa token tại vị trí chỉ định
+func RemoveIndex(s []models.Token, index int) []models.Token {
+	return append(s[:index], s[index+1:]...)
+}
+
+// Đăng xuất người dùng
+func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential *models.UserLogoutInput) (LogoutResult interface{}, err error) {
+	
+	// Tìm người dùng theo userID
+	result, err := h.crudUser.FindOneById(ctx, userID, nil)
+	if result == nil {
+		return nil, err
+	}
+
+	var user models.User
+	bsonBytes, err := bson.Marshal(result)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bson.Unmarshal(bsonBytes, &user)
+	if err != nil {
+		return nil, err
+	}
+
+	// Tạo mảng mới, không chứa token có hwid trùng với hwid trong credential
 	var newTokens []models.Token
 	for _, _token := range user.Tokens {
 		if _token.Hwid != credential.Hwid {
 			newTokens = append(newTokens, _token)
 		}
 	}
+
+	// Cập nhật danh sách token
 	user.Tokens = newTokens
 
 	CustomBson := &utility.CustomBson{}
@@ -163,6 +228,8 @@ func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential
 
 // Thay đổi mật khẩu người dùng
 func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, credential *models.UserChangePasswordInput) (ChangePasswordResult interface{}, err error) {
+	
+	// Tìm người dùng theo userID
 	result, err := h.crudUser.FindOneById(ctx, userID, nil)
 	if result == nil {
 		return nil, err
@@ -179,6 +246,7 @@ func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, cr
 		return nil, err
 	}
 
+	// So sánh mật khẩu cũ
 	err = user.ComparePassword(credential.OldPassword)
 	if err != nil {
 		return nil, err
@@ -205,6 +273,8 @@ func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, cr
 
 // Thay đổi thông tin người dùng
 func (h *UserService) ChangeInfo(ctx *fasthttp.RequestCtx, userID string, credential *models.UserChangeInfoInput) (ChangeInfoResult interface{}, err error) {
+	
+	// Tìm người dùng theo userID
 	result, err := h.crudUser.FindOneById(ctx, userID, nil)
 	if result == nil {
 		return nil, err

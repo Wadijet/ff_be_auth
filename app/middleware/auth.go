@@ -19,10 +19,10 @@ import (
 // JwtToken , basic jwt model
 // Cấu trúc JwtToken, mô hình jwt cơ bản
 type JwtToken struct {
-	C              *config.Configuration
-	UserCRUD       services.Repository
-	RoleCRUD       services.Repository
-	PermissionCRUD services.Repository
+	C                  *config.Configuration
+	UserCRUD           services.Repository
+	RoleCRUD           services.Repository
+	PermissionCRUD     services.Repository
 	RolePermissionCRUD services.Repository
 }
 
@@ -62,90 +62,132 @@ func (jt *JwtToken) CheckUserAuth(requirePermissions []string, next fasthttp.Req
 	return func(ctx *fasthttp.RequestCtx) {
 
 		notAuthError := "An unauthorized access!"
+		notRoleError := "You have not selected a role to work with!"
 		notPermissionError := "You do not have permission to perform the action!"
 
-		tokenString := string(ctx.Request.Header.Peek("Authorization"))
-		if tokenString != "" {
-			splitToken := strings.Split(tokenString, "Bearer ")
+		// Lấy JWT token từ header "Authorization"
+		jwtTokenString := string(ctx.Request.Header.Peek("Authorization"))
+		if jwtTokenString != "" {
+			// Tách JWT token từ header "Authorization Bearer" bằng cách tách chuỗi
+			splitToken := strings.Split(jwtTokenString, "Bearer ")
 			if len(splitToken) > 1 {
-				tokenString = splitToken[1]
 
-				// In another way, you can decode token to your struct, which needs to satisfy `jwt.StandardClaims`
+				// Lấy chuỗi JWT token từ phần tử thứ 2 của mảng sau khi tách
+				jwtTokenString = splitToken[1]
+
+				// Giải mã JWT token và kiểm tra tính hợp lệ của token
 				t := models.JwtToken{}
-				token, err := jwt.ParseWithClaims(tokenString, &t, func(token *jwt.Token) (interface{}, error) {
+				jwtToken, err := jwt.ParseWithClaims(jwtTokenString, &t, func(token *jwt.Token) (interface{}, error) {
 					return []byte(jt.C.JwtSecret), nil
 				})
 
-				if err != nil || !token.Valid {
+				// Nếu có lỗi hoặc token không hợp lệ thì trả về lỗi JSON
+				if err != nil || !jwtToken.Valid {
 					utility.JSON(ctx, utility.Payload(false, nil, notAuthError))
-				} else {
-					findUser, err := jt.UserCRUD.FindOneById(context.TODO(), t.ID, nil)
+				} else { // Nếu token hợp lệ thì tiếp tục kiểm tra
+
+					// Tìm người dùng dựa trên ID trong token
+					findUser, err := jt.UserCRUD.FindOneById(context.TODO(), t.UserID, nil)
+					// Nếu không tìm thấy người dùng thì trả về lỗi JSON
 					if findUser == nil {
 						utility.JSON(ctx, utility.Payload(false, err, notAuthError))
-					} else {
+					} else { // Nếu tìm thấy người dùng thì tiếp tục kiểm tra
+						// Chuyển kết quả tìm kiếm thành dạng []byte
 						var user models.User
 						bsonBytes, err := bson.Marshal(findUser)
+
+						// Nếu có lỗi trong quá trình chuyển đổi thì trả về lỗi JSON
 						if err != nil {
 							utility.JSON(ctx, utility.Payload(false, err, notAuthError))
-						} else {
+						} else { // Nếu không có lỗi thì tiếp tục kiểm tra
+
+							// Chuyển kết quả tìm kiếm từ dạng []byte thành cấu trúc User
 							err = bson.Unmarshal(bsonBytes, &user)
 							if err != nil {
 								utility.JSON(ctx, utility.Payload(false, err, notAuthError))
 							} else {
+
+								// Kiểm tra xem người dùng có bị khóa hay không
 								if user.IsBlock {
 									utility.JSON(ctx, utility.Payload(false, nil, notAuthError))
-								} else {
+								} else { // Nếu không bị khóa thì tiếp tục kiểm tra
+
+									// Kiểm tra xem token có tồn tại trong danh sách Tokens của người dùng hay không. Nếu có thì lưu thông tin vào context 
 									isRightToken := false
 									for _, _token := range user.Tokens {
-										if _token.Token == tokenString {
-											ctx.SetUserValue("userId", t.ID) // set loggedIn user id in context
+										if _token.JwtToken == jwtTokenString {
+											ctx.SetUserValue("userId", t.UserID)           // set loggedIn user id in context
+											ctx.SetUserValue("userToken", _token.JwtToken) // set loggedIn user token in context
+											ctx.SetUserValue("roleId", _token.RoleID)      // set loggedIn user role id in contextß
 											isRightToken = true
 											break
 										}
 									}
 
+									// Nếu token không hợp lệ
 									if isRightToken == false {
 										utility.JSON(ctx, utility.Payload(false, nil, notAuthError))
 									} else {
-										if len(requirePermissions) == 0 {
-											next(ctx)
-										} else {
-											strRoleID := utility.ObjectID2String(user.Role)
-											findRole, err := jt.RoleCRUD.FindOneById(context.TODO(), strRoleID, nil)
-											if findRole == nil {
-												utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
-											} else {
-												var result_findRole models.Role
-												bsonBytes, err := bson.Marshal(findRole)
-												if err != nil {
+
+										// Kiểm tra xem người dùng đã chọn RoleID để làm việc hay chưa
+										if ctx.UserValue("roleId") == nil {
+											utility.JSON(ctx, utility.Payload(false, nil, notRoleError))
+										} else { // Nếu đã chọn RoleID thì tiếp tục kiểm tra
+										
+
+											// Nếu requirePermissions có số lượng bằng 0
+											if len(requirePermissions) == 0 {
+												next(ctx)
+											} else { // Nếu requirePermissions có số lượng lớn hơn 0
+												// Kiểm tra xem người dùng có quyền yêu cầu hay không
+												roleID := ctx.UserValue("roleId").(string)
+												// Tìm tất cả RolePermission dựa trên RoleID
+												findRolePermission, err := jt.RolePermissionCRUD.FindAll(context.TODO(), bson.M{"roleId":roleID}, nil)
+												if findRolePermission == nil {
 													utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
 												} else {
-													err = bson.Unmarshal(bsonBytes, &result_findRole)
+													// chuyển findRolePermission từ dạng []interface{} thành dạng []models.RolePermission
+													var rolePermissions []models.RolePermission
+													bsonBytes, err := bson.Marshal(findRolePermission)
 													if err != nil {
 														utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
-													} else {
-														totalCheck := true
-														for _, requirePermisson := range requirePermissions {
-															checkPermission := false
-															for _, s := range result_findRole.Permissions {
-																if requirePermisson == s.Name {
-																	checkPermission = true
+													} 
+													err = bson.Unmarshal(bsonBytes, &rolePermissions)
+													if err != nil {
+														utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
+													}
+													
+													// Duyệt qua danh sách quyền của vai trò 
+													// Nếu có quyền yêu cầu nào không nằm trong danh sách quyền của vai trò thì trả về lỗi JSON
+													isRightPermission := false
+													for _, requireRermission := range requirePermissions {
+														for _, rolePermission := range rolePermissions {
+															// Tìm permission trong danh sách các quyền theo PermissionID
+															resultPermission, _ := jt.PermissionCRUD.FindOneById(context.TODO(), utility.ObjectID2String(rolePermission.PermissionID), nil)
+															if resultPermission != nil {
+																
+																var permission models.Permission
+																bsonBytes, err := bson.Marshal(resultPermission)
+																if err != nil {
+																	utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
+																}
+
+																err = bson.Unmarshal(bsonBytes, &permission)
+																if err != nil {
+																	utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
+																}
+
+																if permission.Name == requireRermission {
+																	isRightPermission = true
 																	break
 																}
 															}
-
-															if checkPermission == false {
-																totalCheck = false
-																break
-															}
 														}
-
-														if totalCheck == true {
-															next(ctx)
-														} else {
-															utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
-														}
-
+													}
+													if isRightPermission {
+														next(ctx)
+													} else {
+														utility.JSON(ctx, utility.Payload(false, nil, notPermissionError))
 													}
 												}
 											}
@@ -164,3 +206,4 @@ func (jt *JwtToken) CheckUserAuth(requirePermissions []string, next fasthttp.Req
 		}
 	}
 }
+

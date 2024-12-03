@@ -25,3 +25,4 @@ func NewInitHandler(c *config.Configuration, db *mongo.Client) *InitHandler {
 	newHandler.InitService = *services.NewInitService(c, db)
 	return newHandler
 }
+

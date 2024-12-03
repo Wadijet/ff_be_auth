@@ -1,7 +1,7 @@
 package utility
 
 import (
-	"atk-go-server/app/models/mongodb"
+	models "atk-go-server/app/models/mongodb"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -32,9 +32,9 @@ func CreateToken(secretKey string, id string, time string, randomNum string) (ma
 
 	// Tạo đối tượng JwtToken với các thông tin cần thiết
 	_token := models.JwtToken{
-		ID:        id,
-		Time:      time,
-		RandomNum: randomNum,
+		UserID:       id,
+		Time:         time,
+		RandomNumber: randomNum,
 	}
 
 	// Tạo token mới với phương thức ký HS256 và thông tin từ _token

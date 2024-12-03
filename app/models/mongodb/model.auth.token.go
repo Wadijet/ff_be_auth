@@ -13,13 +13,14 @@ import "github.com/dgrijalva/jwt-go"
 // - RandomNum: Số ngẫu nhiên để tăng tính bảo mật.
 // - StandardClaims: Các yêu cầu tiêu chuẩn của JWT.
 type JwtToken struct {
-	ID        string `json:"id"`        // User id
-	Time      string `json:"time"`      // User id
-	RandomNum string `json:"randomNum"` // User id
+	UserID       string `json:"userId"`    // User ID
+	Time         string `json:"time"`      // Time
+	RandomNumber string `json:"randomNumber"` // Random number
 	jwt.StandardClaims
 }
 
 type Token struct {
-	Hwid  string `json:"hwid" bson:"hwid,omitempty"`
-	Token string `json:"token,omitempty" bson:"token,omitempty"`
+	Hwid     string `json:"hwid" bson:"hwid,omitempty"`                   // Hardware ID
+	RoleID   string `json:"roleId" bson:"roleId,omitempty"`               // Role ID
+	JwtToken string `json:"jwtToken,omitempty" bson:"jwtToken,omitempty"` // Token
 }
