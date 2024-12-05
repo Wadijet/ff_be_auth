@@ -6,6 +6,7 @@ import (
 	"github.com/valyala/fasthttp"
 	validator "gopkg.in/go-playground/validator.v9"
 
+	"atk-go-server/app/middleware"
 	api "atk-go-server/app/router"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
@@ -15,10 +16,10 @@ import (
 
 // Hàm khởi tạo các biến toàn cục
 func initGlobal() {
-	initColNames()  // Khởi tạo tên các collection trong database
-	initValidator() // Khởi tạo validator
-	initConfig()    // Khởi tạo cấu hình server
-	initDatabase_MongoDB()  // Khởi tạo kết nối database
+	initColNames()         // Khởi tạo tên các collection trong database
+	initValidator()        // Khởi tạo validator
+	initConfig()           // Khởi tạo cấu hình server
+	initDatabase_MongoDB() // Khởi tạo kết nối database
 }
 
 // Hàm khởi tạo tên các collection trong database
@@ -85,9 +86,12 @@ func main_thread() {
 	api.InitRounters(r, global.MongoDB_ServerConfig, global.MongoDB_Session) // Khởi tạo các route cho API
 	r.PanicHandler = panicHandler                                            // Đặt hàm xử lý panic
 
+	// Sử dụng middleware Measure
+	measuredHandler := middleware.Measure(r.Handler)
+
 	// Chạy server
 	logrus.Info("Starting server...") // Ghi log thông báo bắt đầu chạy server
-	if err := fasthttp.ListenAndServe(":8080", r.Handler); err != nil {
+	if err := fasthttp.ListenAndServe(":8080", measuredHandler); err != nil {
 		logrus.Fatalf("Error in ListenAndServe: %v", err) // Ghi log lỗi nếu server không thể chạy
 	}
 }

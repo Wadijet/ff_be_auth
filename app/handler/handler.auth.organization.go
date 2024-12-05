@@ -22,6 +22,7 @@ type OrganizationHandler struct {
 func NewOrganizationHandler(c *config.Configuration, db *mongo.Client) *OrganizationHandler {
 	newHandler := new(OrganizationHandler)
 	newHandler.crud = *services.NewRepository(c, db, global.MongoDB_ColNames.Organizations)
+
 	return newHandler
 }
 

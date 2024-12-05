@@ -29,6 +29,8 @@ func GetDBName(c *config.Configuration, collectionName string) string {
 		return c.MongoDB_DBNameAuth
 	case global.MongoDB_ColNames.Permissions:
 		return c.MongoDB_DBNameAuth
+	case global.MongoDB_ColNames.Organizations:
+		return c.MongoDB_DBNameAuth
 	case global.MongoDB_ColNames.Roles:
 		return c.MongoDB_DBNameAuth
 	case global.MongoDB_ColNames.RolePermissions:

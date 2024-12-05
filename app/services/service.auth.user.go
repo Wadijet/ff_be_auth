@@ -183,7 +183,7 @@ func RemoveIndex(s []models.Token, index int) []models.Token {
 
 // Đăng xuất người dùng
 func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential *models.UserLogoutInput) (LogoutResult interface{}, err error) {
-	
+
 	// Tìm người dùng theo userID
 	result, err := h.crudUser.FindOneById(ctx, userID, nil)
 	if result == nil {
@@ -228,7 +228,7 @@ func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential
 
 // Thay đổi mật khẩu người dùng
 func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, credential *models.UserChangePasswordInput) (ChangePasswordResult interface{}, err error) {
-	
+
 	// Tìm người dùng theo userID
 	result, err := h.crudUser.FindOneById(ctx, userID, nil)
 	if result == nil {
@@ -273,7 +273,7 @@ func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, cr
 
 // Thay đổi thông tin người dùng
 func (h *UserService) ChangeInfo(ctx *fasthttp.RequestCtx, userID string, credential *models.UserChangeInfoInput) (ChangeInfoResult interface{}, err error) {
-	
+
 	// Tìm người dùng theo userID
 	result, err := h.crudUser.FindOneById(ctx, userID, nil)
 	if result == nil {
