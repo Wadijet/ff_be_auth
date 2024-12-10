@@ -15,14 +15,15 @@ import (
 
 // RoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
 type OrganizationHandler struct {
-	crud services.Repository
+	OrganCRUD   services.Repository
+	OrganServce services.OrgannizationService
 }
 
 // NewRoleHandler khởi tạo một RoleHandler mới
 func NewOrganizationHandler(c *config.Configuration, db *mongo.Client) *OrganizationHandler {
 	newHandler := new(OrganizationHandler)
-	newHandler.crud = *services.NewRepository(c, db, global.MongoDB_ColNames.Organizations)
-
+	newHandler.OrganCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Organizations)
+	newHandler.OrganServce = *services.NewOrgannizationService(c, db)
 	return newHandler
 }
 
@@ -39,7 +40,7 @@ func (h *OrganizationHandler) Create(ctx *fasthttp.RequestCtx) {
 	if response == nil { // Kiểm tra dữ liệu đầu vào
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.crud.InsertOne(ctx, inputStruct))
+			response = utility.FinalResponse(h.OrganServce.Create(ctx, inputStruct))
 		}
 	}
 
@@ -52,7 +53,7 @@ func (h *OrganizationHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.crud.FindOneById(ctx, id, nil))
+	response = utility.FinalResponse(h.OrganCRUD.FindOneById(ctx, id, nil))
 
 	utility.JSON(ctx, response)
 }
@@ -79,7 +80,7 @@ func (h *OrganizationHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	opts.SetLimit(limit)
 	opts.SetSkip(page * limit)
 
-	response = utility.FinalResponse(h.crud.FindAll(ctx, nil, opts))
+	response = utility.FinalResponse(h.OrganCRUD.FindAll(ctx, nil, opts))
 
 	utility.JSON(ctx, response)
 }
@@ -98,20 +99,9 @@ func (h *OrganizationHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 	if response == nil { // Kiểm tra dữ liệu đầu vào
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.crud.UpdateOneById(ctx, id, inputStruct))
+			response = utility.FinalResponse(h.OrganServce.Update(ctx, id, inputStruct))
 		}
 	}
-
-	utility.JSON(ctx, response)
-}
-
-// Xóa một tổ chức theo ID
-func (h *OrganizationHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy ID từ yêu cầu
-	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.crud.DeleteOneById(ctx, id))
 
 	utility.JSON(ctx, response)
 }
