@@ -87,7 +87,7 @@ func main_thread() {
 	r.PanicHandler = panicHandler                                            // Đặt hàm xử lý panic
 
 	// Sử dụng middleware Measure
-	measuredHandler := middleware.Measure(r.Handler)
+	measuredHandler := middleware.CORS(middleware.Measure(r.Handler))
 
 	// Chạy server
 	logrus.Info("Starting server...") // Ghi log thông báo bắt đầu chạy server

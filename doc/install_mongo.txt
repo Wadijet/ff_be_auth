@@ -1,0 +1,25 @@
+
+Install mongodb on Centos 9 x64
+
+2. Fix mongosh
+//sudo yum remove mongodb-mongosh
+sudo yum install mongodb-mongosh-shared-openssl3
+//sudo yum install mongodb-mongosh
+
+1. Install mongodb
+link https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-red-hat/
+sudo yum install -y mongodb-org-8.0.0 mongodb-org-database-8.0.0 mongodb-org-server-8.0.0 mongodb-mongosh mongodb-org-mongos-8.0.0 mongodb-org-tools-8.0.0
+
+
+
+
+3. Start mongod
+sudo systemctl daemon-reload
+sudo systemctl start mongod
+sudo systemctl status mongod
+sudo systemctl enable mongod
+sudo systemctl stop mongod
+sudo systemctl restart mongod
+
+4. Kết nối từ ngoài vào
+
