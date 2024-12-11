@@ -25,6 +25,8 @@ func NewOrgannizationService(c *config.Configuration, db *mongo.Client) *Organni
 
 // Kiểm tra Id có tồn tại hay không
 func (h *OrgannizationService) IsIdExist(ctx *fasthttp.RequestCtx, id string) bool {
+
+	// Tạo filter để tìm kiếm theo Id
 	filter := bson.M{"id": id}
 	result, _ := h.crudOrgannization.FindOne(ctx, filter, nil)
 	if result == nil {
@@ -36,6 +38,7 @@ func (h *OrgannizationService) IsIdExist(ctx *fasthttp.RequestCtx, id string) bo
 
 // Kiểm tra tổ chức có tổ chức con hay không
 func (h *OrgannizationService) IsHaveChild(ctx *fasthttp.RequestCtx, id string) bool {
+	// Kiểm tra tổ chức có tổ chức con hay
 	filter := bson.M{"parent_id": id}
 	result, _ := h.crudOrgannization.FindOne(ctx, filter, nil)
 	if result == nil {

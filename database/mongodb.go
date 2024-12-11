@@ -63,13 +63,15 @@ func CloseInstance(client *mongo.Client) error {
 	return nil
 }
 
-// EnsureDatabaseAndCollections checks if the database and collections exist, and creates them if they don't.
+// EnsureDatabaseAndCollections đảm bảo rằng cơ sở dữ liệu và các collection cần thiết tồn tại.
+// Nếu cơ sở dữ liệu không tồn tại, nó sẽ được tạo ra. Nếu các collection không tồn tại, chúng sẽ được tạo ra bằng cách
+// chèn một tài liệu dummy và sau đó xóa nó.
 //
-// Parameters:
-// - client: The MongoDB client object.
+// Tham số:
+// - client: Một đối tượng *mongo.Client kết nối tới MongoDB.
 //
-// Returns:
-// - error: An error object if there is an issue during the process.
+// Trả về:
+// - error: Lỗi nếu có vấn đề xảy ra trong quá trình kiểm tra hoặc tạo cơ sở dữ liệu và collection.
 func EnsureDatabaseAndCollections(client *mongo.Client) error {
 	dbName := global.MongoDB_ServerConfig.MongoDB_DBNameAuth
 	// Check if the database exists

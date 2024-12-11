@@ -111,9 +111,6 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 		return nil, err
 	}
 
-	// Gán token mới cho người dùng
-	user.Token = tokenMap["token"]
-
 	return &user, nil
 }
 
@@ -202,7 +199,7 @@ func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential
 	}
 
 	// Tạo mảng mới, không chứa token có hwid trùng với hwid trong credential
-	var newTokens []models.Token
+	var newTokens []models.Token = []models.Token{}
 	for _, _token := range user.Tokens {
 		if _token.Hwid != credential.Hwid {
 			newTokens = append(newTokens, _token)
@@ -261,6 +258,7 @@ func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, cr
 		return nil, err
 	}
 	user.Password = string(hash[:])
+	user.Tokens = nil
 
 	CustomBson := &utility.CustomBson{}
 	change, err := CustomBson.Set(user)

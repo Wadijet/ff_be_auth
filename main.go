@@ -8,6 +8,7 @@ import (
 
 	"atk-go-server/app/middleware"
 	api "atk-go-server/app/router"
+	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/database"
@@ -59,6 +60,10 @@ func initDatabase_MongoDB() {
 	}
 	logrus.Info("Connected to MongoDB") // Ghi log thông báo đã kết nối database thành công
 	database.EnsureDatabaseAndCollections(global.MongoDB_Session)
+	logrus.Info("Ensured database and collections") // Ghi log thông báo đã đảm bảo database và các collection
+	// gọi hàm khởi tạo các quyền mặc định
+	InitService := services.NewInitService(global.MongoDB_ServerConfig, global.MongoDB_Session)
+	InitService.InitPermission()
 
 }
 

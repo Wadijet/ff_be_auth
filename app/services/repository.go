@@ -206,16 +206,28 @@ func (service *Repository) FindAllWithPaginate(ctx context.Context, filter inter
 // UpdateOneById cập nhật một tài liệu theo ID
 func (service *Repository) UpdateOneById(ctx context.Context, id string, change interface{}) (UpdateResult interface{}, err error) {
 
-	// Thêm updatedAt vào map thay đổi
+	// Chuyển đổi dữ liệu thành map
 	myMap, err := utility.ToMap(change)
 	if err != nil {
 		return nil, errors.New("Input data is not a map")
 	}
-	myChange, err := utility.ToMap(myMap["$set"])
-	if err != nil {
-		return nil, errors.New("Input data is not a map")
+
+	// Đảm bảo các trường trong `$set` không bị bỏ qua
+	myChange, ok := myMap["$set"].(map[string]interface{})
+	if !ok {
+		myChange = make(map[string]interface{})
 	}
+
+	// Thêm `updatedAt` vào `$set`
 	myChange["updatedAt"] = utility.CurrentTimeInMilli()
+
+	// Đảm bảo các trường mảng rỗng không bị loại bỏ
+	for key, value := range myChange {
+		if array, ok := value.([]interface{}); ok && len(array) == 0 {
+			myChange[key] = []interface{}{} // Giữ mảng rỗng
+		}
+	}
+
 	myMap["$set"] = myChange
 
 	// Tạo query

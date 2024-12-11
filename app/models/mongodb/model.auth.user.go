@@ -9,17 +9,17 @@ import (
 // Token chứa token xác thực mới nhất của người dùng
 // Tokens chứa danh sách các token, mỗi thiết bị khác nhau sẽ có một token riêng để xác thực (bằng hwid)
 type User struct {
-	ID        primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`              // ID của người dùng
-	Name      string             `json:"name,omitempty" bson:"name,omitempty"`           // Tên của người dùng
-	Email     string             `json:"email,omitempty" bson:"email,omitempty"`         // Email của người dùng
-	Password  string             `json:"-" bson:"password,omitempty"`                    // Mật khẩu của người dùng
-	Salt      string             `json:"-" bson:"salt,omitempty"`                        // Muối để mã hóa mật khẩu
-	Token     string             `json:"token" bson:"token,omitempty"`                   // Token xác thực
-	Tokens    []Token            `json:"tokens" bson:"tokens,omitempty"`                 // Danh sách các token đang hiệụ lực (mỗi hwid sẽ có một token)
-	IsBlock   bool               `json:"isBlock,omitempty" bson:"isBlock,omitempty"`     // Trạng thái bị khóa
-	BlockNote string             `json:"blockNote,omitempty" bson:"blockNote,omitempty"` // Ghi chú về việc bị khóa
-	CreatedAt int64              `json:"createdAt,omitempty" bson:"createdAt,omitempty"` // Thời gian tạo
-	UpdatedAt int64              `json:"updatedAt,omitempty" bson:"updatedAt,omitempty"` // Thời gian cập nhật
+	ID       primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"` // ID của người dùng
+	Name     string             `json:"name" bson:"name"`                  // Tên của người dùng
+	Email    string             `json:"email" bson:"email"`                // Email của người dùng
+	Password string             `json:"-" bson:"password"`                 // Mật khẩu của người dùng
+	Salt     string             `json:"-" bson:"salt"`                     // Muối để mã hóa mật khẩu
+	//Token     string             `json:"token" bson:"token"`                   // Token xác thực
+	Tokens    []Token `json:"tokens" bson:"tokens"`       // Danh sách các token đang hiệụ lực (mỗi hwid sẽ có một token)
+	IsBlock   bool    `json:"isBlock" bson:"isBlock"`     // Trạng thái bị khóa
+	BlockNote string  `json:"blockNote" bson:"blockNote"` // Ghi chú về việc bị khóa
+	CreatedAt int64   `json:"createdAt" bson:"createdAt"` // Thời gian tạo
+	UpdatedAt int64   `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật
 }
 
 // ComparePassword so sánh mật khẩu
@@ -34,9 +34,9 @@ func (u *User) ComparePassword(password string) error {
 
 // UserCreateInput , đầu vào tạo người dùng
 type UserCreateInput struct {
-	Name     string `json:"name,omitempty" bson:"name,omitempty" validate:"required"`   // Tên của người dùng
-	Email    string `json:"email,omitempty" bson:"email,omitempty" validate:"required"` // Email của người dùng
-	Password string `json:"password" bson:"password" validate:"required"`               // Mật khẩu của người dùng
+	Name     string `json:"name" bson:"name" validate:"required"`         // Tên của người dùng
+	Email    string `json:"email" bson:"email" validate:"required"`       // Email của người dùng
+	Password string `json:"password" bson:"password" validate:"required"` // Mật khẩu của người dùng
 }
 
 // UserLoginInput , đầu vào đăng nhập người dùng
@@ -64,7 +64,7 @@ type UserChangePasswordInput struct {
 
 // UserChangeInfoInput , đầu vào thay đổi thông tin người dùng
 type UserChangeInfoInput struct {
-	Name string `json:"name,omitempty" bson:"name,omitempty"` // Tên của người dùng
+	Name string `json:"name" bson:"name"` // Tên của người dùng
 }
 
 // UserFilterInput , đầu vào lọc người dùng

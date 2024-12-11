@@ -1,10 +1,11 @@
 package services
 
 import (
-	"go.mongodb.org/mongo-driver/mongo"
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/config"
 	"atk-go-server/global"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // InitService định nghĩa các CRUD repository cho User, Permission và Role
@@ -24,25 +25,42 @@ func NewInitService(c *config.Configuration, db *mongo.Client) *InitService {
 }
 
 var InitialPermissions = []models.Permission{
-	{Name: "User.Read", 				Describe: "Quyền xem người dùng", 				Category: "User"},
+	{Name: "User.Read", Describe: "Quyền xem người dùng", Category: "User"},
 	//{Name: "Permission.Create", 				Describe: "Quyền tạo vai trò", 					Category: "Permission"},
-	{Name: "Permission.Read", 				Describe: "Quyền xem các quyền", 					Category: "Permission"},
+	{Name: "Permission.Read", Describe: "Quyền xem các quyền", Category: "Permission"},
 	//{Name: "Permission.Update", 				Describe: "Quyền cập nhật vai trò", 			Category: "Permission"},
 	//{Name: "Permission.Delete", 				Describe: "Quyền xóa vai trò", 					Category: "Permission"},
-	{Name: "Organization.Create", 		Describe: "Quyền tạo tổ chức", 					Category: "Organization"},
-	{Name: "Organization.Read", 		Describe: "Quyền xem tổ chức", 					Category: "Organization"},
-	{Name: "Organization.Update", 		Describe: "Quyền cập nhật tổ chức", 			Category: "Organization"},
-	{Name: "Organization.Delete", 		Describe: "Quyền xóa tổ chức", 					Category: "Organization"},
-	{Name: "Role.Create", 				Describe: "Quyền tạo vai trò", 					Category: "Role"},
-	{Name: "Role.Read", 				Describe: "Quyền xem vai trò", 					Category: "Role"},
-	{Name: "Role.Update", 				Describe: "Quyền cập nhật vai trò", 			Category: "Role"},
-	{Name: "Role.Delete", 				Describe: "Quyền xóa vai trò", 					Category: "Role"},
-	{Name: "UserRole.Create", 				Describe: "Quyền tạo phân công vai trò", 					Category: "UserRole"},
-	{Name: "UserRole.Read", 				Describe: "Quyền xem phân công vai trò", 					Category: "UserRole"},
-	{Name: "UserRole.Update", 				Describe: "Quyền cập nhật phân công vai trò", 			Category: "UserRole"},
-	{Name: "UserRole.Delete", 				Describe: "Quyền xóa phân công vai trò", 					Category: "UserRole"},
-	{Name: "RolePermission.Create", 				Describe: "Quyền tạo phân quyền cho vai trò", 					Category: "RolePermission"},
-	{Name: "RolePermission.Read", 					Describe: "Quyền xem phân quyền cho vai trò", 						Category: "RolePermission"},
-	{Name: "RolePermission.Update", 				Describe: "Quyền cập nhật phân quyền cho vai trò", 			Category: "RolePermission"},
-	{Name: "RolePermission.Delete", 				Describe: "Quyền xóa phân quyền cho vai trò", 					Category: "RolePermission"},
+	{Name: "Organization.Create", Describe: "Quyền tạo tổ chức", Category: "Organization"},
+	{Name: "Organization.Read", Describe: "Quyền xem tổ chức", Category: "Organization"},
+	{Name: "Organization.Update", Describe: "Quyền cập nhật tổ chức", Category: "Organization"},
+	{Name: "Organization.Delete", Describe: "Quyền xóa tổ chức", Category: "Organization"},
+	{Name: "Role.Create", Describe: "Quyền tạo vai trò", Category: "Role"},
+	{Name: "Role.Read", Describe: "Quyền xem vai trò", Category: "Role"},
+	{Name: "Role.Update", Describe: "Quyền cập nhật vai trò", Category: "Role"},
+	{Name: "Role.Delete", Describe: "Quyền xóa vai trò", Category: "Role"},
+	{Name: "UserRole.Create", Describe: "Quyền tạo phân công vai trò", Category: "UserRole"},
+	{Name: "UserRole.Read", Describe: "Quyền xem phân công vai trò", Category: "UserRole"},
+	{Name: "UserRole.Update", Describe: "Quyền cập nhật phân công vai trò", Category: "UserRole"},
+	{Name: "UserRole.Delete", Describe: "Quyền xóa phân công vai trò", Category: "UserRole"},
+	{Name: "RolePermission.Create", Describe: "Quyền tạo phân quyền cho vai trò", Category: "RolePermission"},
+	{Name: "RolePermission.Read", Describe: "Quyền xem phân quyền cho vai trò", Category: "RolePermission"},
+	{Name: "RolePermission.Update", Describe: "Quyền cập nhật phân quyền cho vai trò", Category: "RolePermission"},
+	{Name: "RolePermission.Delete", Describe: "Quyền xóa phân quyền cho vai trò", Category: "RolePermission"},
+}
+
+// Viết hàm InitPermission để khởi tạo các quyền mặc định theo nguyên tắc sau:
+// Duyệt tất cả các quyền trong mảng InitialPermissions
+// Kiểm tra quyền đã tồn tại trong collection Permissions chưa
+// Nếu chưa tồn tại thì thêm quyền đó vào collection Permissions
+func (h *InitService) InitPermission() {
+	for _, permission := range InitialPermissions {
+		// Tạo filter để tìm kiếm quyền theo tên
+		filter := map[string]interface{}{"name": permission.Name}
+		// Tìm quyền theo filter
+		result, _ := h.PermissionCRUD.FindOne(nil, filter, nil)
+		// Nếu quyền chưa tồn tại thì thêm quyền vào collection
+		if result == nil {
+			h.PermissionCRUD.InsertOne(nil, permission)
+		}
+	}
 }
