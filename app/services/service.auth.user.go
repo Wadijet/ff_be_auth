@@ -183,7 +183,7 @@ func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential
 
 	// Tìm người dùng theo userID
 	result, err := h.crudUser.FindOneById(ctx, userID, nil)
-	if result == nil {
+	if err != nil {
 		return nil, err
 	}
 
