@@ -4,12 +4,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// Chi tiết quyền
-type PermissionDetail struct {
-	ID   primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"` // ID của quyền
-	Name string             `json:"name" bson:"name"`                  // Tên của quyền
-}
-
 // Vai trò
 type Role struct {
 	ID             primitive.ObjectID `json:"id" bson:"_id"`                        // ID của vai trò

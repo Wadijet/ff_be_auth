@@ -51,6 +51,11 @@ func (h *OrgannizationService) IsHaveChild(ctx *fasthttp.RequestCtx, id string) 
 // Tạo mới một tổ chức, kiểm tra ParentId có tồn tại không trước khi thêm
 func (h *OrgannizationService) Create(ctx *fasthttp.RequestCtx, input *models.OrganizationCreateInput) (InsertOneResult interface{}, err error) {
 
+	// nếu tổ chức không có ParentId thì phải có Role Administator với tất cả các quyền
+	if input.ParentID == "" {
+
+	}
+
 	// Nếu ParentId không tồn tại thì báo lỗi
 	if !h.IsIdExist(ctx, input.ParentID) {
 		return nil, errors.New("ParentId not found")
