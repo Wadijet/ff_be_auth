@@ -91,7 +91,11 @@ func main_thread() {
 	api.InitRounters(r, global.MongoDB_ServerConfig, global.MongoDB_Session) // Khởi tạo các route cho API
 	r.PanicHandler = panicHandler                                            // Đặt hàm xử lý panic
 
+<<<<<<< Updated upstream
 	// Sử dụng middleware Measure
+=======
+	// Sử dụng middleware Measure và COSR cho tất cả các route
+>>>>>>> Stashed changes
 	measuredHandler := middleware.CORS(middleware.Measure(r.Handler))
 
 	// Chạy server
