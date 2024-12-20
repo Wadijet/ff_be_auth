@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strconv"
+	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -124,5 +127,195 @@ func EnsureDatabaseAndCollections(client *mongo.Client) error {
 	}
 
 	log.Printf("Database and collections are ensured in database: %s", dbName)
+	return nil
+}
+
+// Hàm parseOrder: Trích xuất thứ tự sắp xếp từ tag (1 hoặc -1)
+func parseOrder(tag string) int {
+	if strings.Contains(tag, "order:-1") {
+		return -1 // Nếu tag chứa "order:-1", trả về -1 (giảm dần)
+	}
+	return 1 // Mặc định trả về 1 (tăng dần)
+}
+
+// Hàm parseIndexTag: Phân tách và phân tích tag index
+func parseIndexTag(tag string) []map[string]string {
+	parts := strings.Split(tag, ";") // Tách tag theo dấu ';'
+	result := []map[string]string{}
+
+	for _, part := range parts {
+		subParts := strings.Split(part, ",") // Tách từng cấu hình theo dấu ','
+		entry := map[string]string{}
+		for _, subPart := range subParts {
+			kv := strings.Split(subPart, ":") // Tách thành key và value (nếu có)
+			if len(kv) == 2 {
+				entry[kv[0]] = kv[1]
+			} else {
+				entry[kv[0]] = ""
+			}
+		}
+		result = append(result, entry)
+	}
+
+	return result // Trả về danh sách các cấu hình index
+}
+
+func compareIndex(existingIndex bson.M, keys bson.D, options *options.IndexOptions) bool {
+	existingKeys, ok := existingIndex["key"].(bson.M)
+	if !ok {
+		return false
+	}
+
+	// So sánh các khóa
+	for _, key := range keys {
+		if existingValue, exists := existingKeys[key.Key]; !exists || existingValue != key.Value {
+			return false
+		}
+	}
+
+	// So sánh các tùy chọn (e.g., unique)
+	if unique, ok := existingIndex["unique"].(bool); ok && options.Unique != nil {
+		if unique != *options.Unique {
+			return false
+		}
+	}
+
+	// So sánh TTL
+	if ttl, ok := existingIndex["expireAfterSeconds"].(int32); ok && options.ExpireAfterSeconds != nil {
+		if ttl != *options.ExpireAfterSeconds {
+			return false
+		}
+	}
+
+	return true
+}
+
+// checkAndReplaceIndex kiểm tra và thay thế index nếu cần thiết
+func checkAndReplaceIndex(
+	ctx context.Context,
+	collection *mongo.Collection,
+	existingIndexes map[string]bson.M,
+	indexName string,
+	keys bson.D,
+	options *options.IndexOptions,
+) error {
+	// Kiểm tra nếu index đã tồn tại
+	if existingIndex, exists := existingIndexes[indexName]; exists {
+		// So sánh cấu hình index hiện tại với cấu hình mới
+		if compareIndex(existingIndex, keys, options) {
+			fmt.Printf("Index %s đã tồn tại và đúng cấu hình, bỏ qua...\n", indexName)
+			return nil
+		}
+		// Xóa index nếu cấu hình không khớp
+		if _, err := collection.Indexes().DropOne(ctx, indexName); err != nil {
+			return fmt.Errorf("không thể xóa index %s: %w", indexName, err)
+		}
+		fmt.Printf("Đã xóa index cũ: %s\n", indexName)
+	}
+
+	// Tạo index mới
+	if _, err := collection.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    keys,
+		Options: options,
+	}); err != nil {
+		return fmt.Errorf("không thể tạo index %s: %w", indexName, err)
+	}
+	fmt.Printf("Đã tạo index: %s\n", indexName)
+	return nil
+}
+
+func CreateIndexes(ctx context.Context, collection *mongo.Collection, model interface{}) error {
+	modelType := reflect.TypeOf(model)
+	if modelType.Kind() == reflect.Ptr {
+		modelType = modelType.Elem()
+	}
+
+	// Lấy danh sách index hiện có
+	cursor, err := collection.Indexes().List(ctx)
+	if err != nil {
+		return fmt.Errorf("không thể lấy danh sách index: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	existingIndexes := map[string]bson.M{}
+	for cursor.Next(ctx) {
+		var indexInfo bson.M
+		if err := cursor.Decode(&indexInfo); err != nil {
+			return fmt.Errorf("không thể giải mã thông tin index: %w", err)
+		}
+		if name, ok := indexInfo["name"].(string); ok {
+			existingIndexes[name] = indexInfo
+		}
+	}
+
+	compoundGroups := map[string]bson.D{}
+	compoundOptions := map[string]*options.IndexOptions{}
+
+	for i := 0; i < modelType.NumField(); i++ {
+		field := modelType.Field(i)
+		tag, ok := field.Tag.Lookup("index")
+		if !ok {
+			continue
+		}
+
+		bsonField := field.Tag.Get("bson")
+		if bsonField == "" || bsonField == "-" {
+			continue
+		}
+
+		indexConfigs := parseIndexTag(tag)
+		for _, config := range indexConfigs {
+			if _, ok := config["single"]; ok {
+				order := parseOrder(tag)
+				keys := bson.D{{Key: bsonField, Value: order}}
+				indexName := bsonField + "_single"
+				options := options.Index().SetName(indexName)
+
+				if err := checkAndReplaceIndex(ctx, collection, existingIndexes, indexName, keys, options); err != nil {
+					return err
+				}
+			}
+
+			if _, ok := config["unique"]; ok {
+				keys := bson.D{{Key: bsonField, Value: 1}}
+				indexName := bsonField + "_unique"
+				options := options.Index().SetName(indexName).SetUnique(true)
+
+				if err := checkAndReplaceIndex(ctx, collection, existingIndexes, indexName, keys, options); err != nil {
+					return err
+				}
+			}
+
+			if ttlValue, ok := config["ttl"]; ok {
+				ttl, err := strconv.Atoi(ttlValue)
+				if err != nil {
+					return fmt.Errorf("TTL không hợp lệ: %w", err)
+				}
+				keys := bson.D{{Key: bsonField, Value: 1}}
+				indexName := bsonField + "_ttl"
+				options := options.Index().SetExpireAfterSeconds(int32(ttl)).SetName(indexName)
+
+				if err := checkAndReplaceIndex(ctx, collection, existingIndexes, indexName, keys, options); err != nil {
+					return err
+				}
+			}
+
+			if groupName, ok := config["compound"]; ok {
+				order := parseOrder(tag)
+				compoundGroups[groupName] = append(compoundGroups[groupName], bson.E{Key: bsonField, Value: order})
+				if _, exists := compoundOptions[groupName]; !exists {
+					compoundOptions[groupName] = options.Index().SetName(groupName)
+				}
+			}
+		}
+	}
+
+	// Tạo compound index
+	for groupName, fields := range compoundGroups {
+		if err := checkAndReplaceIndex(ctx, collection, existingIndexes, groupName, fields, compoundOptions[groupName]); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

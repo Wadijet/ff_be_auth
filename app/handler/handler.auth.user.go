@@ -57,53 +57,26 @@ func (h *UserHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 func (h *UserHandler) FindAllWithFilter(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
 
-	// Lấy dữ liệu
-	postValues := ctx.PostBody()
-	inputStruct := new(models.UserFilterInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-
-			// Lấy dữ liệu
-			buf := string(ctx.FormValue("limit"))
-			limit, err := strconv.ParseInt(buf, 10, 64)
-			if err != nil {
-				limit = 10
-			}
-
-			buf = string(ctx.FormValue("page"))
-			page, err := strconv.ParseInt(buf, 10, 64)
-			if err != nil {
-				page = 0
-			}
-
-			// Cài đặt
-			opts := new(options.FindOptions)
-			opts.SetLimit(limit)
-			opts.SetSkip(page * limit)
-			opts.SetSort(bson.D{{"updatedAt", 1}})
-			opts.SetProjection(bson.D{{"salt", 0}, {"password", 0}})
-
-			filterMap := make(map[string]interface{})
-			if len(inputStruct.Emails) > 0 {
-				filterMap["email"] = bson.M{"$in": inputStruct.Emails}
-			}
-
-			var filter bson.M
-			data, err := bson.Marshal(filterMap)
-			if err != nil {
-				return
-			}
-
-			err = bson.Unmarshal(data, &filter)
-			if err != nil {
-				return
-			}
-
-			response = utility.FinalResponse(h.UserCRUD.FindAllWithPaginate(ctx, filter, opts))
-		}
+	// Lấy dữ liệu phân trang từ request
+	buf := string(ctx.FormValue("limit"))
+	limit, err := strconv.ParseInt(buf, 10, 64)
+	if err != nil {
+		limit = 10
 	}
+
+	buf = string(ctx.FormValue("page"))
+	page, err := strconv.ParseInt(buf, 10, 64)
+	if err != nil {
+		page = 0
+	}
+
+	// Cài đặt tùy chọn tìm kiếm
+	opts := new(options.FindOptions)
+	opts.SetLimit(limit)
+	opts.SetSkip(page * limit)
+	opts.SetSort(bson.D{{"updatedAt", 1}})
+
+	response = utility.FinalResponse(h.UserCRUD.FindAllWithPaginate(ctx, bson.D{}, opts))
 
 	utility.JSON(ctx, response)
 }
@@ -170,12 +143,10 @@ func (h *UserHandler) Login(ctx *fasthttp.RequestCtx) {
 	utility.JSON(ctx, response)
 }
 
-
-
 // SetWorkingRole thiết lập vai trò làm việc cho người dùng.
-// 
+//
 // @param ctx - ngữ cảnh của yêu cầu HTTP từ fasthttp.RequestCtx
-// 
+//
 // Chức năng này thực hiện các bước sau:
 // 1. Lấy dữ liệu từ yêu cầu POST.
 // 2. Chuyển đổi dữ liệu thành cấu trúc UserSetWorkingRoleInput.
@@ -183,7 +154,7 @@ func (h *UserHandler) Login(ctx *fasthttp.RequestCtx) {
 // 4. Nếu hợp lệ, lấy thông tin userId và userToken từ ngữ cảnh.
 // 5. Gọi hàm SetWorkingRole của UserService để thiết lập vai trò làm việc cho người dùng.
 // 6. Trả về phản hồi JSON dựa trên kết quả của quá trình thiết lập vai trò.
-// 
+//
 // Các phản hồi có thể bao gồm:
 // - Thông tin đăng nhập không chính xác.
 // - Đăng nhập thành công.
@@ -201,11 +172,11 @@ func (h *UserHandler) SetWorkingRole(ctx *fasthttp.RequestCtx) {
 			if ctx.UserValue("userId") != nil {
 				strMyID := ctx.UserValue("userId").(string)
 				strUserToken := ctx.UserValue("userToken").(string)
-				user, err := h.UserService.SetWorkingRole(ctx, strMyID, strUserToken,inputStruct.RoleID)
+				user, err := h.UserService.SetWorkingRole(ctx, strMyID, strUserToken, inputStruct.RoleID)
 				if user == nil {
 					response = utility.Payload(false, err, "Login information is incorrect!")
 				} else {
-	
+
 					response = utility.Payload(true, user, "Logged in successfully.")
 				}
 			} else {

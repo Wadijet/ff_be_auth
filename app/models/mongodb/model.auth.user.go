@@ -65,8 +65,3 @@ type UserChangePasswordInput struct {
 type UserChangeInfoInput struct {
 	Name string `json:"name" bson:"name"` // Tên của người dùng
 }
-
-// UserFilterInput , đầu vào lọc người dùng
-type UserFilterInput struct {
-	Emails []string `json:"emails" bson:"emails"` // Danh sách email
-}

@@ -68,7 +68,7 @@ func (service *Repository) SetCollection(collection_name string) (ResultCollecti
 // InsertOne chèn một tài liệu vào collection
 // Params:	collection name (string)
 // return: 	*mongo.Collection
-func (service *Repository) InsertOne(ctx context.Context, model interface{}) (InsertOneResult interface{}, err error) {
+func (service *Repository) InsertOne(ctx context.Context, model interface{}) (InsertOneResult *mongo.InsertOneResult, err error) {
 
 	// Thêm createdAt, updatedAt vào dữ liệu đầu vào
 	myMap, err := utility.ToMap(model)
@@ -101,9 +101,10 @@ func (service *Repository) InsertMany(ctx context.Context, models []interface{})
 }
 
 // FindOneById tìm một tài liệu theo ID
+
 func (service *Repository) FindOneById(ctx context.Context, id string, opts *options.FindOneOptions) (FindOneResult interface{}, err error) {
 
-	query := bson.D{{"_id", utility.String2ObjectID(id)}}
+	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
 	var result bson.M
 	if opts != nil {
 		err = service.mongoCollection.FindOne(ctx, query, opts).Decode(&result)
