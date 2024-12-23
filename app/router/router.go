@@ -69,6 +69,7 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	r.GET(preV1+"/users/roles", middle.CheckUserAuth(nil, ApiUser.GetMyRoles))                // Lấy vai trò của người dùng
 	r.POST(preV1+"/users/change_password", middle.CheckUserAuth(nil, ApiUser.ChangePassword)) // Đổi mật khẩu
 	r.POST(preV1+"/users/change_info", middle.CheckUserAuth(nil, ApiUser.ChangeInfo))         // Đổi thông tin cá nhân
-	r.GET(preV1+"/users/{id}", middle.CheckUserAuth(nil, ApiUser.FindOneById))                // Lấy tất cả người dùng với bộ lọc
-	r.GET(preV1+"/users", middle.CheckUserAuth(nil, ApiUser.FindAllWithFilter))               // Lấy tất cả người dùng với bộ lọc
+	// TODO: Bổ sung check quyền khi chạy thật
+	r.GET(preV1+"/users/{id}", middle.CheckUserAuth(nil, ApiUser.FindOneById))  // Lấy tất cả người dùng với bộ lọc
+	r.GET(preV1+"/users", middle.CheckUserAuth(nil, ApiUser.FindAllWithFilter)) // Lấy tất cả người dùng với bộ lọc
 }

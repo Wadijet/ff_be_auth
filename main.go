@@ -30,7 +30,6 @@ func initGlobal() {
 func initColNames() {
 	global.MongoDB_ColNames.Users = "users"
 	global.MongoDB_ColNames.Permissions = "permissions"
-	global.MongoDB_ColNames.Organizations = "organizations"
 	global.MongoDB_ColNames.Roles = "roles"
 	global.MongoDB_ColNames.RolePermissions = "role_permissions"
 	global.MongoDB_ColNames.UserRoles = "user_roles"

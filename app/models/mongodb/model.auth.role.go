@@ -6,11 +6,11 @@ import (
 
 // Vai trò
 type Role struct {
-	ID        primitive.ObjectID `json:"id" bson:"_id"`              // ID của vai trò
-	Name      string             `json:"name" bson:"name"`           // Tên của vai trò
-	Describe  string             `json:"describe" bson:"describe"`   // Mô tả vai trò
-	CreatedAt int64              `json:"createdAt" bson:"createdAt"` // Thời gian tạo
-	UpdatedAt int64              `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật
+	ID        primitive.ObjectID `json:"id" bson:"_id"`                   // ID của vai trò
+	Name      string             `json:"name" bson:"name" index:"unique"` // Tên của vai trò
+	Describe  string             `json:"describe" bson:"describe"`        // Mô tả vai trò
+	CreatedAt int64              `json:"createdAt" bson:"createdAt"`      // Thời gian tạo
+	UpdatedAt int64              `json:"updatedAt" bson:"updatedAt"`      // Thời gian cập nhật
 }
 
 // ==========================================================================================

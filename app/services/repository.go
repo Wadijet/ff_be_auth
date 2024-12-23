@@ -29,8 +29,6 @@ func GetDBName(c *config.Configuration, collectionName string) string {
 		return c.MongoDB_DBNameAuth
 	case global.MongoDB_ColNames.Permissions:
 		return c.MongoDB_DBNameAuth
-	case global.MongoDB_ColNames.Organizations:
-		return c.MongoDB_DBNameAuth
 	case global.MongoDB_ColNames.Roles:
 		return c.MongoDB_DBNameAuth
 	case global.MongoDB_ColNames.RolePermissions:
@@ -82,7 +80,7 @@ func (service *Repository) InsertOne(ctx context.Context, model interface{}) (In
 }
 
 // InsertMany chèn nhiều tài liệu vào collection
-func (service *Repository) InsertMany(ctx context.Context, models []interface{}) (InsertOneResult interface{}, err error) {
+func (service *Repository) InsertMany(ctx context.Context, models []interface{}) (InsertManyResult *mongo.InsertManyResult, err error) {
 
 	var Maps []interface{}
 	for _, model := range models {
@@ -107,9 +105,11 @@ func (service *Repository) FindOneById(ctx context.Context, id string, opts *opt
 	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
 	var result bson.M
 	if opts != nil {
-		err = service.mongoCollection.FindOne(ctx, query, opts).Decode(&result)
+		test := service.mongoCollection.FindOne(ctx, query, opts)
+		err = test.Decode(&result)
 	} else {
-		err = service.mongoCollection.FindOne(ctx, query).Decode(&result)
+		test := service.mongoCollection.FindOne(ctx, query)
+		err = test.Decode(&result)
 	}
 
 	if err != nil {
@@ -259,7 +259,7 @@ func (service *Repository) UpdateMany(ctx context.Context, query, change interfa
 // DeleteOneById xóa một tài liệu theo ID
 func (service *Repository) DeleteOneById(ctx context.Context, id string) (DeleteResult interface{}, err error) {
 
-	query := bson.D{{"_id", utility.String2ObjectID(id)}}
+	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
 	result, err := service.mongoCollection.DeleteOne(ctx, query)
 	return result, err
 

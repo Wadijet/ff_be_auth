@@ -77,8 +77,13 @@ func CloseInstance(client *mongo.Client) error {
 // - error: Lỗi nếu có vấn đề xảy ra trong quá trình kiểm tra hoặc tạo cơ sở dữ liệu và collection.
 func EnsureDatabaseAndCollections(client *mongo.Client) error {
 	dbName := global.MongoDB_ServerConfig.MongoDB_DBNameAuth
-	// Check if the database exists
-	dbList, err := client.ListDatabaseNames(context.Background(), map[string]interface{}{})
+
+	// Tạo 1 context tổng 30 giây để duyệt tất cả collections
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Kiểm tra database
+	dbList, err := client.ListDatabaseNames(ctx, bson.M{})
 	if err != nil {
 		return fmt.Errorf("failed to list databases: %w", err)
 	}
@@ -90,39 +95,37 @@ func EnsureDatabaseAndCollections(client *mongo.Client) error {
 			break
 		}
 	}
-
 	if !dbExists {
-		log.Printf("Database %s does not exist, creating it", dbName)
+		log.Printf("Database %s does not exist, will create automatically by creating collections", dbName)
 	}
 
 	db := client.Database(dbName)
-
 	collections := []string{}
 	v := reflect.ValueOf(global.MongoDB_ColNames)
 	for i := 0; i < v.NumField(); i++ {
 		collections = append(collections, v.Field(i).String())
 	}
 
-	for _, collectionName := range collections {
-		collection := db.Collection(collectionName)
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+	collList, err := db.ListCollectionNames(ctx, bson.M{})
+	if err != nil {
+		return fmt.Errorf("failed to list collections: %w", err)
+	}
 
-		// Check if the collection exists by running a simple command
-		err := collection.FindOne(ctx, map[string]interface{}{}).Err()
-		if err == mongo.ErrNoDocuments {
-			// Collection does not exist, create it by inserting a dummy document and then deleting it
-			_, err := collection.InsertOne(ctx, map[string]interface{}{"dummy": "dummy"})
-			if err != nil {
+	for _, collectionName := range collections {
+		// Kiểm tra collection có tồn tại hay không
+		exists := false
+		for _, existingColl := range collList {
+			if existingColl == collectionName {
+				exists = true
+				break
+			}
+		}
+		// Tạo collection nếu chưa tồn tại
+		if !exists {
+			log.Printf("Collection %s chưa tồn tại, tạo mới.", collectionName)
+			if err := db.CreateCollection(ctx, collectionName); err != nil {
 				return fmt.Errorf("failed to create collection %s: %w", collectionName, err)
 			}
-			_, err = collection.DeleteOne(ctx, map[string]interface{}{"dummy": "dummy"})
-			if err != nil {
-				return fmt.Errorf("failed to delete dummy document from collection %s: %w", collectionName, err)
-			}
-			log.Printf("Created collection: %s", collectionName)
-		} else if err != nil && err != mongo.ErrNoDocuments {
-			return fmt.Errorf("failed to check collection %s: %w", collectionName, err)
 		}
 	}
 
@@ -168,16 +171,47 @@ func compareIndex(existingIndex bson.M, keys bson.D, options *options.IndexOptio
 
 	// So sánh các khóa
 	for _, key := range keys {
-		if existingValue, exists := existingKeys[key.Key]; !exists || existingValue != key.Value {
+		existingValue, exists := existingKeys[key.Key]
+		if !exists {
 			return false
+		}
+
+		// Xử lý cho trường hợp 1 / -1
+		newVal, isInt := key.Value.(int)
+		if isInt {
+			// convert existingValue về int (nếu có thể)
+			switch ev := existingValue.(type) {
+			case int32:
+				if int(ev) != newVal {
+					return false
+				}
+			case int64:
+				if int(ev) != newVal {
+					return false
+				}
+			case float64:
+				if int(ev) != newVal {
+					return false
+				}
+			default:
+				return false
+			}
+		} else {
+			// fallback so sánh kiểu cũ
+			if existingValue != key.Value {
+				return false
+			}
 		}
 	}
 
-	// So sánh các tùy chọn (e.g., unique)
+	// So sánh các tùy chọn (unique)
 	if unique, ok := existingIndex["unique"].(bool); ok && options.Unique != nil {
 		if unique != *options.Unique {
 			return false
 		}
+	} else if options.Unique != nil && *options.Unique {
+		// index cũ không unique, index mới lại unique => mismatch
+		return false
 	}
 
 	// So sánh TTL
@@ -225,12 +259,15 @@ func checkAndReplaceIndex(
 }
 
 func CreateIndexes(ctx context.Context, collection *mongo.Collection, model interface{}) error {
+
+	fmt.Printf("Bắt đầu xử lý index cho collection: %s\n", collection.Name())
+
 	modelType := reflect.TypeOf(model)
 	if modelType.Kind() == reflect.Ptr {
 		modelType = modelType.Elem()
 	}
 
-	// Lấy danh sách index hiện có
+	fmt.Printf("Lấy danh sách indexs hiện có.\n")
 	cursor, err := collection.Indexes().List(ctx)
 	if err != nil {
 		return fmt.Errorf("không thể lấy danh sách index: %w", err)
