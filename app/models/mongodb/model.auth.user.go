@@ -11,7 +11,7 @@ import (
 type User struct {
 	ID        primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"` // ID của người dùng
 	Name      string             `json:"name" bson:"name"`                  // Tên của người dùng
-	Email     string             `json:"email" bson:"email"`                // Email của người dùng
+	Email     string             `json:"email" bson:"email" index:"unique"` // Email của người dùng
 	Password  string             `json:"-" bson:"password"`                 // Mật khẩu của người dùng
 	Salt      string             `json:"-" bson:"salt"`                     // Muối để mã hóa mật khẩu
 	Tokens    []Token            `json:"tokens" bson:"tokens"`              // Danh sách các token đang hiệụ lực (mỗi hwid sẽ có một token)

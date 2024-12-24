@@ -13,6 +13,10 @@ var (
 )
 
 // Hàm CORS là một middleware để xử lý CORS cho các yêu cầu HTTP
+// Hàm này sẽ thiết lập các header CORS cho phản hồi
+// và cho phép các phương thức HTTP được chỉ định
+// và các header được chỉ định
+// và nguồn gốc được chỉ định
 func CORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		// Thiết lập các header CORS cho phản hồi
