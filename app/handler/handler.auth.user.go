@@ -53,6 +53,22 @@ func (h *UserHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	utility.JSON(ctx, response)
 }
 
+// Count đếm số lượng người dùng
+func (h *UserHandler) Count(ctx *fasthttp.RequestCtx) {
+	var response map[string]interface{} = nil
+
+	// Lấy dữ liệu phân trang từ request
+	buf := string(ctx.FormValue("limit"))
+	limit, err := strconv.ParseInt(buf, 10, 64)
+	if err != nil {
+		limit = 10
+	}
+
+	response = utility.FinalResponse(h.UserCRUD.CountAll(ctx, bson.D{}, limit))
+
+	utility.JSON(ctx, response)
+}
+
 // FindAllWithFilter tìm tất cả người dùng với bộ lọc
 func (h *UserHandler) FindAllWithFilter(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
@@ -143,50 +159,6 @@ func (h *UserHandler) Login(ctx *fasthttp.RequestCtx) {
 	utility.JSON(ctx, response)
 }
 
-// SetWorkingRole thiết lập vai trò làm việc cho người dùng.
-//
-// @param ctx - ngữ cảnh của yêu cầu HTTP từ fasthttp.RequestCtx
-//
-// Chức năng này thực hiện các bước sau:
-// 1. Lấy dữ liệu từ yêu cầu POST.
-// 2. Chuyển đổi dữ liệu thành cấu trúc UserSetWorkingRoleInput.
-// 3. Kiểm tra tính hợp lệ của dữ liệu đầu vào.
-// 4. Nếu hợp lệ, lấy thông tin userId và userToken từ ngữ cảnh.
-// 5. Gọi hàm SetWorkingRole của UserService để thiết lập vai trò làm việc cho người dùng.
-// 6. Trả về phản hồi JSON dựa trên kết quả của quá trình thiết lập vai trò.
-//
-// Các phản hồi có thể bao gồm:
-// - Thông tin đăng nhập không chính xác.
-// - Đăng nhập thành công.
-// - Truy cập không được ủy quyền.
-func (h *UserHandler) SetWorkingRole(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu
-	postValues := ctx.PostBody()
-	inputStruct := new(models.UserSetWorkingRoleInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm tạo json changes
-			if ctx.UserValue("userId") != nil {
-				strMyID := ctx.UserValue("userId").(string)
-				strUserToken := ctx.UserValue("userToken").(string)
-				user, err := h.UserService.SetWorkingRole(ctx, strMyID, strUserToken, inputStruct.RoleID)
-				if user == nil {
-					response = utility.Payload(false, err, "Login information is incorrect!")
-				} else {
-
-					response = utility.Payload(true, user, "Logged in successfully.")
-				}
-			} else {
-				response = utility.Payload(true, nil, "An unauthorized access!")
-			}
-		}
-	}
-	utility.JSON(ctx, response)
-}
-
 // Logout đăng xuất người dùng
 func (h *UserHandler) Logout(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
@@ -220,7 +192,7 @@ func (h *UserHandler) GetMyInfo(ctx *fasthttp.RequestCtx) {
 		strMyID := ctx.UserValue("userId").(string)
 		// Cài đặt
 		opts := new(options.FindOneOptions)
-		opts.SetProjection(bson.D{{"salt", 0}, {"password", 0}})
+		opts.SetProjection(bson.D{{Key: "salt", Value: 0}, {"password", 0}})
 		response = utility.FinalResponse(h.UserCRUD.FindOneById(ctx, strMyID, opts))
 	} else {
 		response = utility.Payload(true, nil, "An unauthorized access!")
@@ -236,13 +208,14 @@ func (h *UserHandler) GetMyRoles(ctx *fasthttp.RequestCtx) {
 	// Lấy dữ liệu
 	if ctx.UserValue("userId") != nil {
 		strMyID := ctx.UserValue("userId").(string)
+		objMyID := utility.String2ObjectID(strMyID)
 
 		// Cài đặt bộ lọc tìm kiếm
-		filter := bson.D{{"userId", strMyID}}
+		filter := bson.D{{Key: "userId", Value: objMyID}}
 
 		// Cài đặt tùy chọn tìm kiếm
 		opts := new(options.FindOptions)
-		opts.SetSort(bson.D{{"updatedAt", 1}})
+		opts.SetSort(bson.D{{Key: "updatedAt", Value: 1}})
 		response = utility.FinalResponse(h.UserRoleCRUD.FindAll(ctx, filter, opts))
 	} else {
 		response = utility.Payload(true, nil, "An unauthorized access!")
@@ -297,3 +270,5 @@ func (h *UserHandler) ChangeInfo(ctx *fasthttp.RequestCtx) {
 
 	utility.JSON(ctx, response)
 }
+
+//

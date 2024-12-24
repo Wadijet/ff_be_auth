@@ -21,55 +21,53 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	// ====================================  INIT API ===============================================
 	// Các API khởi tạo hệ thống
 	if c.InitMode == true {
-		//ApiInit := handler.NewInitHandler(c, db)
+		ApiInit := handler.NewInitHandler(c, db)
 		//r.GET(preV1+"/init/permissions", ApiInit.InitPermission) // Khởi tạo quyền
 		//r.GET(preV1+"/init/roles", ApiInit.InitRole)             // Khởi tạo vai trò
-		//r.POST(preV1+"/init/setadmin", ApiInit.SetAdmin)         // Thiết lập admin
+		r.POST(preV1+"/init/setadmin/{id}", middle.CheckUserAuth("", ApiInit.SetAdministrator)) // Thiết lập admin
 	}
 
 	// ====================================  STATIC API ===============================================
 	// Các API tĩnh
 	ApiStatic := handler.NewStaticHandler()
-	r.GET(preV1+"/static/test", ApiStatic.TestApi)                                      // API kiểm tra
-	r.GET(preV1+"/static/system", middle.CheckUserAuth(nil, ApiStatic.GetSystemStatic)) // Lấy thông tin hệ thống
-	r.GET(preV1+"/static/api", middle.CheckUserAuth(nil, ApiStatic.GetApiStatic))       // Lấy thông tin API
+	r.GET(preV1+"/static/test", ApiStatic.TestApi)                                     // API kiểm tra
+	r.GET(preV1+"/static/system", middle.CheckUserAuth("", ApiStatic.GetSystemStatic)) // Lấy thông tin hệ thống
+	r.GET(preV1+"/static/api", middle.CheckUserAuth("", ApiStatic.GetApiStatic))       // Lấy thông tin API
 
 	// ====================================  PERMISSIONS API ========================================
 	// Các API liên quan đến quyền
 	ApiPermission := handler.NewPermissionHandler(c, db)
-	//r.POST(preV1+"/permissions", middle.CheckUserAuth([]string{"permission.create"}, ApiPermission.Create))               // Tạo quyền
-	r.GET(preV1+"/permissions/{id}", middle.CheckUserAuth([]string{"permission.read"}, ApiPermission.FindOneById))     // Lấy quyền theo ID
-	r.GET(preV1+"/permissions", middle.CheckUserAuth([]string{"permission.read"}, ApiPermission.FindAll))              // Lấy tất cả quyền
-	r.PUT(preV1+"/permissions/{id}", middle.CheckUserAuth([]string{"permission.update"}, ApiPermission.UpdateOneById)) // Cập nhật quyền theo ID
-	//r.DELETE(preV1+"/permissions/{id}", middle.CheckUserAuth([]string{"permission.delete"}, ApiPermission.DeleteOneById)) // Xóa quyền theo ID
+	r.GET(preV1+"/permissions/{id}", middle.CheckUserAuth("Permission.Read", ApiPermission.FindOneById)) // Lấy quyền theo ID
+	r.GET(preV1+"/permissions", middle.CheckUserAuth("Permission.Read", ApiPermission.FindAll))          // Lấy tất cả quyền
 
 	// ====================================  ROLES API =============================================
 	// Các API liên quan đến vai trò
 	ApiRole := handler.NewRoleHandler(c, db)
-	r.POST(preV1+"/roles", middle.CheckUserAuth([]string{"role.create"}, ApiRole.Create))        // Tạo vai trò
-	r.GET(preV1+"/roles/{id}", middle.CheckUserAuth([]string{"role.read"}, ApiRole.FindOneById)) // Lấy vai trò theo ID
-	r.GET(preV1+"/roles", middle.CheckUserAuth([]string{"role.read"}, ApiRole.FindAll))          // Lấy tất cả vai trò
+	r.POST(preV1+"/roles", middle.CheckUserAuth("Role.Create", ApiRole.Create))        // Tạo vai trò
+	r.GET(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Read", ApiRole.FindOneById)) // Lấy vai trò theo ID
+	r.GET(preV1+"/roles", middle.CheckUserAuth("Role.Read", ApiRole.FindAll))          // Lấy tất cả vai trò
 	//r.PUT(preV1+"/roles/{id}", middle.CheckUserAuth([]string{"role.update"},ApiRole.UpdateOneById)) // Cập nhật vai trò theo ID
 	//r.DELETE(preV1+"/roles/{id}", middle.CheckUserAuth([]string{"role.delete"}, ApiRole.DeleteOneById)) // Xóa vai trò theo ID
 
 	// ====================================  ADMIN API =============================================
 	// Các API dành cho admin
 	ApiAdmin := handler.NewAdminHandler(c, db)
-	r.POST(preV1+"/admin/set_role", middle.CheckUserAuth([]string{"admin.set_role"}, ApiAdmin.SetRole))             // Thiết lập vai trò cho người dùng
-	r.POST(preV1+"/admin/block_user", middle.CheckUserAuth([]string{"admin.block_user"}, ApiAdmin.BlockUser))       // Khóa người dùng
-	r.POST(preV1+"/admin/unblock_user", middle.CheckUserAuth([]string{"admin.unblock_user"}, ApiAdmin.UnBlockUser)) // Mở khóa người dùng
+	r.POST(preV1+"/admin/set_role", middle.CheckUserAuth("Admin.Set_role", ApiAdmin.SetRole))           // Thiết lập vai trò cho người dùng
+	r.POST(preV1+"/admin/block_user", middle.CheckUserAuth("Admin.Block_user", ApiAdmin.BlockUser))     // Khóa người dùng
+	r.POST(preV1+"/admin/unblock_user", middle.CheckUserAuth("Admin.Block_user", ApiAdmin.UnBlockUser)) // Mở khóa người dùng
 
 	// ====================================  USERS API =============================================
 	// Các API liên quan đến người dùng
 	ApiUser := handler.NewUserHandler(c, db)
-	r.POST(preV1+"/users/register", ApiUser.Registry)                                         // Đăng ký người dùng
-	r.POST(preV1+"/users/login", ApiUser.Login)                                               // Đăng nhập người dùng
-	r.POST(preV1+"/users/logout", middle.CheckUserAuth(nil, ApiUser.Logout))                  // Đăng xuất người dùng
-	r.GET(preV1+"/users/me", middle.CheckUserAuth(nil, ApiUser.GetMyInfo))                    // Lấy thông tin cá nhân
-	r.GET(preV1+"/users/roles", middle.CheckUserAuth(nil, ApiUser.GetMyRoles))                // Lấy vai trò của người dùng
-	r.POST(preV1+"/users/change_password", middle.CheckUserAuth(nil, ApiUser.ChangePassword)) // Đổi mật khẩu
-	r.POST(preV1+"/users/change_info", middle.CheckUserAuth(nil, ApiUser.ChangeInfo))         // Đổi thông tin cá nhân
+	r.POST(preV1+"/users/register", ApiUser.Registry)                                        // Đăng ký người dùng
+	r.POST(preV1+"/users/login", ApiUser.Login)                                              // Đăng nhập người dùng
+	r.POST(preV1+"/users/logout", middle.CheckUserAuth("", ApiUser.Logout))                  // Đăng xuất người dùng
+	r.GET(preV1+"/users/me", middle.CheckUserAuth("", ApiUser.GetMyInfo))                    // Lấy thông tin cá nhân
+	r.GET(preV1+"/users/roles", middle.CheckUserAuth("", ApiUser.GetMyRoles))                // Lấy vai trò của người dùng
+	r.POST(preV1+"/users/change_password", middle.CheckUserAuth("", ApiUser.ChangePassword)) // Đổi mật khẩu
+	r.POST(preV1+"/users/change_info", middle.CheckUserAuth("", ApiUser.ChangeInfo))         // Đổi thông tin cá nhân
 	// TODO: Bổ sung check quyền khi chạy thật
-	r.GET(preV1+"/users/{id}", middle.CheckUserAuth(nil, ApiUser.FindOneById))  // Lấy tất cả người dùng với bộ lọc
-	r.GET(preV1+"/users", middle.CheckUserAuth(nil, ApiUser.FindAllWithFilter)) // Lấy tất cả người dùng với bộ lọc
+	r.GET(preV1+"/users/{id}", middle.CheckUserAuth("User.Read", ApiUser.FindOneById))  // Lấy tất cả người dùng với bộ lọc
+	r.GET(preV1+"/users/count", middle.CheckUserAuth("User.Read", ApiUser.Count))       // Lấy tất cả người dùng với bộ lọc
+	r.GET(preV1+"/users", middle.CheckUserAuth("User.Read", ApiUser.FindAllWithFilter)) // Lấy tất cả người dùng với bộ lọc
 }

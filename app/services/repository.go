@@ -74,7 +74,7 @@ func (service *Repository) InsertOne(ctx context.Context, model interface{}) (In
 		return nil, errors.New("Input data is not a map")
 	}
 	myMap["createdAt"] = utility.CurrentTimeInMilli()
-	//myMap["updatedAt"] = utility.CurrentTimeInMilli()
+	myMap["updatedAt"] = utility.CurrentTimeInMilli()
 	return service.mongoCollection.InsertOne(ctx, myMap)
 
 }
@@ -90,7 +90,7 @@ func (service *Repository) InsertMany(ctx context.Context, models []interface{})
 			return nil, errors.New("Input data is not a map")
 		}
 		myMap["createdAt"] = utility.CurrentTimeInMilli()
-		//myMap["updatedAt"] = utility.CurrentTimeInMilli()
+		myMap["updatedAt"] = utility.CurrentTimeInMilli()
 
 		Maps = append(Maps, myMap)
 	}
@@ -98,114 +98,8 @@ func (service *Repository) InsertMany(ctx context.Context, models []interface{})
 	return service.mongoCollection.InsertMany(ctx, Maps)
 }
 
-// FindOneById tìm một tài liệu theo ID
-
-func (service *Repository) FindOneById(ctx context.Context, id string, opts *options.FindOneOptions) (FindOneResult interface{}, err error) {
-
-	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
-	var result bson.M
-	if opts != nil {
-		test := service.mongoCollection.FindOne(ctx, query, opts)
-		err = test.Decode(&result)
-	} else {
-		test := service.mongoCollection.FindOne(ctx, query)
-		err = test.Decode(&result)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-
-}
-
-// FindOne tìm một tài liệu theo query
-func (service *Repository) FindOne(ctx context.Context, query interface{}, opts *options.FindOneOptions) (FindOneResult interface{}, err error) {
-	var result bson.M
-	if opts != nil {
-		err = service.mongoCollection.FindOne(ctx, query, opts).Decode(&result)
-	} else {
-		err = service.mongoCollection.FindOne(ctx, query).Decode(&result)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-// CountAll đếm tất cả tài liệu theo filter
-func (service *Repository) CountAll(ctx context.Context, filter interface{}, limit int64) (CountResult interface{}, err error) {
-
-	count, err := service.mongoCollection.CountDocuments(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	countResult := new(models.CountResult)
-	countResult.TotalCount = count
-	countResult.Limit = limit
-	countResult.TotalPage = count / limit
-
-	return countResult, nil
-}
-
-// FindAll tìm tất cả tài liệu theo filter
-func (service *Repository) FindAll(ctx context.Context, filter interface{}, opts *options.FindOptions) (FindResult interface{}, err error) {
-	if filter == nil {
-		filter = bson.D{}
-	}
-
-	var cursor *mongo.Cursor
-	if opts != nil {
-		cursor, err = service.mongoCollection.Find(ctx, filter, opts)
-	} else {
-		cursor, err = service.mongoCollection.Find(ctx, filter)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	// lấy danh sách tất cả tài liệu trả về và in ra
-	var items []bson.M
-	if err = cursor.All(ctx, &items); err != nil {
-		return nil, err
-	}
-
-	return items, err
-}
-
-// FindAllWithPaginate tìm tất cả tài liệu với phân trang
-func (service *Repository) FindAllWithPaginate(ctx context.Context, filter interface{}, opts *options.FindOptions) (FindResult interface{}, err error) {
-	if filter == nil {
-		filter = bson.D{}
-	}
-
-	cursor, err := service.mongoCollection.Find(ctx, filter, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	// lấy danh sách tất cả tài liệu trả về và in ra
-	var items []bson.M
-	if err = cursor.All(ctx, &items); err != nil {
-		return nil, err
-	}
-
-	var result = new(models.PaginateResult)
-	result.ItemCount = int64(len(items))
-	result.Limit = *opts.Limit
-	result.Page = *opts.Skip / *opts.Limit
-	result.Items = items
-
-	return result, err
-
-}
-
 // UpdateOneById cập nhật một tài liệu theo ID
-func (service *Repository) UpdateOneById(ctx context.Context, id string, change interface{}) (UpdateResult interface{}, err error) {
+func (service *Repository) UpdateOneById(ctx context.Context, id string, change interface{}) (UpdateResult *mongo.UpdateResult, err error) {
 
 	// Chuyển đổi dữ liệu thành map
 	myMap, err := utility.ToMap(change)
@@ -232,13 +126,13 @@ func (service *Repository) UpdateOneById(ctx context.Context, id string, change 
 	myMap["$set"] = myChange
 
 	// Tạo query
-	query := bson.D{{"_id", utility.String2ObjectID(id)}}
+	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
 	return service.mongoCollection.UpdateOne(ctx, query, myMap)
 
 }
 
 // UpdateMany cập nhật nhiều tài liệu theo query
-func (service *Repository) UpdateMany(ctx context.Context, query, change interface{}) (UpdateResult interface{}, err error) {
+func (service *Repository) UpdateMany(ctx context.Context, query, change interface{}) (UpdateResult *mongo.UpdateResult, err error) {
 
 	// Thêm updatedAt vào map thay đổi
 	myMap, err := utility.ToMap(change)
@@ -257,7 +151,7 @@ func (service *Repository) UpdateMany(ctx context.Context, query, change interfa
 }
 
 // DeleteOneById xóa một tài liệu theo ID
-func (service *Repository) DeleteOneById(ctx context.Context, id string) (DeleteResult interface{}, err error) {
+func (service *Repository) DeleteOneById(ctx context.Context, id string) (DeleteResult *mongo.DeleteResult, err error) {
 
 	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
 	result, err := service.mongoCollection.DeleteOne(ctx, query)
@@ -266,9 +160,117 @@ func (service *Repository) DeleteOneById(ctx context.Context, id string) (Delete
 }
 
 // DeleteMany xóa nhiều tài liệu theo query
-func (service *Repository) DeleteMany(ctx context.Context, query interface{}) (DeleteResult interface{}, err error) {
+func (service *Repository) DeleteMany(ctx context.Context, query interface{}) (DeleteResult *mongo.DeleteResult, err error) {
 
 	result, err := service.mongoCollection.DeleteMany(ctx, query)
+	return result, err
+
+}
+
+// FindOneById tìm một tài liệu theo ID
+func (service *Repository) FindOneById(ctx context.Context, id string, opts *options.FindOneOptions) (FindOneResult bson.M, err error) {
+
+	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
+	var resultDecoded bson.M
+	if opts != nil {
+		result := service.mongoCollection.FindOne(ctx, query, opts)
+		err = result.Decode(&resultDecoded)
+	} else {
+		result := service.mongoCollection.FindOne(ctx, query)
+		err = result.Decode(&resultDecoded)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resultDecoded, nil
+
+}
+
+// FindOne tìm một tài liệu theo query
+func (service *Repository) FindOne(ctx context.Context, query interface{}, opts *options.FindOneOptions) (FindOneResult bson.M, err error) {
+	var resultDecoded bson.M
+	if opts != nil {
+		result := service.mongoCollection.FindOne(ctx, query, opts)
+		err = result.Decode(&resultDecoded)
+	} else {
+		result := service.mongoCollection.FindOne(ctx, query)
+		err = result.Decode(&resultDecoded)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resultDecoded, nil
+}
+
+// CountAll đếm tất cả tài liệu theo filter
+func (service *Repository) CountAll(ctx context.Context, filter interface{}, limit int64) (CountResult *models.CountResult, err error) {
+
+	count, err := service.mongoCollection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	countResult := new(models.CountResult)
+	countResult.TotalCount = count
+	countResult.Limit = limit
+	countResult.TotalPage = count / limit
+
+	return countResult, nil
+}
+
+// FindAll tìm tất cả tài liệu theo filter
+func (service *Repository) FindAll(ctx context.Context, filter interface{}, opts *options.FindOptions) (FindResult []bson.M, err error) {
+	if filter == nil {
+		filter = bson.D{}
+	}
+
+	var cursor *mongo.Cursor
+	if opts != nil {
+		cursor, err = service.mongoCollection.Find(ctx, filter, opts)
+	} else {
+		cursor, err = service.mongoCollection.Find(ctx, filter)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// lấy danh sách tất cả tài liệu trả về và in ra
+	var items []bson.M
+	if err = cursor.All(ctx, &items); err != nil {
+		return nil, err
+	}
+
+	return items, err
+}
+
+// FindAllWithPaginate tìm tất cả tài liệu với phân trang
+func (service *Repository) FindAllWithPaginate(ctx context.Context, filter interface{}, opts *options.FindOptions) (FindResult *models.PaginateResult, err error) {
+
+	if filter == nil {
+		filter = bson.D{}
+	}
+
+	cursor, err := service.mongoCollection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// lấy danh sách tất cả tài liệu trả về và in ra
+	var items []bson.M
+	if err = cursor.All(ctx, &items); err != nil {
+		return nil, err
+	}
+
+	var result = new(models.PaginateResult)
+	result.ItemCount = int64(len(items))
+	result.Limit = *opts.Limit
+	result.Page = *opts.Skip / *opts.Limit
+	result.Items = items
+
 	return result, err
 
 }

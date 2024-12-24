@@ -114,65 +114,6 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	return &user, nil
 }
 
-// Chọn role để làm việc
-// Sau khi đăng nhập thành công, token của người dùng sẽ để trống RoleID,
-// Khi người dùng chọn RoleID để làm việc, token sẽ được gán RoleID
-func (h *UserService) SetWorkingRole(ctx *fasthttp.RequestCtx, userID string, currentToken string, roleID string) (*models.User, error) {
-
-	// Tìm user theo ID
-	result, err := h.crudUser.FindOneById(ctx, userID, nil)
-	if result == nil {
-		return nil, err
-	}
-
-	var user models.User
-	bsonBytes, err := bson.Marshal(result)
-	if err != nil {
-		return nil, err
-	}
-
-	err = bson.Unmarshal(bsonBytes, &user)
-	if err != nil {
-		return nil, err
-	}
-
-	// Tìm token theo currentToken
-	var idTokenExist int = -1
-	for i, _token := range user.Tokens {
-		if _token.JwtToken == currentToken {
-			idTokenExist = i
-		}
-	}
-
-	// Check xem roleID có tồn tại không
-	result, err = h.crudRole.FindOneById(ctx, roleID, nil)
-	if result == nil {
-		return nil, err
-	}
-
-	// Cập nhật RoleID
-	if idTokenExist != -1 {
-		user.Tokens[idTokenExist].RoleID = roleID
-	} else {
-		return nil, err
-	}
-
-	CustomBson := &utility.CustomBson{}
-	change, err := CustomBson.Set(user)
-	if err != nil {
-		return nil, err
-	}
-
-	// Cập nhật thông tin người dùng trong cơ sở dữ liệu
-	_, err = h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-
-}
-
 // Xóa token tại vị trí chỉ định
 func RemoveIndex(s []models.Token, index int) []models.Token {
 	return append(s[:index], s[index+1:]...)
@@ -215,12 +156,12 @@ func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential
 		return nil, err
 	}
 
-	result, err = h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
+	updateResult, err := h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
 	if err != nil {
 		return nil, err
 	}
 
-	return result, nil
+	return updateResult, nil
 }
 
 // Thay đổi mật khẩu người dùng

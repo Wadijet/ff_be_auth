@@ -2,9 +2,11 @@ package handler
 
 import (
 	"atk-go-server/app/services"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
 
+	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -26,3 +28,16 @@ func NewInitHandler(c *config.Configuration, db *mongo.Client) *InitHandler {
 	return newHandler
 }
 
+// SetAdministrator tạo người dùng quản trị hệ thống
+func (h *InitHandler) SetAdministrator(ctx *fasthttp.RequestCtx) {
+	var response map[string]interface{} = nil
+
+	// Lấy dữ liệu
+	// GET ID
+	id := ctx.UserValue("id").(string)
+
+	response = utility.FinalResponse(h.InitService.SetAdministrator(id))
+
+	utility.JSON(ctx, response)
+
+}

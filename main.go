@@ -77,6 +77,7 @@ func initDatabase_MongoDB() {
 	// gọi hàm khởi tạo các quyền mặc định
 	InitService := services.NewInitService(global.MongoDB_ServerConfig, global.MongoDB_Session)
 	InitService.InitPermission()
+	InitService.InitRole()
 
 }
 
