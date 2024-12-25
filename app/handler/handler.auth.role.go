@@ -86,4 +86,37 @@ func (h *RoleHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	utility.JSON(ctx, response)
 }
 
+// Cập nhật một vai trò theo ID
+func (h *RoleHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
+	var response map[string]interface{} = nil
+
+	// Lấy ID từ yêu cầu
+	id := ctx.UserValue("id").(string)
+
+	// Lấy dữ liệu từ yêu cầu
+	postValues := ctx.PostBody()
+	inputStruct := new(models.RoleUpdateInput)
+	response = utility.Convert2Struct(postValues, inputStruct)
+	if response == nil { // Kiểm tra dữ liệu đầu vào
+		response = utility.ValidateStruct(inputStruct)
+		if response == nil { // Gọi hàm xử lý logic
+			response = utility.FinalResponse(h.crud.UpdateOneById(ctx, id, inputStruct))
+		}
+	}
+
+	utility.JSON(ctx, response)
+}
+
+// Xóa một vai trò theo ID
+func (h *RoleHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
+	var response map[string]interface{} = nil
+
+	// Lấy ID từ yêu cầu
+	id := ctx.UserValue("id").(string)
+
+	response = utility.FinalResponse(h.crud.DeleteOneById(ctx, id))
+
+	utility.JSON(ctx, response)
+}
+
 // Other functions =========================================================================

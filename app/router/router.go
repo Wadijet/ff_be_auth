@@ -43,11 +43,11 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	// ====================================  ROLES API =============================================
 	// Các API liên quan đến vai trò
 	ApiRole := handler.NewRoleHandler(c, db)
-	r.POST(preV1+"/roles", middle.CheckUserAuth("Role.Create", ApiRole.Create))        // Tạo vai trò
-	r.GET(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Read", ApiRole.FindOneById)) // Lấy vai trò theo ID
-	r.GET(preV1+"/roles", middle.CheckUserAuth("Role.Read", ApiRole.FindAll))          // Lấy tất cả vai trò
-	//r.PUT(preV1+"/roles/{id}", middle.CheckUserAuth([]string{"role.update"},ApiRole.UpdateOneById)) // Cập nhật vai trò theo ID
-	//r.DELETE(preV1+"/roles/{id}", middle.CheckUserAuth([]string{"role.delete"}, ApiRole.DeleteOneById)) // Xóa vai trò theo ID
+	r.POST(preV1+"/roles", middle.CheckUserAuth("Role.Create", ApiRole.Create))               // Tạo vai trò
+	r.GET(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Read", ApiRole.FindOneById))        // Lấy vai trò theo ID
+	r.GET(preV1+"/roles", middle.CheckUserAuth("Role.Read", ApiRole.FindAll))                 // Lấy tất cả vai trò
+	r.PUT(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Update", ApiRole.UpdateOneById))    // Cập nhật vai trò theo ID
+	r.DELETE(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Delete", ApiRole.DeleteOneById)) // Xóa vai trò theo ID
 
 	// ====================================  ADMIN API =============================================
 	// Các API dành cho admin
