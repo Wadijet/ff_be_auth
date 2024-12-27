@@ -16,11 +16,11 @@ import (
 
 // InitService định nghĩa các CRUD repository cho User, Permission và Role
 type InitService struct {
-	UserCRUD           Repository
-	PermissionCRUD     Repository
-	RoleCRUD           Repository
-	RolePermissionCRUD Repository
-	UserRoleCRUD       Repository
+	UserCRUD           RepositoryService
+	PermissionCRUD     RepositoryService
+	RoleCRUD           RepositoryService
+	RolePermissionCRUD RepositoryService
+	UserRoleCRUD       RepositoryService
 }
 
 // NewInitService khởi tạo các repository và trả về một đối tượng InitService

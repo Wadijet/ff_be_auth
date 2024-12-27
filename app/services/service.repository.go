@@ -14,8 +14,8 @@ import (
 	"atk-go-server/global"
 )
 
-// Repository là cấu trúc chứa thông tin kết nối đến MongoDB
-type Repository struct {
+// RepositoryService là cấu trúc chứa thông tin kết nối đến MongoDB
+type RepositoryService struct {
 	mongoClient     *mongo.Client
 	mongoCollection *mongo.Collection
 	config          *config.Configuration
@@ -44,17 +44,17 @@ func GetDBName(c *config.Configuration, collectionName string) string {
 
 // Khởi tạo Repository
 // trả về interface gắn với Repository
-func NewRepository(c *config.Configuration, db *mongo.Client, collection_name string) *Repository {
+func NewRepository(c *config.Configuration, db *mongo.Client, collection_name string) *RepositoryService {
 	dbName := GetDBName(c, collection_name)
 	if dbName == "" {
 		return nil
 	} else {
-		return &Repository{mongoClient: db, mongoCollection: db.Database(dbName).Collection(collection_name), config: c}
+		return &RepositoryService{mongoClient: db, mongoCollection: db.Database(dbName).Collection(collection_name), config: c}
 	}
 }
 
 // Cài đặt collection để làm việc
-func (service *Repository) SetCollection(collection_name string) (ResultCollection *mongo.Collection) {
+func (service *RepositoryService) SetCollection(collection_name string) (ResultCollection *mongo.Collection) {
 	dbName := GetDBName(service.config, collection_name)
 	if dbName == "" {
 		return nil
@@ -66,7 +66,7 @@ func (service *Repository) SetCollection(collection_name string) (ResultCollecti
 // InsertOne chèn một tài liệu vào collection
 // Params:	collection name (string)
 // return: 	*mongo.Collection
-func (service *Repository) InsertOne(ctx context.Context, model interface{}) (InsertOneResult *mongo.InsertOneResult, err error) {
+func (service *RepositoryService) InsertOne(ctx context.Context, model interface{}) (InsertOneResult *mongo.InsertOneResult, err error) {
 
 	// Thêm createdAt, updatedAt vào dữ liệu đầu vào
 	myMap, err := utility.ToMap(model)
@@ -80,7 +80,7 @@ func (service *Repository) InsertOne(ctx context.Context, model interface{}) (In
 }
 
 // InsertMany chèn nhiều tài liệu vào collection
-func (service *Repository) InsertMany(ctx context.Context, models []interface{}) (InsertManyResult *mongo.InsertManyResult, err error) {
+func (service *RepositoryService) InsertMany(ctx context.Context, models []interface{}) (InsertManyResult *mongo.InsertManyResult, err error) {
 
 	var Maps []interface{}
 	for _, model := range models {
@@ -99,7 +99,7 @@ func (service *Repository) InsertMany(ctx context.Context, models []interface{})
 }
 
 // UpdateOneById cập nhật một tài liệu theo ID
-func (service *Repository) UpdateOneById(ctx context.Context, id string, change interface{}) (UpdateResult *mongo.UpdateResult, err error) {
+func (service *RepositoryService) UpdateOneById(ctx context.Context, id string, change interface{}) (UpdateResult *mongo.UpdateResult, err error) {
 
 	// Chuyển đổi dữ liệu thành map
 	myMap, err := utility.ToMap(change)
@@ -132,7 +132,7 @@ func (service *Repository) UpdateOneById(ctx context.Context, id string, change 
 }
 
 // UpdateMany cập nhật nhiều tài liệu theo query
-func (service *Repository) UpdateMany(ctx context.Context, query, change interface{}) (UpdateResult *mongo.UpdateResult, err error) {
+func (service *RepositoryService) UpdateMany(ctx context.Context, query, change interface{}) (UpdateResult *mongo.UpdateResult, err error) {
 
 	// Thêm updatedAt vào map thay đổi
 	myMap, err := utility.ToMap(change)
@@ -151,7 +151,7 @@ func (service *Repository) UpdateMany(ctx context.Context, query, change interfa
 }
 
 // DeleteOneById xóa một tài liệu theo ID
-func (service *Repository) DeleteOneById(ctx context.Context, id string) (DeleteResult *mongo.DeleteResult, err error) {
+func (service *RepositoryService) DeleteOneById(ctx context.Context, id string) (DeleteResult *mongo.DeleteResult, err error) {
 
 	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
 	result, err := service.mongoCollection.DeleteOne(ctx, query)
@@ -160,7 +160,7 @@ func (service *Repository) DeleteOneById(ctx context.Context, id string) (Delete
 }
 
 // DeleteMany xóa nhiều tài liệu theo query
-func (service *Repository) DeleteMany(ctx context.Context, query interface{}) (DeleteResult *mongo.DeleteResult, err error) {
+func (service *RepositoryService) DeleteMany(ctx context.Context, query interface{}) (DeleteResult *mongo.DeleteResult, err error) {
 
 	result, err := service.mongoCollection.DeleteMany(ctx, query)
 	return result, err
@@ -168,7 +168,7 @@ func (service *Repository) DeleteMany(ctx context.Context, query interface{}) (D
 }
 
 // FindOneById tìm một tài liệu theo ID
-func (service *Repository) FindOneById(ctx context.Context, id string, opts *options.FindOneOptions) (FindOneResult bson.M, err error) {
+func (service *RepositoryService) FindOneById(ctx context.Context, id string, opts *options.FindOneOptions) (FindOneResult bson.M, err error) {
 
 	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
 	var resultDecoded bson.M
@@ -189,7 +189,7 @@ func (service *Repository) FindOneById(ctx context.Context, id string, opts *opt
 }
 
 // FindOne tìm một tài liệu theo query
-func (service *Repository) FindOne(ctx context.Context, query interface{}, opts *options.FindOneOptions) (FindOneResult bson.M, err error) {
+func (service *RepositoryService) FindOne(ctx context.Context, query interface{}, opts *options.FindOneOptions) (FindOneResult bson.M, err error) {
 	var resultDecoded bson.M
 	if opts != nil {
 		result := service.mongoCollection.FindOne(ctx, query, opts)
@@ -207,7 +207,7 @@ func (service *Repository) FindOne(ctx context.Context, query interface{}, opts 
 }
 
 // CountAll đếm tất cả tài liệu theo filter
-func (service *Repository) CountAll(ctx context.Context, filter interface{}, limit int64) (CountResult *models.CountResult, err error) {
+func (service *RepositoryService) CountAll(ctx context.Context, filter interface{}, limit int64) (CountResult *models.CountResult, err error) {
 
 	count, err := service.mongoCollection.CountDocuments(ctx, filter)
 	if err != nil {
@@ -223,7 +223,7 @@ func (service *Repository) CountAll(ctx context.Context, filter interface{}, lim
 }
 
 // FindAll tìm tất cả tài liệu theo filter
-func (service *Repository) FindAll(ctx context.Context, filter interface{}, opts *options.FindOptions) (FindResult []bson.M, err error) {
+func (service *RepositoryService) FindAll(ctx context.Context, filter interface{}, opts *options.FindOptions) (FindResult []bson.M, err error) {
 	if filter == nil {
 		filter = bson.D{}
 	}
@@ -248,7 +248,7 @@ func (service *Repository) FindAll(ctx context.Context, filter interface{}, opts
 }
 
 // FindAllWithPaginate tìm tất cả tài liệu với phân trang
-func (service *Repository) FindAllWithPaginate(ctx context.Context, filter interface{}, opts *options.FindOptions) (FindResult *models.PaginateResult, err error) {
+func (service *RepositoryService) FindAllWithPaginate(ctx context.Context, filter interface{}, opts *options.FindOptions) (FindResult *models.PaginateResult, err error) {
 
 	if filter == nil {
 		filter = bson.D{}

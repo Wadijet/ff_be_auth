@@ -18,8 +18,8 @@ import (
 
 // UserService là cấu trúc chứa các phương thức liên quan đến người dùng
 type UserService struct {
-	crudUser Repository
-	crudRole Repository
+	crudUser RepositoryService
+	crudRole RepositoryService
 }
 
 // Khởi tạo UserService với cấu hình và kết nối cơ sở dữ liệu

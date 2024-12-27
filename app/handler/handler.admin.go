@@ -13,9 +13,9 @@ import (
 
 // AdminHandler là cấu trúc chứa các dịch vụ cần thiết để xử lý các yêu cầu liên quan đến quản trị viên
 type AdminHandler struct {
-	UserCRUD       services.Repository
-	PermissionCRUD services.Repository
-	RoleCRUD       services.Repository
+	UserCRUD       services.RepositoryService
+	PermissionCRUD services.RepositoryService
+	RoleCRUD       services.RepositoryService
 	InitService    services.InitService
 	AdminService   services.AdminService
 }

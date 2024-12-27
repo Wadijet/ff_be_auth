@@ -15,9 +15,9 @@ import (
 
 // AdminService chứa các CRUD repository cho User, Permission và Role
 type AdminService struct {
-	UserCRUD       Repository
-	PermissionCRUD Repository
-	RoleCRUD       Repository
+	UserCRUD       RepositoryService
+	PermissionCRUD RepositoryService
+	RoleCRUD       RepositoryService
 }
 
 // Khởi tạo AdminService với các repository tương ứng

@@ -12,9 +12,9 @@ import (
 
 // InitHandler là struct chứa các CRUD services và InitService
 type InitHandler struct {
-	UserCRUD       services.Repository
-	PermissionCRUD services.Repository
-	RoleCRUD       services.Repository
+	UserCRUD       services.RepositoryService
+	PermissionCRUD services.RepositoryService
+	RoleCRUD       services.RepositoryService
 	InitService    services.InitService
 }
 

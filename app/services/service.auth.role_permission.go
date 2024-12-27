@@ -13,9 +13,9 @@ import (
 
 // UserService là cấu trúc chứa các phương thức liên quan đến người dùng
 type RolePermissionService struct {
-	crudRole           Repository
-	crudPermission     Repository
-	crudRolePermission Repository
+	crudRole           RepositoryService
+	crudPermission     RepositoryService
+	crudRolePermission RepositoryService
 }
 
 // Khởi tạo UserService với cấu hình và kết nối cơ sở dữ liệu

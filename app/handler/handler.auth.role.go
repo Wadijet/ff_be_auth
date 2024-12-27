@@ -16,7 +16,7 @@ import (
 
 // RoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
 type RoleHandler struct {
-	crud services.Repository
+	crud services.RepositoryService
 }
 
 // NewRoleHandler khởi tạo một RoleHandler mới

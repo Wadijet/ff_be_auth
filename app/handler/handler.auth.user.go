@@ -18,9 +18,9 @@ import (
 
 // UserHandler là struct chứa các dịch vụ và repository cần thiết để xử lý người dùng
 type UserHandler struct {
-	UserCRUD     services.Repository
-	RoleCRUD     services.Repository
-	UserRoleCRUD services.Repository
+	UserCRUD     services.RepositoryService
+	RoleCRUD     services.RepositoryService
+	UserRoleCRUD services.RepositoryService
 	UserService  services.UserService
 }
 

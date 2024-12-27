@@ -21,11 +21,11 @@ import (
 // Cấu trúc JwtToken, mô hình jwt cơ bản
 type JwtToken struct {
 	C                  *config.Configuration
-	UserCRUD           services.Repository
-	RoleCRUD           services.Repository
-	PermissionCRUD     services.Repository
-	RolePermissionCRUD services.Repository
-	UserRoleCRUD       services.Repository
+	UserCRUD           services.RepositoryService
+	RoleCRUD           services.RepositoryService
+	PermissionCRUD     services.RepositoryService
+	RolePermissionCRUD services.RepositoryService
+	UserRoleCRUD       services.RepositoryService
 }
 
 // NewJwtToken , khởi tạo một JwtToken mới
@@ -180,7 +180,7 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 																	fmt.Errorf("Failed to decode permission")
 																	continue
 																}
-																// Xác định Role có quyền cao nhất
+																//TODO Xác định Role có quyền cao nhất
 																if modelRolePermission.PermissionID == requirePermissionID {
 																	isRightRole = true
 																	ctx.SetUserValue("RoleId", modelUserRole.RoleID)
