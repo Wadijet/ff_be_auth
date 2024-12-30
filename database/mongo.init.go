@@ -1,7 +1,6 @@
 package database
 
 import (
-	"atk-go-server/config"
 	"atk-go-server/global"
 	"context"
 	"fmt"
@@ -16,54 +15,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// GetInstance initializes and returns a *mongo.Client object.
-// This function uses the database connection URL from the provided configuration.
-//
-// Parameters:
-// - c: Pointer to the config.Configuration object containing configuration information.
-//
-// Returns:
-// - *mongo.Client: The connected MongoDB client object.
-//
-// Notes:
-// - This function will log and return an error if there is an issue during connection or connection check.
-func GetInstance(c *config.Configuration) (*mongo.Client, error) {
-	if c.MongoDB_ConnectionURL == "" {
-		return nil, fmt.Errorf("database connection URL is empty")
-	}
-
-	clientOptions := options.Client().ApplyURI(c.MongoDB_ConnectionURL).
-		SetConnectTimeout(10 * time.Second) // Set a connection timeout
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to MongoDB: %w", err)
-	}
-
-	// Check the connection
-	ctxPing, cancelPing := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancelPing()
-
-	err = client.Ping(ctxPing, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to ping MongoDB: %w", err)
-	}
-
-	log.Println("Successfully connected to MongoDB")
-	return client, nil
+type MongoDB_CollectionName struct {
+	Name      string // Tên database
+	ModelName string
 }
 
-// CloseInstance closes the MongoDB client connection.
-func CloseInstance(client *mongo.Client) error {
-	if err := client.Disconnect(context.TODO()); err != nil {
-		log.Printf("Failed to disconnect MongoDB client: %v", err)
-		return err
-	}
-	log.Println("Successfully disconnected from MongoDB")
-	return nil
+type MongoDBName struct {
+	Name        string                   // Tên database
+	Collections []MongoDB_CollectionName // Map tên collection với tên struct model
 }
 
 // EnsureDatabaseAndCollections đảm bảo rằng cơ sở dữ liệu và các collection cần thiết tồn tại.
