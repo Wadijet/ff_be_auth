@@ -9,8 +9,8 @@ import (
 	validator "gopkg.in/go-playground/validator.v9"
 )
 
-// MongoDB_CollectionName chứa tên các collection trong MongoDB
-type MongoDB_CollectionName struct {
+// MongoDB_Auth_CollectionName chứa tên các collection trong MongoDB
+type MongoDB_Auth_CollectionName struct {
 	Users           string // Tên collection cho người dùng
 	Permissions     string // Tên collection cho quyền
 	Roles           string // Tên collection cho vai trò
@@ -19,8 +19,10 @@ type MongoDB_CollectionName struct {
 }
 
 // Các biến toàn cục
-var Validate *validator.Validate                                           // Biến để xác thực dữ liệu
-var MongoDB_Session *mongo.Client                                          // Phiên kết nối tới MongoDB
-var MongoDB_ServerConfig *config.Configuration                             // Cấu hình của server
-var MongoDB_ColNames MongoDB_CollectionName = *new(MongoDB_CollectionName) // Tên các collection
-var MySQL_Session *sql.DB                                                  // Add this line to define MySQLDB
+var Validate *validator.Validate                                                     // Biến để xác thực dữ liệu
+var MongoDB_Session *mongo.Client                                                    // Phiên kết nối tới MongoDB
+var MongoDB_ServerConfig *config.Configuration                                       // Cấu hình của server
+var MongoDB_ColNames MongoDB_Auth_CollectionName = *new(MongoDB_Auth_CollectionName) // Tên các collection
+var MySQL_Session *sql.DB                                                            // Add this line to define MySQLDB
+
+// Tên các collection trong MongoDB

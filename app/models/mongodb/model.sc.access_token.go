@@ -33,3 +33,5 @@ type AccessTokenUpdateInput struct {
 	Value         string   `json:"value" bson:"value"`                 // Giá trị của access token
 	AssignedUsers []string `json:"assignedUsers" bson:"assignedUsers"` // Danh sách người dùng được gán access token
 }
+
+// ==========================================================================================================

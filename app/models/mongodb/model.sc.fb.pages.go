@@ -22,3 +22,8 @@ type FbPage struct {
 }
 
 // API INPUT STRUCT =======================================================================================
+
+// FbPageCreateInput dữ liệu đầu vào khi tạo quyền
+type FbPageCreateInput struct {
+	ApiData []json.RawMessage `json:"apiData" bson:"apiData"` // Dữ liệu API
+}

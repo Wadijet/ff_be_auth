@@ -15,16 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MongoDB_CollectionName struct {
-	Name      string // Tên database
-	ModelName string
-}
-
-type MongoDBName struct {
-	Name        string                   // Tên database
-	Collections []MongoDB_CollectionName // Map tên collection với tên struct model
-}
-
 // EnsureDatabaseAndCollections đảm bảo rằng cơ sở dữ liệu và các collection cần thiết tồn tại.
 // Nếu cơ sở dữ liệu không tồn tại, nó sẽ được tạo ra. Nếu các collection không tồn tại, chúng sẽ được tạo ra bằng cách
 // chèn một tài liệu dummy và sau đó xóa nó.
