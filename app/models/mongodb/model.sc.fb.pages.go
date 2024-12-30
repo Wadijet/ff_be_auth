@@ -1,6 +1,8 @@
 package models
 
 import (
+	"encoding/json"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -14,7 +16,7 @@ type FbPage struct {
 	PageName        string             `json:"pageName" bson:"pageName"`               // Tên của trang
 	PageID          string             `json:"pageID" bson:"pageID"`                   // ID của trang
 	PageAccessToken string             `json:"pageAccessToken" bson:"pageAccessToken"` // Mã truy cập của trang
-	ApiData         []byte             `json:"apiData" bson:"apiData"`                 // Dữ liệu API
+	ApiData         []json.RawMessage  `json:"apiData" bson:"apiData"`                 // Dữ liệu API
 	CreatedAt       int64              `json:"createdAt" bson:"createdAt"`             // Thời gian tạo quyền
 	UpdatedAt       int64              `json:"updatedAt" bson:"updatedAt"`             // Thời gian cập nhật quyền
 }

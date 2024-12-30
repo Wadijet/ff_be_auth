@@ -11,7 +11,7 @@ type AccessToken struct {
 	Describe      string               `json:"describe" bson:"describe"`           // Mô tả access token
 	System        string               `json:"system" bson:"system"`               // Hệ thống của access token
 	Value         string               `json:"value" bson:"value"`                 // Giá trị của access token
-	AssignedRoles []primitive.ObjectID `json:"assignedRoles" bson:"assignedRoles"` // Danh sách vai trò được gán access token
+	AssignedUsers []primitive.ObjectID `json:"assignedUsers" bson:"assignedUsers"` // Danh sách người dùng được gán access token
 	CreatedAt     int64                `json:"createdAt" bson:"createdAt"`         // Thời gian tạo access token
 	UpdatedAt     int64                `json:"updatedAt" bson:"updatedAt"`         // Thời gian cập nhật access token
 }
@@ -22,7 +22,7 @@ type AccessTokenCreateInput struct {
 	Describe      string   `json:"describe" bson:"describe" validate:"required"` // Mô tả access token
 	System        string   `json:"system" bson:"system" validate:"required"`     // Hệ thống của access token
 	Value         string   `json:"value" bson:"value" validate:"required"`       // Giá trị của access token
-	AssignedRoles []string `json:"assignedRoles" bson:"assignedRoles"`           // Danh sách vai trò được gán access token
+	AssignedUsers []string `json:"assignedUsers" bson:"assignedUsers"`           // Danh sách người dùng được gán access token
 }
 
 // AccessTokenUpdateInput dữ liệu đầu vào khi cập nhật access token
@@ -31,5 +31,5 @@ type AccessTokenUpdateInput struct {
 	Describe      string   `json:"describe" bson:"describe"`           // Mô tả access token
 	System        string   `json:"system" bson:"system"`               // Hệ thống của access token
 	Value         string   `json:"value" bson:"value"`                 // Giá trị của access token
-	AssignedRoles []string `json:"assignedRoles" bson:"assignedRoles"` // Danh sách vai trò được gán access token
+	AssignedUsers []string `json:"assignedUsers" bson:"assignedUsers"` // Danh sách người dùng được gán access token
 }

@@ -55,6 +55,12 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	r.POST(preV1+"/role_permissions", middle.CheckUserAuth("RolePermission.Create", ApiRolePermission.Create))        // Tạo quyền cho vai trò
 	r.DELETE(preV1+"/role_permissions/{id}", middle.CheckUserAuth("RolePermission.Delete", ApiRolePermission.Delete)) // Xóa quyền của vai trò
 
+	// ====================================  USER ROLES API ========================================
+	// Các API liên quan đến vai trò của người dùng
+	ApiUserRole := handler.NewUserRoleHandler(c, db)
+	r.POST(preV1+"/user_roles", middle.CheckUserAuth("UserRole.Create", ApiUserRole.Create))        // Tạo vai trò cho người dùng
+	r.DELETE(preV1+"/user_roles/{id}", middle.CheckUserAuth("UserRole.Delete", ApiUserRole.Delete)) // Xóa vai trò của người dùng
+
 	// ====================================  ADMIN API =============================================
 	// Các API dành cho admin
 	ApiAdmin := handler.NewAdminHandler(c, db)

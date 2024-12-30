@@ -78,7 +78,6 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	}
 
 	var idTokenExist int = -1
-
 	// duyệt qua tất cả các token, kiểm tra hwid đó đã có token chưa, nếu có thì idTokenExist = i
 	for i, _token := range user.Tokens {
 		if _token.Hwid == credential.Hwid {
@@ -89,6 +88,7 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	// Cập nhật token nếu đã tồn tại
 	if idTokenExist != -1 { // nếu idTokenExist != -1 thì cập nhật token mới
 		user.Tokens[idTokenExist].JwtToken = tokenMap["token"]
+
 	} else { // Thêm token mới nếu chưa tồn tại hwid
 		// Thêm token mới nếu chưa tồn tại
 		var newToken models.Token
@@ -97,7 +97,9 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 		newToken.RoleID = ""
 
 		user.Tokens = append(user.Tokens, newToken)
+
 	}
+	user.Token = tokenMap["token"]
 
 	CustomBson := &utility.CustomBson{}
 	change, err := CustomBson.Set(user)

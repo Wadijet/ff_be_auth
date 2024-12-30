@@ -14,7 +14,8 @@ type User struct {
 	Email     string             `json:"email" bson:"email" index:"unique"` // Email của người dùng
 	Password  string             `json:"-" bson:"password"`                 // Mật khẩu của người dùng
 	Salt      string             `json:"-" bson:"salt"`                     // Muối để mã hóa mật khẩu
-	Tokens    []Token            `json:"tokens" bson:"tokens"`              // Danh sách các token đang hiệụ lực (mỗi hwid sẽ có một token)
+	Token     string             `json:"token" bson:"token"`                // Token xác thực mới nhất của người dùng
+	Tokens    []Token            `json:"-" bson:"tokens"`                   // Danh sách các token đang hiệụ lực (mỗi hwid sẽ có một token)
 	IsBlock   bool               `json:"isBlock" bson:"isBlock"`            // Trạng thái bị khóa
 	BlockNote string             `json:"blockNote" bson:"blockNote"`        // Ghi chú về việc bị khóa
 	CreatedAt int64              `json:"createdAt" bson:"createdAt"`        // Thời gian tạo

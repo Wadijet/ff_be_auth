@@ -11,16 +11,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// RoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
+// RolePermissionHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
 type RolePermissionHandler struct {
-	crud                  services.RepositoryService
+	crudRolePermission    services.RepositoryService
 	RolePermissionService services.RolePermissionService
 }
 
-// NewRoleHandler khởi tạo một RoleHandler mới
+// NewRolePermissionHandler khởi tạo một RolePermissionHandler mới
 func NewRolePermissionHandler(c *config.Configuration, db *mongo.Client) *RolePermissionHandler {
 	newHandler := new(RolePermissionHandler)
-	newHandler.crud = *services.NewRepository(c, db, global.MongoDB_ColNames.RolePermissions)
+	newHandler.crudRolePermission = *services.NewRepository(c, db, global.MongoDB_ColNames.RolePermissions)
 	return newHandler
 }
 
@@ -49,6 +49,6 @@ func (h *RolePermissionHandler) Delete(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.crud.DeleteOneById(ctx, id))
+	response = utility.FinalResponse(h.crudRolePermission.DeleteOneById(ctx, id))
 	utility.JSON(ctx, response)
 }
