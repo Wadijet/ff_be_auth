@@ -17,7 +17,7 @@ type Permission struct {
 	UpdatedAt int64              `json:"updatedAt" bson:"updatedAt"`        // Thời gian cập nhật quyền
 }
 
-// =======================================================================================
+// API INPUT STRUCT =======================================================================================
 
 // PermissionCreateInput đại diện cho dữ liệu đầu vào khi tạo quyền
 type PermissionCreateInput struct {

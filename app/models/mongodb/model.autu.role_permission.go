@@ -11,12 +11,21 @@ import (
 // CreatedAt: Thời gian tạo quyền vai trò, được lưu trữ dưới dạng timestamp.
 // UpdatedAt: Thời gian cập nhật quyền vai trò, được lưu trữ dưới dạng timestamp.
 type RolePermission struct {
-	ID           primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`                 // ID của quyền vai trò
-	RoleID       primitive.ObjectID `json:"roleId" bson:"roleId" index:"single:1"`             // ID của vai trò
-	PermissionID primitive.ObjectID `json:"permissionId" bson:"permissionId" index:"single:1"` // ID của quyền
-	Scope        byte               `json:"scope" bson:"scope"`                                // Phạm vi của quyền (0: All, 1: Assign)
-	CreatedAt    int64              `json:"createdAt" bson:"createdAt"`                        // Thời gian tạo
-	UpdatedAt    int64              `json:"updatedAt" bson:"updatedAt"`                        // Thời gian cập nhật
+	ID              primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`                 // ID của quyền vai trò
+	RoleID          primitive.ObjectID `json:"roleId" bson:"roleId" index:"single:1"`             // ID của vai trò
+	PermissionID    primitive.ObjectID `json:"permissionId" bson:"permissionId" index:"single:1"` // ID của quyền
+	Scope           byte               `json:"scope" bson:"scope"`                                // Phạm vi của quyền (0: All, 1: Assign)
+	CreatedByRoleID primitive.ObjectID `json:"createdByRoleId" bson:"createdByRoleId"`            // ID của vai trò tạo quyền
+	CreatedByUserID primitive.ObjectID `json:"createdByUserId" bson:"createdByUserId"`            // ID của người dùng tạo quyền
+	CreatedAt       int64              `json:"createdAt" bson:"createdAt"`                        // Thời gian tạo
+	UpdatedAt       int64              `json:"updatedAt" bson:"updatedAt"`                        // Thời gian cập nhật
 }
 
-// ==========================================================================================
+// API INPUT STRUCT ==========================================================================================
+
+// RolePermissionCreateInput đại diện cho dữ liệu đầu vào khi tạo quyền vai trò
+type RolePermissionCreateInput struct {
+	RoleID       primitive.ObjectID `json:"roleId" bson:"roleId" validate:"required"`             // ID của vai trò (bắt buộc)
+	PermissionID primitive.ObjectID `json:"permissionId" bson:"permissionId" validate:"required"` // ID của quyền (bắt buộc)
+	Scope        byte               `json:"scope" bson:"scope"`                                   // Phạm vi của quyền (0: All, 1: Assign)
+}

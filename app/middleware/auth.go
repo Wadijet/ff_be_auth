@@ -180,9 +180,10 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 																	fmt.Errorf("Failed to decode permission")
 																	continue
 																}
-
+																// Xác định Role có quyền cao nhất
 																if modelRolePermission.PermissionID == requirePermissionID {
 																	isRightRole = true
+																	ctx.SetUserValue("RoleId", modelUserRole.RoleID)
 																	if modelRolePermission.Scope < minScope {
 																		minScope = modelRolePermission.Scope
 																	}

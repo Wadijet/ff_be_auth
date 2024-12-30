@@ -29,7 +29,7 @@ func (u *User) ComparePassword(password string) error {
 	return err
 }
 
-// =======================================================================================
+// API INPUT STRUCT =======================================================================================
 
 // UserCreateInput , đầu vào tạo người dùng
 type UserCreateInput struct {

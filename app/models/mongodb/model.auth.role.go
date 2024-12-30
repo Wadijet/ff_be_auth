@@ -13,7 +13,7 @@ type Role struct {
 	UpdatedAt int64              `json:"updatedAt" bson:"updatedAt"`        // Thời gian cập nhật
 }
 
-// ==========================================================================================
+// API INPUT STRUCT ==========================================================================================
 
 // Dữ liệu đầu vào tạo vai trò
 type RoleCreateInput struct {

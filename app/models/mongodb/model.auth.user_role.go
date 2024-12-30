@@ -17,3 +17,11 @@ type UserRole struct {
 	CreatedAt int64              `json:"createdAt" bson:"createdAt"`            // Thời gian tạo
 	UpdatedAt int64              `json:"updatedAt" bson:"updatedAt"`            // Thời gian cập nhật
 }
+
+// API INPUT STRUCT ==========================================================================================
+
+// UserRoleCreateInput đại diện cho dữ liệu đầu vào khi tạo vai trò người dùng
+type UserRoleCreateInput struct {
+	UserID primitive.ObjectID `json:"userId" bson:"userId" validate:"required"` // ID của người dùng (bắt buộc)
+	RoleID primitive.ObjectID `json:"roleId" bson:"roleId" validate:"required"` // ID của vai trò (bắt buộc)
+}
