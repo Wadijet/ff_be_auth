@@ -5,7 +5,6 @@ import (
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
-	"atk-go-server/global"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,14 +12,13 @@ import (
 
 // UserRoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
 type UserRoleHandler struct {
-	crudUserRole    services.RepositoryService
-	UserRoleService services.UserRoleService
+	UserRoleService *services.UserRoleService
 }
 
 // NewUserRoleHandler khởi tạo một UserRoleHandler mới
 func NewUserRoleHandler(c *config.Configuration, db *mongo.Client) *UserRoleHandler {
 	newHandler := new(UserRoleHandler)
-	newHandler.crudUserRole = *services.NewRepository(c, db, global.MongoDB_ColNames.UserRoles)
+	newHandler.UserRoleService = services.NewUserRoleService(c, db)
 	return newHandler
 }
 
@@ -49,6 +47,6 @@ func (h *UserRoleHandler) Delete(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.crudUserRole.DeleteOneById(ctx, id))
+	response = utility.FinalResponse(h.UserRoleService.Delete(ctx, id))
 	utility.JSON(ctx, response)
 }

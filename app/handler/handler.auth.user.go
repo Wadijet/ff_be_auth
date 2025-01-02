@@ -5,32 +5,23 @@ import (
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
-	"atk-go-server/global"
 	"strconv"
 
-	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // UserHandler là struct chứa các dịch vụ và repository cần thiết để xử lý người dùng
 type UserHandler struct {
-	UserCRUD     services.RepositoryService
-	RoleCRUD     services.RepositoryService
-	UserRoleCRUD services.RepositoryService
-	UserService  services.UserService
+	RoleService services.RoleService
+	UserService services.UserService
 }
 
 // NewUserHandler khởi tạo một UserHandler mới
 func NewUserHandler(c *config.Configuration, db *mongo.Client) *UserHandler {
 	newHandler := new(UserHandler)
-	newHandler.UserCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Users)
-	newHandler.RoleCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Roles)
-	newHandler.UserRoleCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.UserRoles)
 	newHandler.UserService = *services.NewUserService(c, db)
+	newHandler.RoleService = *services.NewRoleService(c, db)
 
 	return newHandler
 }
@@ -45,26 +36,10 @@ func (h *UserHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	// GET ID
 	id := ctx.UserValue("id").(string)
 	// Cài đặt
-	opts := new(options.FindOneOptions)
-	opts.SetProjection(bson.D{{"salt", 0}, {"password", 0}})
+	//opts := new(options.FindOneOptions)
+	//opts.SetProjection(bson.D{{"salt", 0}, {"password", 0}})
 
-	response = utility.FinalResponse(h.UserCRUD.FindOneById(ctx, id, opts))
-
-	utility.JSON(ctx, response)
-}
-
-// Count đếm số lượng người dùng
-func (h *UserHandler) Count(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu phân trang từ request
-	buf := string(ctx.FormValue("limit"))
-	limit, err := strconv.ParseInt(buf, 10, 64)
-	if err != nil {
-		limit = 10
-	}
-
-	response = utility.FinalResponse(h.UserCRUD.CountAll(ctx, bson.D{}, limit))
+	response = utility.FinalResponse(h.UserService.FindOneById(ctx, id))
 
 	utility.JSON(ctx, response)
 }
@@ -86,13 +61,7 @@ func (h *UserHandler) FindAllWithFilter(ctx *fasthttp.RequestCtx) {
 		page = 0
 	}
 
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", 1}})
-
-	response = utility.FinalResponse(h.UserCRUD.FindAllWithPaginate(ctx, bson.D{}, opts))
+	response = utility.FinalResponse(h.UserService.FindAll(ctx, page, limit))
 
 	utility.JSON(ctx, response)
 }
@@ -111,26 +80,8 @@ func (h *UserHandler) Registry(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm tạo json changes
 
-			if h.UserService.IsEmailExist(ctx, inputStruct.Email) == true {
-				response = utility.Payload(false, nil, "User already exists!")
-			} else {
+			response = utility.FinalResponse(h.UserService.Create(ctx, inputStruct))
 
-				newUser := new(models.User)
-				newUser.Name = inputStruct.Name
-				newUser.Email = inputStruct.Email
-
-				newUser.Salt = uuid.New().String()
-				passwordBytes := []byte(inputStruct.Password + newUser.Salt)
-
-				hash, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
-				if err != nil {
-					response = utility.Payload(false, err.Error(), "Can not create hash password!")
-				} else {
-					newUser.Password = string(hash[:])
-					response = utility.FinalResponse(h.UserCRUD.InsertOne(ctx, newUser))
-				}
-
-			}
 		}
 	}
 	utility.JSON(ctx, response)
@@ -191,9 +142,9 @@ func (h *UserHandler) GetMyInfo(ctx *fasthttp.RequestCtx) {
 	if ctx.UserValue("userId") != nil {
 		strMyID := ctx.UserValue("userId").(string)
 		// Cài đặt
-		opts := new(options.FindOneOptions)
-		opts.SetProjection(bson.D{{Key: "salt", Value: 0}, {"password", 0}})
-		response = utility.FinalResponse(h.UserCRUD.FindOneById(ctx, strMyID, opts))
+		//opts := new(options.FindOneOptions)
+		//opts.SetProjection(bson.D{{Key: "salt", Value: 0}, {"password", 0}})
+		response = utility.FinalResponse(h.UserService.FindOneById(ctx, strMyID))
 	} else {
 		response = utility.Payload(true, nil, "An unauthorized access!")
 	}
@@ -208,15 +159,8 @@ func (h *UserHandler) GetMyRoles(ctx *fasthttp.RequestCtx) {
 	// Lấy dữ liệu
 	if ctx.UserValue("userId") != nil {
 		strMyID := ctx.UserValue("userId").(string)
-		objMyID := utility.String2ObjectID(strMyID)
 
-		// Cài đặt bộ lọc tìm kiếm
-		filter := bson.D{{Key: "userId", Value: objMyID}}
-
-		// Cài đặt tùy chọn tìm kiếm
-		opts := new(options.FindOptions)
-		opts.SetSort(bson.D{{Key: "updatedAt", Value: 1}})
-		response = utility.FinalResponse(h.UserRoleCRUD.FindAll(ctx, filter, opts))
+		response = utility.FinalResponse(h.UserService.GetRoles(ctx, strMyID))
 	} else {
 		response = utility.Payload(true, nil, "An unauthorized access!")
 	}

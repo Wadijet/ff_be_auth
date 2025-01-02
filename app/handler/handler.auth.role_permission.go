@@ -5,7 +5,6 @@ import (
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
-	"atk-go-server/global"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,14 +12,13 @@ import (
 
 // RolePermissionHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
 type RolePermissionHandler struct {
-	crudRolePermission    services.RepositoryService
-	RolePermissionService services.RolePermissionService
+	RolePermissionService *services.RolePermissionService
 }
 
 // NewRolePermissionHandler khởi tạo một RolePermissionHandler mới
 func NewRolePermissionHandler(c *config.Configuration, db *mongo.Client) *RolePermissionHandler {
 	newHandler := new(RolePermissionHandler)
-	newHandler.crudRolePermission = *services.NewRepository(c, db, global.MongoDB_ColNames.RolePermissions)
+	newHandler.RolePermissionService = services.NewRolePermissionService(c, db)
 	return newHandler
 }
 
@@ -49,6 +47,6 @@ func (h *RolePermissionHandler) Delete(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.crudRolePermission.DeleteOneById(ctx, id))
+	response = utility.FinalResponse(h.RolePermissionService.Delete(ctx, id))
 	utility.JSON(ctx, response)
 }

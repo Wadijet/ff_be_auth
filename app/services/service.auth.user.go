@@ -5,6 +5,7 @@ import (
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
+	"errors"
 	"math/rand"
 	"strconv"
 	"time"
@@ -13,20 +14,21 @@ import (
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // UserService là cấu trúc chứa các phương thức liên quan đến người dùng
 type UserService struct {
-	crudUser RepositoryService
-	crudRole RepositoryService
+	crudUser     RepositoryService
+	crudUserRole RepositoryService
 }
 
 // Khởi tạo UserService với cấu hình và kết nối cơ sở dữ liệu
 func NewUserService(c *config.Configuration, db *mongo.Client) *UserService {
 	newService := new(UserService)
 	newService.crudUser = *NewRepository(c, db, global.MongoDB_ColNames.Users)
-	newService.crudRole = *NewRepository(c, db, global.MongoDB_ColNames.Roles)
+	newService.crudUserRole = *NewRepository(c, db, global.MongoDB_ColNames.UserRoles)
 	return newService
 }
 
@@ -39,6 +41,90 @@ func (h *UserService) IsEmailExist(ctx *fasthttp.RequestCtx, email string) bool 
 	} else {
 		return true
 	}
+}
+
+// Tạo mới một người dùng
+func (h *UserService) Create(ctx *fasthttp.RequestCtx, credential *models.UserCreateInput) (CreateResult interface{}, err error) {
+	// Kiểm tra email của người dùng đã tồn tại chưa bằng cách gọi hàm IsEmailExist
+	if h.IsEmailExist(ctx, credential.Email) {
+		return nil, errors.New("Email already exists")
+	}
+
+	// Tạo mới người dùng
+	newUser := new(models.User)
+	newUser.Name = credential.Name
+	newUser.Email = credential.Email
+
+	newUser.Salt = uuid.New().String()
+	passwordBytes := []byte(credential.Password + newUser.Salt)
+
+	hash, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	newUser.Password = string(hash[:])
+
+	// Thêm người dùng vào cơ sở dữ liệu
+	return h.crudUser.InsertOne(ctx, newUser)
+}
+
+// Tìm một người dùng theo ID
+func (h *UserService) FindOneById(ctx *fasthttp.RequestCtx, userID string) (result *models.User, err error) {
+	findOneResult, err := h.crudUser.FindOneById(ctx, userID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var user models.User
+	bsonBytes, err := bson.Marshal(findOneResult)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bson.Unmarshal(bsonBytes, &user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+
+}
+
+// Tìm tất cả các người dùng với phân trang
+func (h *UserService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64) (results interface{}, err error) {
+	// Cài đặt tùy chọn tìm kiếm
+	opts := new(options.FindOptions)
+	opts.SetLimit(limit)
+	opts.SetSkip(page * limit)
+	opts.SetSort(bson.D{{"updatedAt", 1}})
+
+	findAllResult, err := h.crudUser.FindAllWithPaginate(ctx, bson.D{}, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var bsonMUsers []models.User
+	for _, bsonM := range findAllResult.Items {
+		var user models.User
+		bsonBytes, err := bson.Marshal(bsonM)
+		if err != nil {
+			return nil, err
+		}
+
+		err = bson.Unmarshal(bsonBytes, &user)
+		if err != nil {
+			return nil, err
+		}
+
+		bsonMUsers = append(bsonMUsers, user)
+	}
+
+	var findAllResult2 models.UserPaginateResult
+	findAllResult2.Page = findAllResult.Page
+	findAllResult2.Limit = findAllResult.Limit
+	findAllResult2.Items = bsonMUsers
+
+	return findAllResult2, nil
 }
 
 // Đăng nhập người dùng bằng email và mật khẩu
@@ -114,11 +200,6 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	}
 
 	return &user, nil
-}
-
-// Xóa token tại vị trí chỉ định
-func RemoveIndex(s []models.Token, index int) []models.Token {
-	return append(s[:index], s[index+1:]...)
 }
 
 // Đăng xuất người dùng
@@ -242,4 +323,24 @@ func (h *UserService) ChangeInfo(ctx *fasthttp.RequestCtx, userID string, creden
 	}
 
 	return h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
+}
+
+// Lấy tất cả các Role của người dùng
+func (h *UserService) GetRoles(ctx *fasthttp.RequestCtx, userID string) (GetRolesResult interface{}, err error) {
+
+	// Tìm tất cả các Role của người dùng
+	// Cài đặt bộ lọc tìm kiếm
+	filter := bson.D{{Key: "userId", Value: userID}}
+
+	// Cài đặt tùy chọn tìm kiếm
+	opts := new(options.FindOptions)
+	opts.SetSort(bson.D{{Key: "updatedAt", Value: 1}})
+
+	// Tìm tất cả các Role của người dùng
+	findAllResult, err := h.crudUserRole.FindAll(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return findAllResult, nil
 }

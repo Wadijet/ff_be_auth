@@ -29,57 +29,65 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 
 	// ====================================  STATIC API ===============================================
 	// Các API tĩnh
-	ApiStatic := handler.NewStaticHandler()
-	r.GET(preV1+"/static/test", ApiStatic.TestApi)                                     // API kiểm tra
-	r.GET(preV1+"/static/system", middle.CheckUserAuth("", ApiStatic.GetSystemStatic)) // Lấy thông tin hệ thống
-	r.GET(preV1+"/static/api", middle.CheckUserAuth("", ApiStatic.GetApiStatic))       // Lấy thông tin API
+	StaticHandler := handler.NewStaticHandler()
+	r.GET(preV1+"/static/test", StaticHandler.TestApi)                                     // API kiểm tra
+	r.GET(preV1+"/static/system", middle.CheckUserAuth("", StaticHandler.GetSystemStatic)) // Lấy thông tin hệ thống
+	r.GET(preV1+"/static/api", middle.CheckUserAuth("", StaticHandler.GetApiStatic))       // Lấy thông tin API
 
 	// ====================================  PERMISSIONS API ========================================
 	// Các API liên quan đến quyền
-	ApiPermission := handler.NewPermissionHandler(c, db)
-	r.GET(preV1+"/permissions/{id}", middle.CheckUserAuth("Permission.Read", ApiPermission.FindOneById)) // Lấy quyền theo ID
-	r.GET(preV1+"/permissions", middle.CheckUserAuth("Permission.Read", ApiPermission.FindAll))          // Lấy tất cả quyền
+	PermissionHandler := handler.NewPermissionHandler(c, db)
+	r.GET(preV1+"/permissions/{id}", middle.CheckUserAuth("Permission.Read", PermissionHandler.FindOneById)) // Lấy quyền theo ID
+	r.GET(preV1+"/permissions", middle.CheckUserAuth("Permission.Read", PermissionHandler.FindAll))          // Lấy tất cả quyền
 
 	// ====================================  ROLES API =============================================
 	// Các API liên quan đến vai trò
-	ApiRole := handler.NewRoleHandler(c, db)
-	r.POST(preV1+"/roles", middle.CheckUserAuth("Role.Create", ApiRole.Create))               // Tạo vai trò
-	r.GET(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Read", ApiRole.FindOneById))        // Lấy vai trò theo ID
-	r.GET(preV1+"/roles", middle.CheckUserAuth("Role.Read", ApiRole.FindAll))                 // Lấy tất cả vai trò
-	r.PUT(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Update", ApiRole.UpdateOneById))    // Cập nhật vai trò theo ID
-	r.DELETE(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Delete", ApiRole.DeleteOneById)) // Xóa vai trò theo ID
+	RoleHandler := handler.NewRoleHandler(c, db)
+	r.POST(preV1+"/roles", middle.CheckUserAuth("Role.Create", RoleHandler.Create))               // Tạo vai trò
+	r.GET(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Read", RoleHandler.FindOneById))        // Lấy vai trò theo ID
+	r.GET(preV1+"/roles", middle.CheckUserAuth("Role.Read", RoleHandler.FindAll))                 // Lấy tất cả vai trò
+	r.PUT(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Update", RoleHandler.UpdateOneById))    // Cập nhật vai trò theo ID
+	r.DELETE(preV1+"/roles/{id}", middle.CheckUserAuth("Role.Delete", RoleHandler.DeleteOneById)) // Xóa vai trò theo ID
 
 	// ====================================  ROLE PERMISSIONS API ====================================
 	// Các API liên quan đến quyền của vai trò
-	ApiRolePermission := handler.NewRolePermissionHandler(c, db)
-	r.POST(preV1+"/role_permissions", middle.CheckUserAuth("RolePermission.Create", ApiRolePermission.Create))        // Tạo quyền cho vai trò
-	r.DELETE(preV1+"/role_permissions/{id}", middle.CheckUserAuth("RolePermission.Delete", ApiRolePermission.Delete)) // Xóa quyền của vai trò
+	RolePermissionHandler := handler.NewRolePermissionHandler(c, db)
+	r.POST(preV1+"/role_permissions", middle.CheckUserAuth("RolePermission.Create", RolePermissionHandler.Create))        // Tạo quyền cho vai trò
+	r.DELETE(preV1+"/role_permissions/{id}", middle.CheckUserAuth("RolePermission.Delete", RolePermissionHandler.Delete)) // Xóa quyền của vai trò
 
 	// ====================================  USER ROLES API ========================================
 	// Các API liên quan đến vai trò của người dùng
-	ApiUserRole := handler.NewUserRoleHandler(c, db)
-	r.POST(preV1+"/user_roles", middle.CheckUserAuth("UserRole.Create", ApiUserRole.Create))        // Tạo vai trò cho người dùng
-	r.DELETE(preV1+"/user_roles/{id}", middle.CheckUserAuth("UserRole.Delete", ApiUserRole.Delete)) // Xóa vai trò của người dùng
+	UserRoleHanlder := handler.NewUserRoleHandler(c, db)
+	r.POST(preV1+"/user_roles", middle.CheckUserAuth("UserRole.Create", UserRoleHanlder.Create))        // Tạo vai trò cho người dùng
+	r.DELETE(preV1+"/user_roles/{id}", middle.CheckUserAuth("UserRole.Delete", UserRoleHanlder.Delete)) // Xóa vai trò của người dùng
 
 	// ====================================  ADMIN API =============================================
 	// Các API dành cho admin
-	ApiAdmin := handler.NewAdminHandler(c, db)
-	r.POST(preV1+"/admin/set_role", middle.CheckUserAuth("Admin.Set_role", ApiAdmin.SetRole))           // Thiết lập vai trò cho người dùng
-	r.POST(preV1+"/admin/block_user", middle.CheckUserAuth("Admin.Block_user", ApiAdmin.BlockUser))     // Khóa người dùng
-	r.POST(preV1+"/admin/unblock_user", middle.CheckUserAuth("Admin.Block_user", ApiAdmin.UnBlockUser)) // Mở khóa người dùng
+	AdminHandler := handler.NewAdminHandler(c, db)
+	r.POST(preV1+"/admin/set_role", middle.CheckUserAuth("Admin.Set_role", AdminHandler.SetRole))           // Thiết lập vai trò cho người dùng
+	r.POST(preV1+"/admin/block_user", middle.CheckUserAuth("Admin.Block_user", AdminHandler.BlockUser))     // Khóa người dùng
+	r.POST(preV1+"/admin/unblock_user", middle.CheckUserAuth("Admin.Block_user", AdminHandler.UnBlockUser)) // Mở khóa người dùng
 
 	// ====================================  USERS API =============================================
 	// Các API liên quan đến người dùng
-	ApiUser := handler.NewUserHandler(c, db)
-	r.POST(preV1+"/users/register", ApiUser.Registry)                                        // Đăng ký người dùng
-	r.POST(preV1+"/users/login", ApiUser.Login)                                              // Đăng nhập người dùng
-	r.POST(preV1+"/users/logout", middle.CheckUserAuth("", ApiUser.Logout))                  // Đăng xuất người dùng
-	r.GET(preV1+"/users/me", middle.CheckUserAuth("", ApiUser.GetMyInfo))                    // Lấy thông tin cá nhân
-	r.GET(preV1+"/users/roles", middle.CheckUserAuth("", ApiUser.GetMyRoles))                // Lấy vai trò của người dùng
-	r.POST(preV1+"/users/change_password", middle.CheckUserAuth("", ApiUser.ChangePassword)) // Đổi mật khẩu
-	r.POST(preV1+"/users/change_info", middle.CheckUserAuth("", ApiUser.ChangeInfo))         // Đổi thông tin cá nhân
+	UserHandler := handler.NewUserHandler(c, db)
+	r.POST(preV1+"/users/register", UserHandler.Registry)                                        // Đăng ký người dùng
+	r.POST(preV1+"/users/login", UserHandler.Login)                                              // Đăng nhập người dùng
+	r.POST(preV1+"/users/logout", middle.CheckUserAuth("", UserHandler.Logout))                  // Đăng xuất người dùng
+	r.GET(preV1+"/users/me", middle.CheckUserAuth("", UserHandler.GetMyInfo))                    // Lấy thông tin cá nhân
+	r.GET(preV1+"/users/roles", middle.CheckUserAuth("", UserHandler.GetMyRoles))                // Lấy vai trò của người dùng
+	r.POST(preV1+"/users/change_password", middle.CheckUserAuth("", UserHandler.ChangePassword)) // Đổi mật khẩu
+	r.POST(preV1+"/users/change_info", middle.CheckUserAuth("", UserHandler.ChangeInfo))         // Đổi thông tin cá nhân
 	// TODO: Bổ sung check quyền khi chạy thật
-	r.GET(preV1+"/users/{id}", middle.CheckUserAuth("User.Read", ApiUser.FindOneById))  // Lấy tất cả người dùng với bộ lọc
-	r.GET(preV1+"/users/count", middle.CheckUserAuth("User.Read", ApiUser.Count))       // Lấy tất cả người dùng với bộ lọc
-	r.GET(preV1+"/users", middle.CheckUserAuth("User.Read", ApiUser.FindAllWithFilter)) // Lấy tất cả người dùng với bộ lọc
+	r.GET(preV1+"/users/{id}", middle.CheckUserAuth("User.Read", UserHandler.FindOneById))  // Lấy tất cả người dùng với bộ lọc
+	r.GET(preV1+"/users", middle.CheckUserAuth("User.Read", UserHandler.FindAllWithFilter)) // Lấy tất cả người dùng với bộ lọc
+
+	// ====================================  AGENTS API =============================================
+	// Các API liên quan đến đại lý
+	AgentHandler := handler.NewAgentHandler(c, db)
+	r.POST(preV1+"/agents", middle.CheckUserAuth("Agent.Create", AgentHandler.Create))               // Tạo đại lý
+	r.GET(preV1+"/agents/{id}", middle.CheckUserAuth("Agent.Read", AgentHandler.FindOneById))        // Lấy đại lý theo ID
+	r.GET(preV1+"/agents", middle.CheckUserAuth("Agent.Read", AgentHandler.FindAll))                 // Lấy tất cả đại lý
+	r.PUT(preV1+"/agents/{id}", middle.CheckUserAuth("Agent.Update", AgentHandler.UpdateOneById))    // Cập nhật đại lý theo ID
+	r.DELETE(preV1+"/agents/{id}", middle.CheckUserAuth("Agent.Delete", AgentHandler.DeleteOneById)) // Xóa đại lý theo ID
 }

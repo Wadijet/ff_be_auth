@@ -4,7 +4,6 @@ import (
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
-	"atk-go-server/global"
 	"strconv"
 
 	"github.com/valyala/fasthttp"
@@ -15,13 +14,14 @@ import (
 
 // PermissionHandler là struct chứa các phương thức xử lý quyền
 type PermissionHandler struct {
-	crud services.RepositoryService
+	//crud services.RepositoryService
+	PermissionService *services.PermissionService
 }
 
 // NewPermissionHandler khởi tạo một PermissionHandler mới
 func NewPermissionHandler(c *config.Configuration, db *mongo.Client) *PermissionHandler {
 	newHandler := new(PermissionHandler)
-	newHandler.crud = *services.NewRepository(c, db, global.MongoDB_ColNames.Permissions)
+	newHandler.PermissionService = services.NewPermissionService(c, db)
 	return newHandler
 }
 
@@ -33,7 +33,7 @@ func (h *PermissionHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ request
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.crud.FindOneById(ctx, id, nil))
+	response = utility.FinalResponse(h.PermissionService.FindOneById(ctx, id))
 
 	utility.JSON(ctx, response)
 }
@@ -61,7 +61,7 @@ func (h *PermissionHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	opts.SetSkip(page * limit)
 	opts.SetSort(bson.D{{"updatedAt", 1}})
 
-	response = utility.FinalResponse(h.crud.FindAllWithPaginate(ctx, bson.D{}, opts))
+	response = utility.FinalResponse(h.PermissionService.FindAll(ctx, page, limit))
 
 	utility.JSON(ctx, response)
 }

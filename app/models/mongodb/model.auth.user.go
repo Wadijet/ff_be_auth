@@ -66,3 +66,15 @@ type UserChangePasswordInput struct {
 type UserChangeInfoInput struct {
 	Name string `json:"name" bson:"name"` // Tên của người dùng
 }
+
+// PaginateResult đại diện cho kết quả phân trang
+type UserPaginateResult struct {
+	// Trang hiện tại
+	Page int64 `json:"page" bson:"page"`
+	// Số lượng mục trên mỗi trang
+	Limit int64 `json:"limit" bson:"limit"`
+	// Số lượng mục trong trang hiện tại
+	ItemCount int64 `json:"itemCount" bson:"itemCount"`
+	// Danh sách các mục
+	Items []User `json:"items" bson:"items"`
+}

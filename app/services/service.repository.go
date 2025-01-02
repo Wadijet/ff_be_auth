@@ -35,6 +35,8 @@ func GetDBName(c *config.Configuration, collectionName string) string {
 		return c.MongoDB_DBNameAuth
 	case global.MongoDB_ColNames.UserRoles:
 		return c.MongoDB_DBNameAuth
+	case global.MongoDB_ColNames.Agents:
+		return c.MongoDB_DBNameAuth
 	// LOG
 
 	default:

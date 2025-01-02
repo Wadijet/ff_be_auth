@@ -35,6 +35,7 @@ func NewInitService(c *config.Configuration, db *mongo.Client) *InitService {
 }
 
 var InitialPermissions = []models.Permission{
+
 	{Name: "User.Read", Describe: "Quyền xem người dùng", Group: "Auth", Category: "User"},
 	{Name: "User.Block", Describe: "Quyền khóa người dùng", Group: "Auth", Category: "User"},
 	{Name: "Permission.Read", Describe: "Quyền xem các quyền", Group: "Auth", Category: "Permission"},
@@ -50,6 +51,11 @@ var InitialPermissions = []models.Permission{
 	{Name: "UserRole.Read", Describe: "Quyền xem phân công vai trò", Group: "Auth", Category: "UserRole"},
 	{Name: "UserRole.Update", Describe: "Quyền cập nhật phân công vai trò", Group: "Auth", Category: "UserRole"},
 	{Name: "UserRole.Delete", Describe: "Quyền xóa phân công vai trò", Group: "Auth", Category: "UserRole"},
+	{Name: "UserRole.Delete", Describe: "Quyền xóa phân công vai trò", Group: "Auth", Category: "UserRole"},
+	{Name: "Agent.Read", Describe: "Quyền xem trợ lý", Group: "Auth", Category: "Agent"},
+	{Name: "Agent.Create", Describe: "Quyền tạo trợ lý", Group: "Auth", Category: "Agent"},
+	{Name: "Agent.Update", Describe: "Quyền cập nhật trợ lý", Group: "Auth", Category: "Agent"},
+	{Name: "Agent.Delete", Describe: "Quyền xóa trợ lý", Group: "Auth", Category: "Agent"},
 }
 
 // Viết hàm InitPermission để khởi tạo các quyền mặc định theo nguyên tắc sau:

@@ -64,11 +64,6 @@ func Convert2Struct(data []byte, myStruct interface{}) map[string]interface{} {
 		return Payload(false, err.Error(), "Unable to decode input data!")
 	}
 
-	// err := json.Unmarshal(data, myStruct)
-	// if err != nil {
-	// 	return Payload(false, err.Error(), "Unable to decode input data!")
-	// }
-
 	return nil
 }
 

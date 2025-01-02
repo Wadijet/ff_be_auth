@@ -65,3 +65,8 @@ func (h *RolePermissionService) Create(ctx *fasthttp.RequestCtx, credential *mod
 
 	return result, nil
 }
+
+// Xóa một RolePermission theo ID
+func (h *RolePermissionService) Delete(ctx *fasthttp.RequestCtx, id string) (DeleteResult interface{}, err error) {
+	return h.crudRolePermission.DeleteOneById(ctx, id)
+}
