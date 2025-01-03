@@ -70,7 +70,7 @@ func (h *UserService) Create(ctx *fasthttp.RequestCtx, credential *models.UserCr
 
 // Tìm một người dùng theo ID
 func (h *UserService) FindOneById(ctx *fasthttp.RequestCtx, userID string) (result *models.User, err error) {
-	findOneResult, err := h.crudUser.FindOneById(ctx, userID, nil)
+	findOneResult, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	}
 
 	// Cập nhật thông tin người dùng trong cơ sở dữ liệu
-	_, err = h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
+	_, err = h.crudUser.UpdateOneById(ctx, user.ID, change)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential *models.UserLogoutInput) (LogoutResult interface{}, err error) {
 
 	// Tìm người dùng theo userID
-	result, err := h.crudUser.FindOneById(ctx, userID, nil)
+	result, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +239,7 @@ func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential
 		return nil, err
 	}
 
-	updateResult, err := h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
+	updateResult, err := h.crudUser.UpdateOneById(ctx, user.ID, change)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +251,7 @@ func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential
 func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, credential *models.UserChangePasswordInput) (ChangePasswordResult interface{}, err error) {
 
 	// Tìm người dùng theo userID
-	result, err := h.crudUser.FindOneById(ctx, userID, nil)
+	result, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
 	if result == nil {
 		return nil, err
 	}
@@ -290,14 +290,14 @@ func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, cr
 		return nil, err
 	}
 
-	return h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
+	return h.crudUser.UpdateOneById(ctx, user.ID, change)
 }
 
 // Thay đổi thông tin người dùng
 func (h *UserService) ChangeInfo(ctx *fasthttp.RequestCtx, userID string, credential *models.UserChangeInfoInput) (ChangeInfoResult interface{}, err error) {
 
 	// Tìm người dùng theo userID
-	result, err := h.crudUser.FindOneById(ctx, userID, nil)
+	result, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
 	if result == nil {
 		return nil, err
 	}
@@ -322,11 +322,13 @@ func (h *UserService) ChangeInfo(ctx *fasthttp.RequestCtx, userID string, creden
 		return nil, err
 	}
 
-	return h.crudUser.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
+	return h.crudUser.UpdateOneById(ctx, user.ID, change)
 }
 
 // Lấy tất cả các Role của người dùng
-func (h *UserService) GetRoles(ctx *fasthttp.RequestCtx, userID string) (GetRolesResult interface{}, err error) {
+func (h *UserService) GetRoles(ctx *fasthttp.RequestCtx, strUserID string) (GetRolesResult interface{}, err error) {
+
+	userID := utility.String2ObjectID(strUserID)
 
 	// Tìm tất cả các Role của người dùng
 	// Cài đặt bộ lọc tìm kiếm

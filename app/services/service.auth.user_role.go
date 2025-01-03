@@ -2,6 +2,7 @@ package services
 
 import (
 	models "atk-go-server/app/models/mongodb"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
 	"errors"
@@ -75,7 +76,7 @@ func (h *UserRoleService) Delete(ctx *fasthttp.RequestCtx, id string) (DeleteRes
 	}
 
 	// Xóa UserRole khỏi cơ sở dữ liệu
-	deleteResult, err := h.crudUserRole.DeleteOneById(ctx, id)
+	deleteResult, err := h.crudUserRole.DeleteOneById(ctx, utility.String2ObjectID(id))
 	if err != nil {
 		return nil, err
 	}

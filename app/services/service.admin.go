@@ -34,7 +34,7 @@ func NewAdminService(c *config.Configuration, db *mongo.Client) *AdminService {
 func (service *AdminService) SetRole(ctx *fasthttp.RequestCtx, Email string, RoleID primitive.ObjectID) (SetRoleResult interface{}, err error) {
 
 	// Tìm Role theo RoleID
-	findRoleId, err := service.RoleCRUD.FindOneById(ctx, utility.ObjectID2String(RoleID), nil)
+	findRoleId, err := service.RoleCRUD.FindOneById(ctx, RoleID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (service *AdminService) SetRole(ctx *fasthttp.RequestCtx, Email string, Rol
 		return nil, err
 	}
 
-	return service.UserCRUD.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
+	return service.UserCRUD.UpdateOneById(ctx, user.ID, change)
 }
 
 // BlockUser chặn hoặc bỏ chặn User dựa trên Email và trạng thái Block
@@ -109,5 +109,5 @@ func (service *AdminService) BlockUser(ctx *fasthttp.RequestCtx, Email string, B
 		return nil, err
 	}
 
-	return service.UserCRUD.UpdateOneById(ctx, utility.ObjectID2String(user.ID), change)
+	return service.UserCRUD.UpdateOneById(ctx, user.ID, change)
 }

@@ -2,6 +2,7 @@ package services
 
 import (
 	models "atk-go-server/app/models/mongodb"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
 	"errors"
@@ -45,7 +46,7 @@ func (h *RoleService) Create(ctx *fasthttp.RequestCtx, credential *models.RoleCr
 
 // Tìm một Role theo ID
 func (h *RoleService) FindOneById(ctx *fasthttp.RequestCtx, id string) (FindResult interface{}, err error) {
-	return h.crudRole.FindOneById(ctx, id, nil)
+	return h.crudRole.FindOneById(ctx, utility.String2ObjectID(id), nil)
 }
 
 // Tìm tất cả các Role với phân trang
@@ -75,10 +76,10 @@ func (h *RoleService) Update(ctx *fasthttp.RequestCtx, id string, credential *mo
 		"describe": credential.Describe,
 	}}
 
-	return h.crudRole.UpdateOneById(ctx, id, update)
+	return h.crudRole.UpdateOneById(ctx, utility.String2ObjectID(id), update)
 }
 
 // Xóa một Role theo ID
 func (h *RoleService) Delete(ctx *fasthttp.RequestCtx, id string) (DeleteResult interface{}, err error) {
-	return h.crudRole.DeleteOneById(ctx, id)
+	return h.crudRole.DeleteOneById(ctx, utility.String2ObjectID(id))
 }

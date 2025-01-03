@@ -1,6 +1,7 @@
 package services
 
 import (
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
 
@@ -24,7 +25,7 @@ func NewPermissionService(c *config.Configuration, db *mongo.Client) *Permission
 
 // Tìm một Permission theo ID
 func (h *PermissionService) FindOneById(ctx *fasthttp.RequestCtx, id string) (FindResult interface{}, err error) {
-	return h.crudRole.FindOneById(ctx, id, nil)
+	return h.crudRole.FindOneById(ctx, utility.String2ObjectID(id), nil)
 }
 
 // Tìm tất cả các Permission với phân trang

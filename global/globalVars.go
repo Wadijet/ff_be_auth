@@ -17,6 +17,8 @@ type MongoDB_Auth_CollectionName struct {
 	RolePermissions string // Tên collection cho vai trò và quyền
 	UserRoles       string // Tên collection cho người dùng và vai trò
 	Agents          string // Tên collection cho bot
+	AccessTokens    string // Tên collection cho token
+
 }
 
 // Các biến toàn cục

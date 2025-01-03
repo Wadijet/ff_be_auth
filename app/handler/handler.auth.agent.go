@@ -52,7 +52,7 @@ func (h *AgentHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.crud.FindOneById(ctx, id, nil))
+	response = utility.FinalResponse(h.crud.FindOneById(ctx, utility.String2ObjectID(id), nil))
 
 	utility.JSON(ctx, response)
 }
@@ -99,7 +99,7 @@ func (h *AgentHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 	if response == nil { // Kiểm tra dữ liệu đầu vào
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.crud.UpdateOneById(ctx, id, inputStruct))
+			response = utility.FinalResponse(h.crud.UpdateOneById(ctx, utility.String2ObjectID(id), inputStruct))
 		}
 	}
 
@@ -112,7 +112,7 @@ func (h *AgentHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.crud.DeleteOneById(ctx, id))
+	response = utility.FinalResponse(h.crud.DeleteOneById(ctx, utility.String2ObjectID(id)))
 
 	utility.JSON(ctx, response)
 }

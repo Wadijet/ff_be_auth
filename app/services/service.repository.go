@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -36,6 +37,8 @@ func GetDBName(c *config.Configuration, collectionName string) string {
 	case global.MongoDB_ColNames.UserRoles:
 		return c.MongoDB_DBNameAuth
 	case global.MongoDB_ColNames.Agents:
+		return c.MongoDB_DBNameAuth
+	case global.MongoDB_ColNames.AccessTokens:
 		return c.MongoDB_DBNameAuth
 	// LOG
 
@@ -101,7 +104,7 @@ func (service *RepositoryService) InsertMany(ctx context.Context, models []inter
 }
 
 // UpdateOneById cập nhật một tài liệu theo ID
-func (service *RepositoryService) UpdateOneById(ctx context.Context, id string, change interface{}) (UpdateResult *mongo.UpdateResult, err error) {
+func (service *RepositoryService) UpdateOneById(ctx context.Context, id primitive.ObjectID, change interface{}) (UpdateResult *mongo.UpdateResult, err error) {
 
 	// Chuyển đổi dữ liệu thành map
 	myMap, err := utility.ToMap(change)
@@ -128,7 +131,7 @@ func (service *RepositoryService) UpdateOneById(ctx context.Context, id string, 
 	myMap["$set"] = myChange
 
 	// Tạo query
-	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
+	query := bson.D{{Key: "_id", Value: id}}
 	return service.mongoCollection.UpdateOne(ctx, query, myMap)
 
 }
@@ -153,9 +156,9 @@ func (service *RepositoryService) UpdateMany(ctx context.Context, query, change 
 }
 
 // DeleteOneById xóa một tài liệu theo ID
-func (service *RepositoryService) DeleteOneById(ctx context.Context, id string) (DeleteResult *mongo.DeleteResult, err error) {
+func (service *RepositoryService) DeleteOneById(ctx context.Context, id primitive.ObjectID) (DeleteResult *mongo.DeleteResult, err error) {
 
-	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
+	query := bson.D{{Key: "_id", Value: id}}
 	result, err := service.mongoCollection.DeleteOne(ctx, query)
 	return result, err
 
@@ -170,9 +173,9 @@ func (service *RepositoryService) DeleteMany(ctx context.Context, query interfac
 }
 
 // FindOneById tìm một tài liệu theo ID
-func (service *RepositoryService) FindOneById(ctx context.Context, id string, opts *options.FindOneOptions) (FindOneResult bson.M, err error) {
+func (service *RepositoryService) FindOneById(ctx context.Context, id primitive.ObjectID, opts *options.FindOneOptions) (FindOneResult bson.M, err error) {
 
-	query := bson.D{{Key: "_id", Value: utility.String2ObjectID(id)}}
+	query := bson.D{{Key: "_id", Value: id}}
 	var resultDecoded bson.M
 	if opts != nil {
 		result := service.mongoCollection.FindOne(ctx, query, opts)

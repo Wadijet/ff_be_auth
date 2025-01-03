@@ -134,7 +134,7 @@ func (h *InitService) InitRole() (err error) {
 // Viết hàm set administator để gán quyền admin cho user
 func (h *InitService) SetAdministrator(userID string) (result interface{}, err error) {
 	// Tìm user theo ID
-	user, err := h.UserCRUD.FindOneById(context.TODO(), userID, nil)
+	user, err := h.UserCRUD.FindOneById(context.TODO(), utility.String2ObjectID(userID), nil)
 	if err != nil {
 		return nil, err
 	}

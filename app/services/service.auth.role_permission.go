@@ -2,6 +2,7 @@ package services
 
 import (
 	models "atk-go-server/app/models/mongodb"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
 	"errors"
@@ -68,5 +69,5 @@ func (h *RolePermissionService) Create(ctx *fasthttp.RequestCtx, credential *mod
 
 // Xóa một RolePermission theo ID
 func (h *RolePermissionService) Delete(ctx *fasthttp.RequestCtx, id string) (DeleteResult interface{}, err error) {
-	return h.crudRolePermission.DeleteOneById(ctx, id)
+	return h.crudRolePermission.DeleteOneById(ctx, utility.String2ObjectID(id))
 }

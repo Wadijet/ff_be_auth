@@ -89,7 +89,7 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 				} else { // Nếu token hợp lệ thì tiếp tục kiểm tra
 
 					// Tìm người dùng dựa trên ID trong token
-					findUser, err := jt.UserCRUD.FindOneById(context.TODO(), t.UserID, nil)
+					findUser, err := jt.UserCRUD.FindOneById(context.TODO(), utility.String2ObjectID(t.UserID), nil)
 					// Nếu không tìm thấy người dùng thì trả về lỗi JSON
 					if findUser == nil {
 						utility.JSON(ctx, utility.Payload(false, err, notAuthError))

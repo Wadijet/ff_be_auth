@@ -34,6 +34,7 @@ func initColNames() {
 	global.MongoDB_ColNames.RolePermissions = "role_permissions"
 	global.MongoDB_ColNames.UserRoles = "user_roles"
 	global.MongoDB_ColNames.Agents = "agents"
+	global.MongoDB_ColNames.Agents = "access_tokens"
 
 	logrus.Info("Initialized collection names") // Ghi log thông báo đã khởi tạo tên các collection
 }
