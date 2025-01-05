@@ -7,9 +7,7 @@ import (
 	"strconv"
 
 	"github.com/valyala/fasthttp"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // PermissionHandler là struct chứa các phương thức xử lý quyền
@@ -54,12 +52,6 @@ func (h *PermissionHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	if err != nil {
 		page = 0
 	}
-
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", 1}})
 
 	response = utility.FinalResponse(h.PermissionService.FindAll(ctx, page, limit))
 

@@ -11,19 +11,17 @@ import (
 // Các quyèn này được tạo ra khi khởi tạo hệ thống và không thể thay đổi.
 type FbPage struct {
 	ID              primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`      // ID của quyền
-	Name            string             `json:"name" bson:"name" index:"unique"`        // Tên của quyền
-	Describe        string             `json:"describe" bson:"describe"`               // Mô tả quyền
 	PageName        string             `json:"pageName" bson:"pageName"`               // Tên của trang
 	PageID          string             `json:"pageID" bson:"pageID"`                   // ID của trang
 	PageAccessToken string             `json:"pageAccessToken" bson:"pageAccessToken"` // Mã truy cập của trang
-	ApiData         []json.RawMessage  `json:"apiData" bson:"apiData"`                 // Dữ liệu API
+	ApiData         json.RawMessage    `json:"apiData" bson:"apiData"`                 // Dữ liệu API
 	CreatedAt       int64              `json:"createdAt" bson:"createdAt"`             // Thời gian tạo quyền
 	UpdatedAt       int64              `json:"updatedAt" bson:"updatedAt"`             // Thời gian cập nhật quyền
 }
 
 // API INPUT STRUCT =======================================================================================
 
-// FbPageCreateInput dữ liệu đầu vào khi tạo quyền
+// FbPageCreateInput dữ liệu đầu vào khi tạo page
 type FbPageCreateInput struct {
-	ApiData []json.RawMessage `json:"apiData" bson:"apiData"` // Dữ liệu API
+	ApiData json.RawMessage `json:"apiData" bson:"apiData"` // Dữ liệu API
 }

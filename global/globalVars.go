@@ -18,6 +18,7 @@ type MongoDB_Auth_CollectionName struct {
 	UserRoles       string // Tên collection cho người dùng và vai trò
 	Agents          string // Tên collection cho bot
 	AccessTokens    string // Tên collection cho token
+	FbPages         string // Tên collection cho trang Facebook
 
 }
 

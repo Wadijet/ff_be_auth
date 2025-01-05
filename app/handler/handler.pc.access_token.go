@@ -12,50 +12,50 @@ import (
 )
 
 // RoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
-type RoleHandler struct {
-	RoleService *services.RoleService
+type AccessTokenHandler struct {
+	AccessTokenService services.AccessTokenService
 }
 
 // NewRoleHandler khởi tạo một RoleHandler mới
-func NewRoleHandler(c *config.Configuration, db *mongo.Client) *RoleHandler {
-	newHandler := new(RoleHandler)
-	newHandler.RoleService = services.NewRoleService(c, db)
+func NewAccessTokenHandler(c *config.Configuration, db *mongo.Client) *AccessTokenHandler {
+	newHandler := new(AccessTokenHandler)
+	newHandler.AccessTokenService = *services.NewAccessTokenService(c, db)
 	return newHandler
 }
 
 // CRUD functions ==========================================================================
 
-// Tạo mới một vai trò
-func (h *RoleHandler) Create(ctx *fasthttp.RequestCtx) {
+// Tạo mới một Access Token
+func (h *AccessTokenHandler) Create(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
 
 	// Lấy dữ liệu từ yêu cầu
 	postValues := ctx.PostBody()
-	inputStruct := new(models.RoleCreateInput)
+	inputStruct := new(models.AccessTokenCreateInput)
 	response = utility.Convert2Struct(postValues, inputStruct)
 	if response == nil { // Kiểm tra dữ liệu đầu vào
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.RoleService.Create(ctx, inputStruct))
+			response = utility.FinalResponse(h.AccessTokenService.Create(ctx, inputStruct))
 		}
 	}
 
 	utility.JSON(ctx, response)
 }
 
-// Tìm một vai trò theo ID
-func (h *RoleHandler) FindOneById(ctx *fasthttp.RequestCtx) {
+// Tìm một Access Token theo ID
+func (h *AccessTokenHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.RoleService.FindOneById(ctx, id))
+	response = utility.FinalResponse(h.AccessTokenService.FindOneById(ctx, id))
 
 	utility.JSON(ctx, response)
 }
 
-// Tìm tất cả các vai trò với phân trang
-func (h *RoleHandler) FindAll(ctx *fasthttp.RequestCtx) {
+// Tìm tất cả các Access Token với phân trang
+func (h *AccessTokenHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
 
 	// Lấy dữ liệu từ yêu cầu
@@ -71,13 +71,14 @@ func (h *RoleHandler) FindAll(ctx *fasthttp.RequestCtx) {
 		page = 0
 	}
 
-	response = utility.FinalResponse(h.RoleService.FindAll(ctx, page, limit))
+	// Gọi hàm xử lý logic
+	response = utility.FinalResponse(h.AccessTokenService.FindAll(ctx, page, limit))
 
 	utility.JSON(ctx, response)
 }
 
-// Cập nhật một vai trò theo ID
-func (h *RoleHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
+// Cập nhật một Access Token theo ID
+func (h *AccessTokenHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
 
 	// Lấy ID từ yêu cầu
@@ -85,28 +86,25 @@ func (h *RoleHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy dữ liệu từ yêu cầu
 	postValues := ctx.PostBody()
-	inputStruct := new(models.RoleUpdateInput)
+	inputStruct := new(models.AccessTokenUpdateInput)
 	response = utility.Convert2Struct(postValues, inputStruct)
 	if response == nil { // Kiểm tra dữ liệu đầu vào
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.RoleService.Update(ctx, id, inputStruct))
+			response = utility.FinalResponse(h.AccessTokenService.UpdateOneById(ctx, id, inputStruct))
 		}
 	}
 
 	utility.JSON(ctx, response)
 }
 
-// Xóa một vai trò theo ID
-func (h *RoleHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
+// Xóa một Access Token theo ID
+func (h *AccessTokenHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-
-	response = utility.FinalResponse(h.RoleService.Delete(ctx, id))
+	response = utility.FinalResponse(h.AccessTokenService.DeleteOneById(ctx, id))
 
 	utility.JSON(ctx, response)
 }
-
-// Other functions =========================================================================

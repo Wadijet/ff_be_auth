@@ -56,6 +56,14 @@ var InitialPermissions = []models.Permission{
 	{Name: "Agent.Create", Describe: "Quyền tạo trợ lý", Group: "Auth", Category: "Agent"},
 	{Name: "Agent.Update", Describe: "Quyền cập nhật trợ lý", Group: "Auth", Category: "Agent"},
 	{Name: "Agent.Delete", Describe: "Quyền xóa trợ lý", Group: "Auth", Category: "Agent"},
+	{Name: "AccessToken.Read", Describe: "Quyền xem Access token", Group: "Pancake", Category: "AccessToken"},
+	{Name: "AccessToken.Create", Describe: "Quyền tạo Access token", Group: "Pancake", Category: "AccessToken"},
+	{Name: "AccessToken.Update", Describe: "Quyền cập nhật Access token", Group: "Pancake", Category: "AccessToken"},
+	{Name: "AccessToken.Delete", Describe: "Quyền xóa Access token", Group: "Pancake", Category: "AccessToken"},
+	{Name: "FbPage.Read", Describe: "Quyền xem trang Facebook", Group: "Pancake", Category: "FbPage"},
+	{Name: "FbPage.Create", Describe: "Quyền tạo trang Facebook", Group: "Pancake", Category: "FbPage"},
+	{Name: "FbPage.Update", Describe: "Quyền cập nhật trang Facebook", Group: "Pancake", Category: "FbPage"},
+	{Name: "FbPage.Delete", Describe: "Quyền xóa trang Facebook", Group: "Pancake", Category: "FbPage"},
 }
 
 // Viết hàm InitPermission để khởi tạo các quyền mặc định theo nguyên tắc sau:
@@ -94,6 +102,7 @@ func (h *InitService) InitRole() (err error) {
 		Name:     "Administrator",
 		Describe: "Vai trò quản trị hệ thống",
 	}
+
 	// Thêm vai trò vào collection
 	resultInsertRole, err := h.RoleCRUD.InsertOne(nil, adminRole)
 	if err != nil {
@@ -128,6 +137,66 @@ func (h *InitService) InitRole() (err error) {
 			continue
 		}
 	}
+	return nil
+}
+
+// Viết hàm kiểm tra các quyền của role Administrator, nếu thiếu quyền nào thì thêm vào
+func (h *InitService) CheckPermissionForAdministrator() (err error) {
+	// Tìm role theo tên
+	filter := map[string]interface{}{"name": "Administrator"}
+	role, err := h.RoleCRUD.FindOne(context.TODO(), filter, nil)
+	if role == nil {
+		return h.InitRole()
+	}
+
+	// Chuyển đổi role từ bson.M về models.Role
+	var modelRole models.Role
+	bsonBytes, _ := bson.Marshal(role)
+	err = bson.Unmarshal(bsonBytes, &modelRole)
+	if err != nil {
+		return errors.New("Failed to decode role")
+	}
+
+	// Lấy tất cả quyền
+	permissions, err := h.PermissionCRUD.FindAll(nil, nil, nil)
+	if err != nil {
+		return errors.New("Failed to get all permissions")
+	}
+
+	// duyệt qua danh sách các quyền
+	for _, permissionData := range permissions {
+		// decode permission từ bson.M về models.Permission
+		var modelPermission models.Permission
+		bsonBytes, _ := bson.Marshal(permissionData)
+		err := bson.Unmarshal(bsonBytes, &modelPermission)
+		if err != nil {
+			fmt.Errorf("Failed to decode permission")
+			continue
+		}
+
+		// Tìm quyền của role Administrator
+		filter := bson.D{
+			{Key: "roleId", Value: modelRole.ID},
+			{Key: "permissionId", Value: modelPermission.ID},
+			{Key: "scope", Value: 0},
+		}
+
+		rolePermission, err := h.RolePermissionCRUD.FindOne(context.TODO(), filter, nil)
+		if rolePermission == nil {
+			rolePermission := models.RolePermission{
+				RoleID:       modelRole.ID,
+				PermissionID: modelPermission.ID,
+				Scope:        0,
+			}
+			_, err = h.RolePermissionCRUD.InsertOne(context.TODO(), rolePermission)
+
+			if err != nil {
+				fmt.Errorf("Failed to insert role permission: %v", err)
+				continue
+			}
+		}
+	}
+
 	return nil
 }
 

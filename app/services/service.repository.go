@@ -40,6 +40,8 @@ func GetDBName(c *config.Configuration, collectionName string) string {
 		return c.MongoDB_DBNameAuth
 	case global.MongoDB_ColNames.AccessTokens:
 		return c.MongoDB_DBNameAuth
+	case global.MongoDB_ColNames.FbPages:
+		return c.MongoDB_DBNameAuth
 	// LOG
 
 	default:

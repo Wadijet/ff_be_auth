@@ -34,7 +34,8 @@ func initColNames() {
 	global.MongoDB_ColNames.RolePermissions = "role_permissions"
 	global.MongoDB_ColNames.UserRoles = "user_roles"
 	global.MongoDB_ColNames.Agents = "agents"
-	global.MongoDB_ColNames.Agents = "access_tokens"
+	global.MongoDB_ColNames.AccessTokens = "access_tokens"
+	global.MongoDB_ColNames.FbPages = "fb_pages"
 
 	logrus.Info("Initialized collection names") // Ghi log thông báo đã khởi tạo tên các collection
 }
@@ -80,7 +81,8 @@ func initDatabase_MongoDB() {
 	// gọi hàm khởi tạo các quyền mặc định
 	InitService := services.NewInitService(global.MongoDB_ServerConfig, global.MongoDB_Session)
 	InitService.InitPermission()
-	InitService.InitRole()
+	//InitService.InitRole()
+	InitService.CheckPermissionForAdministrator()
 
 }
 

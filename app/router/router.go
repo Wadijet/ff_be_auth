@@ -90,4 +90,20 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	r.GET(preV1+"/agents", middle.CheckUserAuth("Agent.Read", AgentHandler.FindAll))                 // Lấy tất cả đại lý
 	r.PUT(preV1+"/agents/{id}", middle.CheckUserAuth("Agent.Update", AgentHandler.UpdateOneById))    // Cập nhật đại lý theo ID
 	r.DELETE(preV1+"/agents/{id}", middle.CheckUserAuth("Agent.Delete", AgentHandler.DeleteOneById)) // Xóa đại lý theo ID
+
+	// ====================================  ACCESSTOKEN API ========================================
+	// Các API liên quan đến token
+	AccessTokenHandler := handler.NewAccessTokenHandler(c, db)
+	r.POST(preV1+"/access_tokens", middle.CheckUserAuth("AccessToken.Create", AccessTokenHandler.Create))               // Tạo token
+	r.GET(preV1+"/access_tokens/{id}", middle.CheckUserAuth("AccessToken.Read", AccessTokenHandler.FindOneById))        // Lấy token theo ID
+	r.GET(preV1+"/access_tokens", middle.CheckUserAuth("AccessToken.Read", AccessTokenHandler.FindAll))                 // Lấy tất cả token
+	r.PUT(preV1+"/access_tokens/{id}", middle.CheckUserAuth("AccessToken.Update", AccessTokenHandler.UpdateOneById))    // Cập nhật token theo ID
+	r.DELETE(preV1+"/access_tokens/{id}", middle.CheckUserAuth("AccessToken.Delete", AccessTokenHandler.DeleteOneById)) // Xóa token theo ID
+
+	// ====================================  FBPAGE API =============================================
+	// Các API liên quan đến trang Facebook
+	FbPageHandler := handler.NewFbPageHandler(c, db)
+	r.POST(preV1+"/fb_pages", middle.CheckUserAuth("FbPage.Create", FbPageHandler.Create))        // Tạo trang Facebook
+	r.GET(preV1+"/fb_pages/{id}", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindOneById)) // Lấy trang Facebook theo ID
+	r.GET(preV1+"/fb_pages", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindAll))          // Lấy tất cả trang Facebook
 }

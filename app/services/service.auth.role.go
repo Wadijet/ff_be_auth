@@ -64,19 +64,35 @@ func (h *RoleService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64)
 // Cập nhật một Role theo ID
 func (h *RoleService) Update(ctx *fasthttp.RequestCtx, id string, credential *models.RoleUpdateInput) (UpdateResult interface{}, err error) {
 	// Kiểm tra Role đã tồn tại chưa
-	filter := bson.M{"_id": id}
+	filter := bson.M{"_id": utility.String2ObjectID(id)}
 	checkResult, _ := h.crudRole.FindOne(ctx, filter, nil)
 	if checkResult == nil {
 		return nil, errors.New("Role not found")
 	}
 
-	// Cập nhật Role
-	update := bson.M{"$set": bson.M{
-		"name":     credential.Name,
-		"describe": credential.Describe,
-	}}
+	// chuyển đổi checkResult từ interface{} sang models.Role
+	var role models.Role
 
-	return h.crudRole.UpdateOneById(ctx, utility.String2ObjectID(id), update)
+	bsonBytes, err := bson.Marshal(checkResult)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bson.Unmarshal(bsonBytes, &role)
+	if err != nil {
+		return nil, err
+	}
+
+	role.Name = credential.Name
+	role.Describe = credential.Describe
+
+	CustomBson := &utility.CustomBson{}
+	change, err := CustomBson.Set(role)
+	if err != nil {
+		return nil, err
+	}
+
+	return h.crudRole.UpdateOneById(ctx, utility.String2ObjectID(id), change)
 }
 
 // Xóa một Role theo ID

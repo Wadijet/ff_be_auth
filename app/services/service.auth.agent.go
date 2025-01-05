@@ -90,7 +90,13 @@ func (h *AgentService) Update(ctx *fasthttp.RequestCtx, id string, credential *m
 		"assignedUsers": assignedUsers,
 	}}
 
-	return h.crudAgent.UpdateOneById(ctx, utility.String2ObjectID(id), update)
+	CustomBson := &utility.CustomBson{}
+	change, err := CustomBson.Set(update)
+	if err != nil {
+		return nil, err
+	}
+
+	return h.crudAgent.UpdateOneById(ctx, utility.String2ObjectID(id), change)
 }
 
 // Xóa một Agent theo ID
