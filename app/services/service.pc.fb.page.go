@@ -5,7 +5,6 @@ import (
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
-	"encoding/json"
 	"errors"
 
 	"github.com/valyala/fasthttp"
@@ -33,15 +32,8 @@ func (h *FbPageService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.
 		return nil, errors.New("ApiData is required")
 	}
 
-	// Chuyển đổi credential.ApiData từ json.RawMessage sang map[string]interface{}
-	newApiData := make(map[string]interface{})
-	err = json.Unmarshal(credential.ApiData, &newApiData)
-	if err != nil {
-		return nil, err
-	}
-
 	// Lấy thông tin PageID từ ApiData đưa vào biến
-	pageID := newApiData["id"].(string)
+	pageID := credential.ApiData["id"].(string)
 
 	// Kiểm tra FbPage đã tồn tại chưa
 	filter := bson.M{"pageID": pageID}
@@ -50,8 +42,8 @@ func (h *FbPageService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.
 		// Tạo một FbPage mới
 		newFbPage := models.FbPage{}
 		newFbPage.ApiData = credential.ApiData
-		newFbPage.PageName = newApiData["name"].(string)
-		newFbPage.PageID = newApiData["id"].(string)
+		newFbPage.PageName = credential.ApiData["name"].(string)
+		newFbPage.PageId = credential.ApiData["id"].(string)
 
 		// Thêm FbPage vào cơ sở dữ liệu
 		return h.crudFbPage.InsertOne(ctx, newFbPage)
@@ -69,7 +61,7 @@ func (h *FbPageService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.
 		}
 
 		oldFbPage.ApiData = credential.ApiData
-		oldFbPage.PageName = newApiData["name"].(string)
+		oldFbPage.PageName = credential.ApiData["name"].(string)
 		//oldFbPage.PageID = newApiData["id"].(string)
 
 		CustomBson := &utility.CustomBson{}

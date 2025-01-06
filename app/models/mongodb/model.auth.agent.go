@@ -11,7 +11,7 @@ type Agent struct {
 	ID            primitive.ObjectID   `json:"id,omitempty" bson:"_id,omitempty"`      // ID của vai trò
 	Name          string               `json:"name" bson:"name" index:"unique"`        // Tên của vai trò
 	Describe      string               `json:"describe" bson:"describe"`               // Mô tả vai trò
-	Status        byte                 `json:"status" bson:"status" index:"single:1;"` // Trạng thái của trợ lý (0: inactive, 1: active)
+	Status        byte                 `json:"status" bson:"status" index:"single:1;"` // Trạng thái của trợ lý (0: working, 1: active)
 	AssignedUsers []primitive.ObjectID `json:"assignedUsers" bson:"assignedUsers"`     // Danh sách người dùng được gán access token
 	CreatedAt     int64                `json:"createdAt" bson:"createdAt"`             // Thời gian tạo
 	UpdatedAt     int64                `json:"updatedAt" bson:"updatedAt"`             // Thời gian cập nhật

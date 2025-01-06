@@ -251,6 +251,17 @@ func CreateIndexes(ctx context.Context, collection *mongo.Collection, model inte
 
 		indexConfigs := parseIndexTag(tag)
 		for _, config := range indexConfigs {
+
+			if _, ok := config["text"]; ok {
+				keys := bson.D{{Key: bsonField, Value: "text"}} // Định nghĩa kiểu text index
+				indexName := bsonField + "_text"
+				options := options.Index().SetName(indexName)
+
+				if err := checkAndReplaceIndex(ctx, collection, existingIndexes, indexName, keys, options); err != nil {
+					return err
+				}
+			}
+
 			if _, ok := config["single"]; ok {
 				order := parseOrder(tag)
 				keys := bson.D{{Key: bsonField, Value: order}}
