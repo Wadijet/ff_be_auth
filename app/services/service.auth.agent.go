@@ -148,3 +148,35 @@ func (h *AgentService) CheckOnlineStatus(ctx *fasthttp.RequestCtx) {
 		}
 	}
 }
+
+// Hàm checkin cho một agent, khi gọi hàm này chuyển status thành 1 - online
+func (h *AgentService) CheckIn(ctx *fasthttp.RequestCtx, id string) (UpdateResult interface{}, err error) {
+	// Kiểm tra Agent đã tồn tại chưa
+	filter := bson.M{"_id": utility.String2ObjectID(id)}
+	checkResult, _ := h.crudAgent.FindOne(ctx, filter, nil)
+	if checkResult == nil {
+		return nil, errors.New("Agent not found")
+	}
+
+	var agent models.Agent
+	bsonBytes, err := bson.Marshal(checkResult)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bson.Unmarshal(bsonBytes, &agent)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cập nhật tình trạng Online của Agent
+	agent.Status = 1
+
+	CustomBson := &utility.CustomBson{}
+	change, err := CustomBson.Set(agent)
+	if err != nil {
+		return nil, err
+	}
+
+	return h.crudAgent.UpdateOneById(ctx, utility.String2ObjectID(id), change)
+}

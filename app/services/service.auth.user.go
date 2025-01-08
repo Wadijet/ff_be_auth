@@ -47,6 +47,7 @@ func (h *UserService) IsEmailExist(ctx *fasthttp.RequestCtx, email string) bool 
 func (h *UserService) Create(ctx *fasthttp.RequestCtx, credential *models.UserCreateInput) (CreateResult interface{}, err error) {
 	// Kiểm tra email của người dùng đã tồn tại chưa bằng cách gọi hàm IsEmailExist
 	if h.IsEmailExist(ctx, credential.Email) {
+		ctx.SetStatusCode(fasthttp.StatusConflict)
 		return nil, errors.New("Email already exists")
 	}
 
@@ -60,34 +61,44 @@ func (h *UserService) Create(ctx *fasthttp.RequestCtx, credential *models.UserCr
 
 	hash, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 	newUser.Password = string(hash[:])
 
 	// Thêm người dùng vào cơ sở dữ liệu
-	return h.crudUser.InsertOne(ctx, newUser)
+	result, err := h.crudUser.InsertOne(ctx, newUser)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		return nil, err
+	}
+	ctx.SetStatusCode(fasthttp.StatusCreated)
+	return result, nil
 }
 
 // Tìm một người dùng theo ID
 func (h *UserService) FindOneById(ctx *fasthttp.RequestCtx, userID string) (result *models.User, err error) {
 	findOneResult, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		return nil, err
 	}
 
 	var user models.User
 	bsonBytes, err := bson.Marshal(findOneResult)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
 	err = bson.Unmarshal(bsonBytes, &user)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
+	ctx.SetStatusCode(fasthttp.StatusOK)
 	return &user, nil
-
 }
 
 // Tìm tất cả các người dùng với phân trang
@@ -100,6 +111,7 @@ func (h *UserService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64)
 
 	findAllResult, err := h.crudUser.FindAllWithPaginate(ctx, bson.D{}, opts)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
@@ -108,11 +120,13 @@ func (h *UserService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64)
 		var user models.User
 		bsonBytes, err := bson.Marshal(bsonM)
 		if err != nil {
+			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 			return nil, err
 		}
 
 		err = bson.Unmarshal(bsonBytes, &user)
 		if err != nil {
+			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 			return nil, err
 		}
 
@@ -124,6 +138,7 @@ func (h *UserService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64)
 	findAllResult2.Limit = findAllResult.Limit
 	findAllResult2.Items = bsonMUsers
 
+	ctx.SetStatusCode(fasthttp.StatusOK)
 	return findAllResult2, nil
 }
 
@@ -134,23 +149,27 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	query := bson.M{"email": credential.Email}
 	result, err := h.crudUser.FindOne(ctx, query, nil)
 	if result == nil {
-		return nil, err
+		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+		return nil, errors.New("Invalid email or password")
 	}
 
 	var user models.User
 	bsonBytes, err := bson.Marshal(result)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
 	err = bson.Unmarshal(bsonBytes, &user)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
 	// So sánh mật khẩu
 	if err = user.ComparePassword(credential.Password); err != nil {
-		return nil, err
+		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+		return nil, errors.New("Invalid email or password")
 	}
 
 	// Tạo chuỗi random và curentTime để tạo token mới
@@ -160,6 +179,7 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	// Tạo token mới
 	tokenMap, err := utility.CreateToken(global.MongoDB_ServerConfig.JwtSecret, user.ID.Hex(), strconv.FormatInt(currentTime, 16), strconv.Itoa(rdNumber))
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
@@ -190,15 +210,18 @@ func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLog
 	CustomBson := &utility.CustomBson{}
 	change, err := CustomBson.Set(user)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
 	// Cập nhật thông tin người dùng trong cơ sở dữ liệu
 	_, err = h.crudUser.UpdateOneById(ctx, user.ID, change)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
+	ctx.SetStatusCode(fasthttp.StatusOK)
 	return &user, nil
 }
 
@@ -208,17 +231,20 @@ func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential
 	// Tìm người dùng theo userID
 	result, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		return nil, err
 	}
 
 	var user models.User
 	bsonBytes, err := bson.Marshal(result)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
 	err = bson.Unmarshal(bsonBytes, &user)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
@@ -236,14 +262,17 @@ func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential
 	CustomBson := &utility.CustomBson{}
 	change, err := CustomBson.Set(user)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
 	updateResult, err := h.crudUser.UpdateOneById(ctx, user.ID, change)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
+	ctx.SetStatusCode(fasthttp.StatusOK)
 	return updateResult, nil
 }
 
@@ -253,24 +282,28 @@ func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, cr
 	// Tìm người dùng theo userID
 	result, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
 	if result == nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		return nil, err
 	}
 
 	var user models.User
 	bsonBytes, err := bson.Marshal(result)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
 	err = bson.Unmarshal(bsonBytes, &user)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
 	// So sánh mật khẩu cũ
 	err = user.ComparePassword(credential.OldPassword)
 	if err != nil {
-		return nil, err
+		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+		return nil, errors.New("Invalid old password")
 	}
 
 	// Thay đổi mật khẩu
@@ -279,6 +312,7 @@ func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, cr
 
 	hash, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 	user.Password = string(hash[:])
@@ -287,10 +321,18 @@ func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, cr
 	CustomBson := &utility.CustomBson{}
 	change, err := CustomBson.Set(user)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
-	return h.crudUser.UpdateOneById(ctx, user.ID, change)
+	updateResult, err := h.crudUser.UpdateOneById(ctx, user.ID, change)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		return nil, err
+	}
+
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	return updateResult, nil
 }
 
 // Thay đổi thông tin người dùng
@@ -299,17 +341,20 @@ func (h *UserService) ChangeInfo(ctx *fasthttp.RequestCtx, userID string, creden
 	// Tìm người dùng theo userID
 	result, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
 	if result == nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		return nil, err
 	}
 
 	var user models.User
 	bsonBytes, err := bson.Marshal(result)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
 	err = bson.Unmarshal(bsonBytes, &user)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
@@ -319,10 +364,18 @@ func (h *UserService) ChangeInfo(ctx *fasthttp.RequestCtx, userID string, creden
 	CustomBson := &utility.CustomBson{}
 	change, err := CustomBson.Set(user)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
-	return h.crudUser.UpdateOneById(ctx, user.ID, change)
+	updateResult, err := h.crudUser.UpdateOneById(ctx, user.ID, change)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		return nil, err
+	}
+
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	return updateResult, nil
 }
 
 // Lấy tất cả các Role của người dùng
@@ -341,8 +394,10 @@ func (h *UserService) GetRoles(ctx *fasthttp.RequestCtx, strUserID string) (GetR
 	// Tìm tất cả các Role của người dùng
 	findAllResult, err := h.crudUserRole.FindAll(ctx, filter, opts)
 	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
+	ctx.SetStatusCode(fasthttp.StatusOK)
 	return findAllResult, nil
 }

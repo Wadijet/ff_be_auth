@@ -36,7 +36,12 @@ func (h *RolePermissionHandler) Create(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.RolePermissionService.Create(ctx, inputStruct))
+			ctx.SetStatusCode(fasthttp.StatusCreated) // 201 Created
+		} else {
+			ctx.SetStatusCode(fasthttp.StatusBadRequest) // 400 Bad Request
 		}
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest) // 400 Bad Request
 	}
 	utility.JSON(ctx, response)
 }
@@ -48,5 +53,10 @@ func (h *RolePermissionHandler) Delete(ctx *fasthttp.RequestCtx) {
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
 	response = utility.FinalResponse(h.RolePermissionService.Delete(ctx, id))
+	if response["error"] != nil {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest) // 400 Bad Request
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK) // 200 OK
+	}
 	utility.JSON(ctx, response)
 }

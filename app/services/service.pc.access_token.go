@@ -41,7 +41,7 @@ func (h *AccessTokenService) Create(ctx *fasthttp.RequestCtx, credential *models
 		System:        credential.System,
 		Value:         credential.Value,
 		AssignedUsers: newAssignedUsers,
-		Status:        credential.Status,
+		Status:        0,
 	}
 
 	// Thêm Access Token vào cơ sở dữ liệu
@@ -80,7 +80,6 @@ func (h *AccessTokenService) UpdateOneById(ctx *fasthttp.RequestCtx, id string, 
 		"system":        credential.System,
 		"value":         credential.Value,
 		"assignedUsers": newAssignedUsers,
-		"status":        credential.Status,
 	}
 
 	CustomBson := &utility.CustomBson{}

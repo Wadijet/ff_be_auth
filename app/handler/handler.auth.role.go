@@ -37,7 +37,12 @@ func (h *RoleHandler) Create(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.RoleService.Create(ctx, inputStruct))
+			ctx.SetStatusCode(fasthttp.StatusCreated)
+		} else {
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		}
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
 
 	utility.JSON(ctx, response)
@@ -50,6 +55,11 @@ func (h *RoleHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
 	response = utility.FinalResponse(h.RoleService.FindOneById(ctx, id))
+	if response["error"] != nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
 
 	utility.JSON(ctx, response)
 }
@@ -72,6 +82,7 @@ func (h *RoleHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	}
 
 	response = utility.FinalResponse(h.RoleService.FindAll(ctx, page, limit))
+	ctx.SetStatusCode(fasthttp.StatusOK)
 
 	utility.JSON(ctx, response)
 }
@@ -91,7 +102,12 @@ func (h *RoleHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.RoleService.Update(ctx, id, inputStruct))
+			ctx.SetStatusCode(fasthttp.StatusOK)
+		} else {
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		}
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
 
 	utility.JSON(ctx, response)
@@ -105,6 +121,11 @@ func (h *RoleHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
 	id := ctx.UserValue("id").(string)
 
 	response = utility.FinalResponse(h.RoleService.Delete(ctx, id))
+	if response["error"] != nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
 
 	utility.JSON(ctx, response)
 }

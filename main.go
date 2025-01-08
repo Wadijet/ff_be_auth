@@ -101,7 +101,8 @@ func initDatabase_MySql() {
 
 // Hàm xử lý panic
 func panicHandler(ctx *fasthttp.RequestCtx, data interface{}) {
-	logrus.Errorf("Panic occurred: %v", data)                     // Ghi log lỗi khi xảy ra panic
+	logrus.Errorf("Panic occurred: %v", data)
+	ctx.SetStatusCode(fasthttp.StatusInternalServerError)         // Ghi log lỗi khi xảy ra panic
 	utility.JSON(ctx, utility.Payload(false, data, "Lỗi panic!")) // Trả về JSON thông báo lỗi panic
 }
 

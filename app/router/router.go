@@ -90,6 +90,7 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	r.GET(preV1+"/agents", middle.CheckUserAuth("Agent.Read", AgentHandler.FindAll))                 // Lấy tất cả đại lý
 	r.PUT(preV1+"/agents/{id}", middle.CheckUserAuth("Agent.Update", AgentHandler.UpdateOneById))    // Cập nhật đại lý theo ID
 	r.DELETE(preV1+"/agents/{id}", middle.CheckUserAuth("Agent.Delete", AgentHandler.DeleteOneById)) // Xóa đại lý theo ID
+	r.POST(preV1+"/agents/checkin/{id}", middle.CheckUserAuth("Agent.Update", AgentHandler.CheckIn)) // Kiểm tra trạng thái online của tất cả đại lý
 
 	// ====================================  ACCESSTOKEN API ========================================
 	// Các API liên quan đến token

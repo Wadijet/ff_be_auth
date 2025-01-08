@@ -37,7 +37,12 @@ func (h *FbPageHandler) Create(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.FbPageHandlerService.ReviceData(ctx, inputStruct))
+			ctx.SetStatusCode(fasthttp.StatusCreated)
+		} else {
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		}
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
 
 	utility.JSON(ctx, response)
@@ -50,6 +55,11 @@ func (h *FbPageHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
 	response = utility.FinalResponse(h.FbPageHandlerService.FindOneByPageID(ctx, id))
+	if response != nil {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	}
 
 	utility.JSON(ctx, response)
 }
@@ -71,6 +81,11 @@ func (h *FbPageHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	}
 
 	response = utility.FinalResponse(h.FbPageHandlerService.FindAll(ctx, page, limit))
+	if response != nil {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	}
 
 	utility.JSON(ctx, response)
 }

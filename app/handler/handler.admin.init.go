@@ -5,6 +5,7 @@ import (
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
+	"net/http"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -36,8 +37,14 @@ func (h *InitHandler) SetAdministrator(ctx *fasthttp.RequestCtx) {
 	// GET ID
 	id := ctx.UserValue("id").(string)
 
-	response = utility.FinalResponse(h.InitService.SetAdministrator(id))
+	result, err := h.InitService.SetAdministrator(id)
+	if err != nil {
+		ctx.SetStatusCode(http.StatusInternalServerError)
+		response = utility.FinalResponse(nil, err)
+	} else {
+		ctx.SetStatusCode(http.StatusOK)
+		response = utility.FinalResponse(result, nil)
+	}
 
 	utility.JSON(ctx, response)
-
 }

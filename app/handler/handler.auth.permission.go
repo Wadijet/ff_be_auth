@@ -31,7 +31,14 @@ func (h *PermissionHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ request
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.PermissionService.FindOneById(ctx, id))
+	result, err := h.PermissionService.FindOneById(ctx, id)
+	response = utility.FinalResponse(result, err)
+
+	if result == nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
 
 	utility.JSON(ctx, response)
 }
@@ -53,7 +60,14 @@ func (h *PermissionHandler) FindAll(ctx *fasthttp.RequestCtx) {
 		page = 0
 	}
 
-	response = utility.FinalResponse(h.PermissionService.FindAll(ctx, page, limit))
+	result, err := h.PermissionService.FindAll(ctx, page, limit)
+	response = utility.FinalResponse(result, err)
+
+	if result == nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
 
 	utility.JSON(ctx, response)
 }

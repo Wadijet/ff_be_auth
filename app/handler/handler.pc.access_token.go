@@ -37,7 +37,12 @@ func (h *AccessTokenHandler) Create(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.AccessTokenService.Create(ctx, inputStruct))
+			ctx.SetStatusCode(fasthttp.StatusCreated)
+		} else {
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		}
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
 
 	utility.JSON(ctx, response)
@@ -50,6 +55,12 @@ func (h *AccessTokenHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
 	response = utility.FinalResponse(h.AccessTokenService.FindOneById(ctx, id))
+
+	if response != nil {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	}
 
 	utility.JSON(ctx, response)
 }
@@ -74,6 +85,7 @@ func (h *AccessTokenHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	// Gọi hàm xử lý logic
 	response = utility.FinalResponse(h.AccessTokenService.FindAll(ctx, page, limit))
 
+	ctx.SetStatusCode(fasthttp.StatusOK)
 	utility.JSON(ctx, response)
 }
 
@@ -92,7 +104,12 @@ func (h *AccessTokenHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.AccessTokenService.UpdateOneById(ctx, id, inputStruct))
+			ctx.SetStatusCode(fasthttp.StatusOK)
+		} else {
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		}
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
 
 	utility.JSON(ctx, response)
@@ -105,6 +122,12 @@ func (h *AccessTokenHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
 	response = utility.FinalResponse(h.AccessTokenService.DeleteOneById(ctx, id))
+
+	if response != nil {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	}
 
 	utility.JSON(ctx, response)
 }

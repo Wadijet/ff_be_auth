@@ -18,6 +18,7 @@ func NewStaticHandler() *StaticHandler {
 // ==========================================================================================
 
 func (h *StaticHandler) TestApi(ctx *fasthttp.RequestCtx) {
+	ctx.SetStatusCode(fasthttp.StatusOK)
 	utility.JSON(ctx, utility.Payload(true, nil, "Test API ok"))
 }
 
@@ -35,6 +36,7 @@ func (h *StaticHandler) GetSystemStatic(ctx *fasthttp.RequestCtx) {
 
 	response = utility.Payload(true, result, "Successful manipulation!")
 
+	ctx.SetStatusCode(fasthttp.StatusOK)
 	utility.JSON(ctx, response)
 }
 
@@ -49,5 +51,6 @@ func (h *StaticHandler) GetApiStatic(ctx *fasthttp.RequestCtx) {
 
 	response = utility.Payload(true, utility.GetApiStatic(insesonds), "Successful manipulation!")
 
+	ctx.SetStatusCode(fasthttp.StatusOK)
 	utility.JSON(ctx, response)
 }

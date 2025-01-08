@@ -36,7 +36,12 @@ func (h *UserRoleHandler) Create(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.UserRoleService.Create(ctx, inputStruct))
+			ctx.SetStatusCode(fasthttp.StatusCreated) // Set status code to 201 Created
+		} else {
+			ctx.SetStatusCode(fasthttp.StatusBadRequest) // Set status code to 400 Bad Request
 		}
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest) // Set status code to 400 Bad Request
 	}
 	utility.JSON(ctx, response)
 }
@@ -48,5 +53,10 @@ func (h *UserRoleHandler) Delete(ctx *fasthttp.RequestCtx) {
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
 	response = utility.FinalResponse(h.UserRoleService.Delete(ctx, id))
+	if response["error"] != nil {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest) // Set status code to 400 Bad Request if there's an error
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK) // Set status code to 200 OK
+	}
 	utility.JSON(ctx, response)
 }

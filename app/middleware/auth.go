@@ -17,7 +17,6 @@ import (
 )
 
 // JwtToken , basic jwt model
-// Cấu trúc JwtToken, mô hình jwt cơ bản
 type JwtToken struct {
 	C                  *config.Configuration
 	UserCRUD           services.RepositoryService
@@ -29,7 +28,6 @@ type JwtToken struct {
 
 // NewJwtToken , khởi tạo một JwtToken mới
 func NewJwtToken(c *config.Configuration, db *mongo.Client) *JwtToken {
-
 	newHandler := new(JwtToken)
 	newHandler.C = c
 	newHandler.UserCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Users)
@@ -42,24 +40,6 @@ func NewJwtToken(c *config.Configuration, db *mongo.Client) *JwtToken {
 }
 
 // CheckUserAuth , kiểm tra xác thực người dùng
-// Dành cho user
-// CheckUserAuth là middleware kiểm tra quyền truy cập của người dùng dựa trên JWT token và các quyền yêu cầu.
-//
-// Tham số:
-// - requirePermissions: Danh sách các quyền yêu cầu để truy cập vào tài nguyên.
-// - next: fasthttp.RequestHandler tiếp theo sẽ được gọi nếu người dùng có quyền hợp lệ.
-//
-// Chức năng:
-// - Kiểm tra xem header "Authorization" có chứa JWT token hợp lệ hay không.
-// - Giải mã và xác thực JWT token.
-// - Tìm kiếm người dùng dựa trên ID trong token.
-// - Kiểm tra xem người dùng có bị khóa hay không.
-// - Kiểm tra xem token có hợp lệ với người dùng hay không.
-// - Nếu có quyền yêu cầu, kiểm tra xem người dùng có quyền đó hay không.
-// - Nếu tất cả các kiểm tra đều thành công, gọi fasthttp.RequestHandler tiếp theo.
-//
-// Trả về:
-// - fasthttp.RequestHandler: Handler sẽ được gọi nếu người dùng có quyền hợp lệ, nếu không sẽ trả về lỗi JSON.
 func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		notAuthError := "An unauthorized access!"
@@ -77,12 +57,14 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 				})
 
 				if err != nil || !jwtToken.Valid {
+					ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 					utility.JSON(ctx, utility.Payload(false, nil, notAuthError))
 					return
 				}
 
 				findUser, err := jt.UserCRUD.FindOneById(context.TODO(), utility.String2ObjectID(t.UserID), nil)
 				if findUser == nil {
+					ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 					utility.JSON(ctx, utility.Payload(false, err, notAuthError))
 					return
 				}
@@ -90,16 +72,19 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 				var user models.User
 				bsonBytes, err := bson.Marshal(findUser)
 				if err != nil {
+					ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 					utility.JSON(ctx, utility.Payload(false, err, notAuthError))
 					return
 				}
 				err = bson.Unmarshal(bsonBytes, &user)
 				if err != nil {
+					ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 					utility.JSON(ctx, utility.Payload(false, err, notAuthError))
 					return
 				}
 
 				if user.IsBlock {
+					ctx.SetStatusCode(fasthttp.StatusForbidden)
 					utility.JSON(ctx, utility.Payload(false, nil, notAuthError))
 					return
 				}
@@ -114,6 +99,7 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 					}
 				}
 				if !isRightToken {
+					ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 					utility.JSON(ctx, utility.Payload(false, nil, notAuthError))
 					return
 				}
@@ -125,6 +111,7 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 
 				findPermission, err := jt.PermissionCRUD.FindOne(context.TODO(), bson.M{"name": requirePermission}, nil)
 				if findPermission == nil {
+					ctx.SetStatusCode(fasthttp.StatusForbidden)
 					utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
 					return
 				}
@@ -133,6 +120,7 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 				bsonBytes, _ = bson.Marshal(findPermission)
 				err = bson.Unmarshal(bsonBytes, &permission)
 				if err != nil {
+					ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 					utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
 					return
 				}
@@ -140,6 +128,7 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 				requirePermissionID := permission.ID
 				findRoles, err := jt.UserRoleCRUD.FindAll(context.TODO(), bson.M{"userId": utility.String2ObjectID(t.UserID)}, nil)
 				if findRoles == nil {
+					ctx.SetStatusCode(fasthttp.StatusForbidden)
 					utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
 					return
 				}
@@ -178,6 +167,7 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 					}
 				}
 				if !isRightRole {
+					ctx.SetStatusCode(fasthttp.StatusForbidden)
 					utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
 					return
 				}
@@ -185,9 +175,11 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 				ctx.SetUserValue("minScope", minScope)
 				next(ctx)
 			} else {
+				ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 				utility.JSON(ctx, utility.Payload(false, nil, notAuthError))
 			}
 		} else {
+			ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 			utility.JSON(ctx, utility.Payload(false, nil, notAuthError))
 		}
 	}

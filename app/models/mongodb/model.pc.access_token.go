@@ -12,7 +12,7 @@ type AccessToken struct {
 	System        string               `json:"system" bson:"system"`               // Hệ thống của access token
 	Value         string               `json:"value" bson:"value"`                 // Giá trị của access token
 	AssignedUsers []primitive.ObjectID `json:"assignedUsers" bson:"assignedUsers"` // Danh sách người dùng được gán access token
-	Status        string               `json:"status" bson:"status"`               // Trạng thái của access token
+	Status        byte                 `json:"status" bson:"status"`               // Trạng thái của access token (0 = active, 1 = inactive)
 	CreatedAt     int64                `json:"createdAt" bson:"createdAt"`         // Thời gian tạo access token
 	UpdatedAt     int64                `json:"updatedAt" bson:"updatedAt"`         // Thời gian cập nhật access token
 }
@@ -24,7 +24,6 @@ type AccessTokenCreateInput struct {
 	System        string   `json:"system" bson:"system" validate:"required"`     // Hệ thống của access token
 	Value         string   `json:"value" bson:"value" validate:"required"`       // Giá trị của access token
 	AssignedUsers []string `json:"assignedUsers" bson:"assignedUsers"`           // Danh sách người dùng được gán access token
-	Status        string   `json:"status" bson:"status"`                         // Trạng thái của access token
 }
 
 // AccessTokenUpdateInput dữ liệu đầu vào khi cập nhật access token
@@ -34,7 +33,6 @@ type AccessTokenUpdateInput struct {
 	System        string   `json:"system" bson:"system"`               // Hệ thống của access token
 	Value         string   `json:"value" bson:"value"`                 // Giá trị của access token
 	AssignedUsers []string `json:"assignedUsers" bson:"assignedUsers"` // Danh sách người dùng được gán access token
-	Status        string   `json:"status" bson:"status"`               // Trạng thái của access token
 }
 
 // ==========================================================================================================

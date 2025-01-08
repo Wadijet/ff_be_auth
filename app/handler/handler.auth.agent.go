@@ -37,7 +37,12 @@ func (h *AgentHandler) Create(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.AgentService.Create(ctx, inputStruct))
+			ctx.SetStatusCode(fasthttp.StatusCreated)
+		} else {
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		}
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
 
 	utility.JSON(ctx, response)
@@ -50,6 +55,12 @@ func (h *AgentHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
 	response = utility.FinalResponse(h.AgentService.FindOneById(ctx, id))
+
+	if response["error"] != nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
 
 	utility.JSON(ctx, response)
 }
@@ -73,6 +84,7 @@ func (h *AgentHandler) FindAll(ctx *fasthttp.RequestCtx) {
 
 	response = utility.FinalResponse(h.AgentService.FindAll(ctx, page, limit))
 
+	ctx.SetStatusCode(fasthttp.StatusOK)
 	utility.JSON(ctx, response)
 }
 
@@ -91,7 +103,12 @@ func (h *AgentHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.AgentService.Update(ctx, id, inputStruct))
+			ctx.SetStatusCode(fasthttp.StatusOK)
+		} else {
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		}
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 	}
 
 	utility.JSON(ctx, response)
@@ -104,6 +121,31 @@ func (h *AgentHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
 	response = utility.FinalResponse(h.AgentService.Delete(ctx, id))
+
+	if response["error"] != nil {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
+
+	utility.JSON(ctx, response)
+}
+
+// Custom functions ==========================================================================
+
+// CheckIn một Agent
+func (h *AgentHandler) CheckIn(ctx *fasthttp.RequestCtx) {
+	var response map[string]interface{} = nil
+
+	// Lấy ID từ yêu cầu
+	id := ctx.UserValue("id").(string)
+	response = utility.FinalResponse(h.AgentService.CheckIn(ctx, id))
+
+	if response["error"] != nil {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
 
 	utility.JSON(ctx, response)
 }

@@ -5,6 +5,7 @@ import (
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
+	"net/http"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -51,7 +52,12 @@ func (h *AdminHandler) SetRole(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.AdminService.SetRole(ctx, inputStruct.Email, inputStruct.RoleID))
+			ctx.SetStatusCode(http.StatusOK)
+		} else {
+			ctx.SetStatusCode(http.StatusBadRequest)
 		}
+	} else {
+		ctx.SetStatusCode(http.StatusBadRequest)
 	}
 
 	utility.JSON(ctx, response)
@@ -77,7 +83,12 @@ func (h *AdminHandler) BlockUser(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.AdminService.BlockUser(ctx, inputStruct.Email, true, inputStruct.Note))
+			ctx.SetStatusCode(http.StatusOK)
+		} else {
+			ctx.SetStatusCode(http.StatusBadRequest)
 		}
+	} else {
+		ctx.SetStatusCode(http.StatusBadRequest)
 	}
 
 	utility.JSON(ctx, response)
@@ -95,7 +106,12 @@ func (h *AdminHandler) UnBlockUser(ctx *fasthttp.RequestCtx) {
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
 			response = utility.FinalResponse(h.AdminService.BlockUser(ctx, inputStruct.Email, false, inputStruct.Note))
+			ctx.SetStatusCode(http.StatusOK)
+		} else {
+			ctx.SetStatusCode(http.StatusBadRequest)
 		}
+	} else {
+		ctx.SetStatusCode(http.StatusBadRequest)
 	}
 
 	utility.JSON(ctx, response)

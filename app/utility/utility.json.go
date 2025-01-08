@@ -29,7 +29,7 @@ func JSON(ctx *fasthttp.RequestCtx, data map[string]interface{}) {
 	ctx.Write(res)
 
 	// Thiết lập mã trạng thái HTTP
-	ctx.SetStatusCode(fasthttp.StatusOK)
+	//ctx.SetStatusCode(statusCode)
 }
 
 // Payload tạo payload với trạng thái, dữ liệu và thông điệp
