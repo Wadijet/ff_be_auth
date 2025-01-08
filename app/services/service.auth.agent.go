@@ -20,7 +20,7 @@ type AgentService struct {
 }
 
 // Khởi tạo UserService với cấu hình và kết nối cơ sở dữ liệu
-func NewAccessAgentService(c *config.Configuration, db *mongo.Client) *AgentService {
+func NewAgentService(c *config.Configuration, db *mongo.Client) *AgentService {
 	newService := new(AgentService)
 	newService.crudAgent = *NewRepository(c, db, global.MongoDB_ColNames.Agents)
 	return newService
@@ -57,12 +57,12 @@ func (h *AgentService) Create(ctx *fasthttp.RequestCtx, credential *models.Agent
 		assignedUsers = append(assignedUsers, utility.String2ObjectID(userID))
 	}
 
-	// Tạo mới Agent
-	newAgent := models.Agent{
-		Name:          credential.Name,
-		Describe:      credential.Describe,
-		AssignedUsers: assignedUsers,
-	}
+	newAgent := new(models.Agent)
+	newAgent.Name = credential.Name
+	newAgent.Describe = credential.Describe
+	newAgent.Status = 0
+	newAgent.Command = 0
+	newAgent.AssignedUsers = assignedUsers
 
 	// Thêm Agent vào cơ sở dữ liệu
 	return h.crudAgent.InsertOne(ctx, newAgent)
@@ -77,21 +77,31 @@ func (h *AgentService) Update(ctx *fasthttp.RequestCtx, id string, credential *m
 		return nil, errors.New("Agent not found")
 	}
 
+	var agent models.Agent
+	bsonBytes, err := bson.Marshal(checkResult)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bson.Unmarshal(bsonBytes, &agent)
+	if err != nil {
+		return nil, err
+	}
+
 	// Chuyển credential.AssignedUsers từ dạng []string sang dạng []primitive.ObjectID
 	assignedUsers := make([]primitive.ObjectID, 0)
 	for _, userID := range credential.AssignedUsers {
 		assignedUsers = append(assignedUsers, utility.String2ObjectID(userID))
 	}
 
-	// Cập nhật Agent
-	update := bson.M{"$set": bson.M{
-		"name":          credential.Name,
-		"describe":      credential.Describe,
-		"assignedUsers": assignedUsers,
-	}}
+	agent.Name = credential.Name
+	agent.Describe = credential.Describe
+	agent.Status = credential.Status
+	agent.Command = credential.Command
+	agent.AssignedUsers = assignedUsers
 
 	CustomBson := &utility.CustomBson{}
-	change, err := CustomBson.Set(update)
+	change, err := CustomBson.Set(agent)
 	if err != nil {
 		return nil, err
 	}
@@ -102,4 +112,39 @@ func (h *AgentService) Update(ctx *fasthttp.RequestCtx, id string, credential *m
 // Xóa một Agent theo ID
 func (h *AgentService) Delete(ctx *fasthttp.RequestCtx, id string) (DeleteResult interface{}, err error) {
 	return h.crudAgent.DeleteOneById(ctx, utility.String2ObjectID(id))
+}
+
+// Hàm kiểm tra tình trạng Online của tất cả các Agent
+// Duyệt qua tất cả các Agent, nếu Status = 1 và UpdateAt > 5 phút thì trả về Status = 0
+func (h *AgentService) CheckOnlineStatus(ctx *fasthttp.RequestCtx) {
+	// Lấy tất cả các Agent
+	agents, _ := h.crudAgent.FindAll(ctx, nil, nil)
+
+	// Duyệt qua tất cả các Agent
+	for _, agent := range agents {
+		// Chuyển đổi agent từ interface{} sang models.Agent
+		var agentData models.Agent
+		bsonBytes, err := bson.Marshal(agent)
+		if err != nil {
+			continue
+		}
+
+		err = bson.Unmarshal(bsonBytes, &agentData)
+		if err != nil {
+			continue
+		}
+
+		// Kiểm tra tình trạng Online của Agent
+		if agentData.Status == 1 && ((utility.CurrentTimeInMilli() - agentData.UpdatedAt) > 300) {
+			// Cập nhật tình trạng Online của Agent
+			agentData.Status = 0
+			CustomBson := &utility.CustomBson{}
+			change, err := CustomBson.Set(agentData)
+			if err != nil {
+				continue
+			}
+
+			h.crudAgent.UpdateOneById(ctx, agentData.ID, change)
+		}
+	}
 }

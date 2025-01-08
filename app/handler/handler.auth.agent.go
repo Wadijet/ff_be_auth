@@ -5,24 +5,21 @@ import (
 	"atk-go-server/app/services"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
-	"atk-go-server/global"
 	"strconv"
 
 	"github.com/valyala/fasthttp"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // RoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
 type AgentHandler struct {
-	crud services.RepositoryService
+	AgentService services.AgentService
 }
 
 // NewRoleHandler khởi tạo một RoleHandler mới
 func NewAgentHandler(c *config.Configuration, db *mongo.Client) *AgentHandler {
 	newHandler := new(AgentHandler)
-	newHandler.crud = *services.NewRepository(c, db, global.MongoDB_ColNames.Agents)
+	newHandler.AgentService = *services.NewAgentService(c, db)
 	return newHandler
 }
 
@@ -39,7 +36,7 @@ func (h *AgentHandler) Create(ctx *fasthttp.RequestCtx) {
 	if response == nil { // Kiểm tra dữ liệu đầu vào
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.crud.InsertOne(ctx, inputStruct))
+			response = utility.FinalResponse(h.AgentService.Create(ctx, inputStruct))
 		}
 	}
 
@@ -52,7 +49,7 @@ func (h *AgentHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.crud.FindOneById(ctx, utility.String2ObjectID(id), nil))
+	response = utility.FinalResponse(h.AgentService.FindOneById(ctx, id))
 
 	utility.JSON(ctx, response)
 }
@@ -74,13 +71,7 @@ func (h *AgentHandler) FindAll(ctx *fasthttp.RequestCtx) {
 		page = 0
 	}
 
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", 1}})
-
-	response = utility.FinalResponse(h.crud.FindAllWithPaginate(ctx, bson.D{}, opts))
+	response = utility.FinalResponse(h.AgentService.FindAll(ctx, page, limit))
 
 	utility.JSON(ctx, response)
 }
@@ -94,12 +85,12 @@ func (h *AgentHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy dữ liệu từ yêu cầu
 	postValues := ctx.PostBody()
-	inputStruct := new(models.RoleUpdateInput)
+	inputStruct := new(models.AgentUpdateInput)
 	response = utility.Convert2Struct(postValues, inputStruct)
 	if response == nil { // Kiểm tra dữ liệu đầu vào
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.crud.UpdateOneById(ctx, utility.String2ObjectID(id), inputStruct))
+			response = utility.FinalResponse(h.AgentService.Update(ctx, id, inputStruct))
 		}
 	}
 
@@ -112,7 +103,7 @@ func (h *AgentHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.crud.DeleteOneById(ctx, utility.String2ObjectID(id)))
+	response = utility.FinalResponse(h.AgentService.Delete(ctx, id))
 
 	utility.JSON(ctx, response)
 }
