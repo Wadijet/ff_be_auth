@@ -104,7 +104,16 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	// ====================================  FBPAGE API =============================================
 	// Các API liên quan đến trang Facebook
 	FbPageHandler := handler.NewFbPageHandler(c, db)
-	r.POST(preV1+"/fb_pages", middle.CheckUserAuth("FbPage.Create", FbPageHandler.Create))        // Tạo trang Facebook
-	r.GET(preV1+"/fb_pages/{id}", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindOneById)) // Lấy trang Facebook theo ID
-	r.GET(preV1+"/fb_pages", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindAll))          // Lấy tất cả trang Facebook
+	r.POST(preV1+"/fb_pages", middle.CheckUserAuth("FbPage.Create", FbPageHandler.Create))                   // Tạo trang Facebook
+	r.GET(preV1+"/fb_pages/{id}", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindOneById))            // Lấy trang Facebook theo ID
+	r.GET(preV1+"/fb_pages", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindAll))                     // Lấy tất cả trang Facebook
+	r.POST(preV1+"/fb_pages/update_token", middle.CheckUserAuth("FbPage.Update", FbPageHandler.UpdateToken)) // Cập nhật token trang Facebook
+
+	// ====================================  FBCONVERSATION API =====================================
+	// Các API liên quan đến cuộc trò chuyện trên Facebook
+	FbConversationHandler := handler.NewFbConversationHandler(c, db)
+	r.POST(preV1+"/fb_conversations", middle.CheckUserAuth("FbConversation.Create", FbConversationHandler.Create))        // Tạo cuộc trò chuyện
+	r.GET(preV1+"/fb_conversations/{id}", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindOneById)) // Lấy cuộc trò chuyện theo ID
+	r.GET(preV1+"/fb_conversations", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindAll))          // Lấy tất cả cuộc trò chuyện
+
 }

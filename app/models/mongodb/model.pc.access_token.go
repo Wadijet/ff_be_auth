@@ -28,7 +28,7 @@ type AccessTokenCreateInput struct {
 
 // AccessTokenUpdateInput dữ liệu đầu vào khi cập nhật access token
 type AccessTokenUpdateInput struct {
-	Name          string   `json:"name" bson:"name"`                   // Tên của access token
+	Name          string   `json:"name" bson:"name" `                  // Tên của access token
 	Describe      string   `json:"describe" bson:"describe"`           // Mô tả access token
 	System        string   `json:"system" bson:"system"`               // Hệ thống của access token
 	Value         string   `json:"value" bson:"value"`                 // Giá trị của access token

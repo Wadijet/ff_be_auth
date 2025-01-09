@@ -64,6 +64,10 @@ var InitialPermissions = []models.Permission{
 	{Name: "FbPage.Create", Describe: "Quyền tạo trang Facebook", Group: "Pancake", Category: "FbPage"},
 	{Name: "FbPage.Update", Describe: "Quyền cập nhật trang Facebook", Group: "Pancake", Category: "FbPage"},
 	{Name: "FbPage.Delete", Describe: "Quyền xóa trang Facebook", Group: "Pancake", Category: "FbPage"},
+	{Name: "FbConversation.Read", Describe: "Quyền xem cuộc trò chuyện trên Facebook", Group: "Pancake", Category: "FbConversation"},
+	{Name: "FbConversation.Create", Describe: "Quyền tạo cuộc trò chuyện trên Facebook", Group: "Pancake", Category: "FbConversation"},
+	{Name: "FbConversation.Update", Describe: "Quyền cập nhật cuộc trò chuyện trên Facebook", Group: "Pancake", Category: "FbConversation"},
+	{Name: "FbConversation.Delete", Describe: "Quyền xóa cuộc trò chuyện trên Facebook", Group: "Pancake", Category: "FbConversation"},
 }
 
 // Viết hàm InitPermission để khởi tạo các quyền mặc định theo nguyên tắc sau:

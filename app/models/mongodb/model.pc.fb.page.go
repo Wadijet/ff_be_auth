@@ -10,7 +10,7 @@ import (
 type FbPage struct {
 	ID              primitive.ObjectID     `json:"id,omitempty" bson:"_id,omitempty"`        // ID của quyền
 	PageName        string                 `json:"pageName" bson:"pageName"`                 // Tên của trang
-	PageId          string                 `json:"pageID" bson:"pageID" index:"unique;text"` // ID của trang
+	PageId          string                 `json:"pageId" bson:"pageId" index:"unique;text"` // ID của trang
 	PageAccessToken string                 `json:"pageAccessToken" bson:"pageAccessToken"`   // Mã truy cập của trang
 	ApiData         map[string]interface{} `json:"apiData" bson:"apiData"`                   // Dữ liệu API
 	CreatedAt       int64                  `json:"createdAt" bson:"createdAt"`               // Thời gian tạo quyền
@@ -21,5 +21,10 @@ type FbPage struct {
 
 // FbPageCreateInput dữ liệu đầu vào khi tạo page
 type FbPageCreateInput struct {
-	ApiData map[string]interface{} `json:"apiData" bson:"apiData"` // Dữ liệu API
+	ApiData map[string]interface{} `json:"apiData" bson:"apiData" validate:"required"` // Dữ liệu API
+}
+
+type FbPageUpdateTokenInput struct {
+	PageId          string `json:"pageId" bson:"pageId" validate:"required"`                   // ID của trang
+	PageAccessToken string `json:"pageAccessToken" bson:"pageAccessToken" validate:"required"` // Mã truy cập của trang
 }

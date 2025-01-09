@@ -12,31 +12,31 @@ import (
 )
 
 // RoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
-type FbPageHandler struct {
-	FbPageHandlerService services.FbPageService
+type FbConversationHandler struct {
+	FbConversationService services.FbConversationService
 }
 
 // NewRoleHandler khởi tạo một RoleHandler mới
-func NewFbPageHandler(c *config.Configuration, db *mongo.Client) *FbPageHandler {
-	newHandler := new(FbPageHandler)
-	newHandler.FbPageHandlerService = *services.NewFbPageService(c, db)
+func NewFbConversationHandler(c *config.Configuration, db *mongo.Client) *FbConversationHandler {
+	newHandler := new(FbConversationHandler)
+	newHandler.FbConversationService = *services.NewFbConversationService(c, db)
 	return newHandler
 }
 
 // CRUD functions ==========================================================================
 
-// Tạo mới một FbPage
-func (h *FbPageHandler) Create(ctx *fasthttp.RequestCtx) {
+// Tạo mới một FbConversation
+func (h *FbConversationHandler) Create(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
 
 	// Lấy dữ liệu từ yêu cầu
 	postValues := ctx.PostBody()
-	inputStruct := new(models.FbPageCreateInput)
+	inputStruct := new(models.FbConversationCreateInput)
 	response = utility.Convert2Struct(postValues, inputStruct)
 	if response == nil { // Kiểm tra dữ liệu đầu vào
 		response = utility.ValidateStruct(inputStruct)
 		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.FbPageHandlerService.ReviceData(ctx, inputStruct))
+			response = utility.FinalResponse(h.FbConversationService.ReviceData(ctx, inputStruct))
 			ctx.SetStatusCode(fasthttp.StatusOK)
 		} else {
 			ctx.SetStatusCode(fasthttp.StatusBadRequest)
@@ -48,13 +48,13 @@ func (h *FbPageHandler) Create(ctx *fasthttp.RequestCtx) {
 	utility.JSON(ctx, response)
 }
 
-// Tìm một FbPage theo ID
-func (h *FbPageHandler) FindOneById(ctx *fasthttp.RequestCtx) {
+// Tìm một FbConversation theo ID
+func (h *FbConversationHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.FbPageHandlerService.FindOneByPageID(ctx, id))
+	response = utility.FinalResponse(h.FbConversationService.FindOneByConversationID(ctx, id))
 	if response != nil {
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	} else {
@@ -64,8 +64,8 @@ func (h *FbPageHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	utility.JSON(ctx, response)
 }
 
-// Tìm tất cả các FbPage với phân trang
-func (h *FbPageHandler) FindAll(ctx *fasthttp.RequestCtx) {
+// Tìm tất cả các FbConversation với phân trang
+func (h *FbConversationHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	var response map[string]interface{} = nil
 
 	buf := string(ctx.FormValue("limit"))
@@ -80,35 +80,10 @@ func (h *FbPageHandler) FindAll(ctx *fasthttp.RequestCtx) {
 		page = 0
 	}
 
-	response = utility.FinalResponse(h.FbPageHandlerService.FindAll(ctx, page, limit))
+	response = utility.FinalResponse(h.FbConversationService.FindAll(ctx, page, limit))
 	if response != nil {
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	} else {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 	}
-
-	utility.JSON(ctx, response)
-}
-
-// Cập nhật access token của một FbPage
-func (h *FbPageHandler) UpdateToken(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
-	inputStruct := new(models.FbPageUpdateTokenInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.FbPageHandlerService.UpdateToken(ctx, inputStruct))
-			ctx.SetStatusCode(fasthttp.StatusOK)
-		} else {
-			ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		}
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-	}
-
-	utility.JSON(ctx, response)
 }
