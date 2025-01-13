@@ -37,6 +37,7 @@ func initColNames() {
 	global.MongoDB_ColNames.AccessTokens = "access_tokens"
 	global.MongoDB_ColNames.FbPages = "fb_pages"
 	global.MongoDB_ColNames.FbConvesations = "fb_conversations"
+	global.MongoDB_ColNames.FbMessages = "fb_messages"
 
 	logrus.Info("Initialized collection names") // Ghi log thông báo đã khởi tạo tên các collection
 }

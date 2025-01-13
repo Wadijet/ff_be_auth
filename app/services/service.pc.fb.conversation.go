@@ -34,6 +34,7 @@ func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential 
 
 	// Lấy thông tin ConversationID từ ApiData đưa vào biến
 	conversationId := credential.ApiData["id"].(string)
+	customerId := credential.ApiData["customer_id"].(string)
 
 	// Kiểm tra FbConversation đã tồn tại chưa
 	filter := bson.M{"conversationId": conversationId}
@@ -41,8 +42,11 @@ func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential 
 	if checkResult == nil { // Nếu FbConversation chưa tồn tại thì tạo mới
 		// Tạo một FbConversation mới
 		newFbConversation := models.FbConversation{}
+		newFbConversation.PageId = credential.PageId
+		newFbConversation.PageUsername = credential.PageUsername
 		newFbConversation.ApiData = credential.ApiData
-		newFbConversation.ConversationId = credential.ApiData["id"].(string)
+		newFbConversation.ConversationId = conversationId
+		newFbConversation.CustomerId = customerId
 
 		// Thêm FbConversation vào cơ sở dữ liệu
 		return h.crudFbConversation.InsertOne(ctx, newFbConversation)
@@ -62,10 +66,19 @@ func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential 
 
 		// Cập nhật thông tin mới
 		oldFbConversation.ApiData = credential.ApiData
-		oldFbConversation.ConversationId = credential.ApiData["id"].(string)
+		oldFbConversation.PageId = credential.PageId
+		oldFbConversation.PageUsername = credential.PageUsername
+		oldFbConversation.ConversationId = conversationId
+		oldFbConversation.CustomerId = customerId
+
+		CustomBson := &utility.CustomBson{}
+		change, err := CustomBson.Set(oldFbConversation)
+		if err != nil {
+			return nil, err
+		}
 
 		// Cập nhật FbConversation vào cơ sở dữ liệu
-		return h.crudFbConversation.UpdateOneById(ctx, oldFbConversation.ID, oldFbConversation)
+		return h.crudFbConversation.UpdateOneById(ctx, oldFbConversation.ID, change)
 	}
 }
 
@@ -82,5 +95,6 @@ func (h *FbConversationService) FindAll(ctx *fasthttp.RequestCtx, page int64, li
 	opts.SetLimit(limit)
 	opts.SetSkip(page * limit)
 	opts.SetSort(bson.D{{"updatedAt", 1}})
+
 	return h.crudFbConversation.FindAllWithPaginate(ctx, nil, opts)
 }

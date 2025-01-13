@@ -7,7 +7,7 @@ import (
 // Permission đại diện cho quyền trong hệ thống,
 // Các quyền được kết cấu theo các quyền gọi các API trong router.
 // Các quyèn này được tạo ra khi khởi tạo hệ thống và không thể thay đổi.
-type FbConversation struct {
+type FbMessage struct {
 	ID             primitive.ObjectID     `json:"id,omitempty" bson:"_id,omitempty"`                        // ID của quyền
 	PageId         string                 `json:"pageId" bson:"pageId" index:"text"`                        // ID của trang
 	PageUsername   string                 `json:"pageUsername" bson:"pageUsername" index:"text"`            // Tên người dùng của trang
@@ -21,8 +21,10 @@ type FbConversation struct {
 // API INPUT STRUCT =======================================================================================
 
 // FbPageCreateInput dữ liệu đầu vào khi tạo page
-type FbConversationCreateInput struct {
-	PageId       string                 `json:"pageId" bson:"pageId" validate:"required"`             // ID của trang
-	PageUsername string                 `json:"pageUsername" bson:"pageUsername" validate:"required"` // Tên người dùng của trang
-	ApiData      map[string]interface{} `json:"apiData" bson:"apiData" validate:"required"`           // Dữ liệu API
+type FbMessageCreateInput struct {
+	PageId         string                 `json:"pageId" bson:"pageId" validate:"required"`                 // ID của trang
+	PageUsername   string                 `json:"pageUsername" bson:"pageUsername" validate:"required"`     // Tên người dùng của trang
+	ConversationId string                 `json:"conversationId" bson:"conversationId" index:"unique;text"` // ID của trang
+	CustomerId     string                 `json:"customerId" bson:"customerId" index:"text"`                // ID của khách hàng
+	ApiData        map[string]interface{} `json:"apiData" bson:"apiData" validate:"required"`               // Dữ liệu API
 }

@@ -54,6 +54,22 @@ func (h *FbPageHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
+	response = utility.FinalResponse(h.FbPageHandlerService.FindOneById(ctx, id))
+	if response != nil {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	}
+
+	utility.JSON(ctx, response)
+}
+
+// Tìm một FbPage theo PageID
+func (h *FbPageHandler) FindOneByPageID(ctx *fasthttp.RequestCtx) {
+	var response map[string]interface{} = nil
+
+	// Lấy ID từ yêu cầu
+	id := ctx.UserValue("id").(string)
 	response = utility.FinalResponse(h.FbPageHandlerService.FindOneByPageID(ctx, id))
 	if response != nil {
 		ctx.SetStatusCode(fasthttp.StatusOK)
@@ -62,6 +78,7 @@ func (h *FbPageHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	}
 
 	utility.JSON(ctx, response)
+
 }
 
 // Tìm tất cả các FbPage với phân trang

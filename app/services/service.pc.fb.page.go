@@ -41,9 +41,12 @@ func (h *FbPageService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.
 	if checkResult == nil { // Nếu FbPage chưa tồn tại thì tạo mới
 		// Tạo một FbPage mới
 		newFbPage := models.FbPage{}
+		newFbPage.AccessToken = credential.AccessToken
 		newFbPage.ApiData = credential.ApiData
 		newFbPage.PageName = credential.ApiData["name"].(string)
+		newFbPage.PageUsername = credential.ApiData["username"].(string)
 		newFbPage.PageId = credential.ApiData["id"].(string)
+		newFbPage.IsSync = false
 
 		// Thêm FbPage vào cơ sở dữ liệu
 		return h.crudFbPage.InsertOne(ctx, newFbPage)
@@ -61,7 +64,9 @@ func (h *FbPageService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.
 		}
 
 		oldFbPage.ApiData = credential.ApiData
+		oldFbPage.AccessToken = credential.AccessToken
 		oldFbPage.PageName = credential.ApiData["name"].(string)
+		oldFbPage.PageUsername = credential.ApiData["username"].(string)
 
 		CustomBson := &utility.CustomBson{}
 		change, err := CustomBson.Set(oldFbPage)

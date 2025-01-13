@@ -12,7 +12,6 @@ import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
-	"atk-go-server/global"
 )
 
 // RepositoryService là cấu trúc chứa thông tin kết nối đến MongoDB
@@ -24,31 +23,9 @@ type RepositoryService struct {
 
 // GetDBName trả về tên cơ sở dữ liệu dựa trên tên collection
 func GetDBName(c *config.Configuration, collectionName string) string {
-	switch collectionName {
-	// AUTH
-	case global.MongoDB_ColNames.Users:
-		return c.MongoDB_DBNameAuth
-	case global.MongoDB_ColNames.Permissions:
-		return c.MongoDB_DBNameAuth
-	case global.MongoDB_ColNames.Roles:
-		return c.MongoDB_DBNameAuth
-	case global.MongoDB_ColNames.RolePermissions:
-		return c.MongoDB_DBNameAuth
-	case global.MongoDB_ColNames.UserRoles:
-		return c.MongoDB_DBNameAuth
-	case global.MongoDB_ColNames.Agents:
-		return c.MongoDB_DBNameAuth
-	case global.MongoDB_ColNames.AccessTokens:
-		return c.MongoDB_DBNameAuth
-	case global.MongoDB_ColNames.FbPages:
-		return c.MongoDB_DBNameAuth
-	case global.MongoDB_ColNames.FbConvesations:
-		return c.MongoDB_DBNameAuth
-	// LOG
 
-	default:
-		return ""
-	}
+	return c.MongoDB_DBNameAuth
+
 }
 
 // Khởi tạo Repository

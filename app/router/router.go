@@ -108,6 +108,7 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	r.GET(preV1+"/fb_pages/{id}", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindOneById))            // Lấy trang Facebook theo ID
 	r.GET(preV1+"/fb_pages", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindAll))                     // Lấy tất cả trang Facebook
 	r.POST(preV1+"/fb_pages/update_token", middle.CheckUserAuth("FbPage.Update", FbPageHandler.UpdateToken)) // Cập nhật token trang Facebook
+	r.GET(preV1+"/fb_pages/pageId/{id}", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindOneByPageID)) // Lấy trang Facebook theo ID
 
 	// ====================================  FBCONVERSATION API =====================================
 	// Các API liên quan đến cuộc trò chuyện trên Facebook
@@ -116,4 +117,10 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	r.GET(preV1+"/fb_conversations/{id}", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindOneById)) // Lấy cuộc trò chuyện theo ID
 	r.GET(preV1+"/fb_conversations", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindAll))          // Lấy tất cả cuộc trò chuyện
 
+	// ====================================  FBMESSAGE API ==========================================
+	// Các API liên quan đến tin nhắn trên Facebook
+	FbMessageHandler := handler.NewFbMessageHandler(c, db)
+	r.POST(preV1+"/fb_messages", middle.CheckUserAuth("FbMessage.Create", FbMessageHandler.Create))        // Tạo tin nhắn
+	r.GET(preV1+"/fb_messages/{id}", middle.CheckUserAuth("FbMessage.Read", FbMessageHandler.FindOneById)) // Lấy tin nhắn theo ID
+	r.GET(preV1+"/fb_messages", middle.CheckUserAuth("FbMessage.Read", FbMessageHandler.FindAll))          // Lấy tất cả tin nhắn
 }
