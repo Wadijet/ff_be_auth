@@ -28,12 +28,12 @@ func NewFbPageService(c *config.Configuration, db *mongo.Client) *FbPageService 
 // Nhận data từ Facebook và lưu vào cơ sở dữ liệu
 func (h *FbPageService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.FbPageCreateInput) (CreateResult interface{}, err error) {
 
-	if credential.ApiData == nil {
+	if credential.PanCakeData == nil {
 		return nil, errors.New("ApiData is required")
 	}
 
-	// Lấy thông tin PageID từ ApiData đưa vào biến
-	pageId := credential.ApiData["id"].(string)
+	// Lấy thông tin PageID từ ApiData đưa vào biếna
+	pageId := credential.PanCakeData["id"].(string)
 
 	// Kiểm tra FbPage đã tồn tại chưa
 	filter := bson.M{"pageId": pageId}
@@ -42,10 +42,10 @@ func (h *FbPageService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.
 		// Tạo một FbPage mới
 		newFbPage := models.FbPage{}
 		newFbPage.AccessToken = credential.AccessToken
-		newFbPage.ApiData = credential.ApiData
-		newFbPage.PageName = credential.ApiData["name"].(string)
-		newFbPage.PageUsername = credential.ApiData["username"].(string)
-		newFbPage.PageId = credential.ApiData["id"].(string)
+		newFbPage.PanCakeData = credential.PanCakeData
+		newFbPage.PageName = credential.PanCakeData["name"].(string)
+		newFbPage.PageUsername = credential.PanCakeData["username"].(string)
+		newFbPage.PageId = credential.PanCakeData["id"].(string)
 		newFbPage.IsSync = false
 
 		// Thêm FbPage vào cơ sở dữ liệu
@@ -63,10 +63,10 @@ func (h *FbPageService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.
 			return nil, err
 		}
 
-		oldFbPage.ApiData = credential.ApiData
+		oldFbPage.PanCakeData = credential.PanCakeData
 		oldFbPage.AccessToken = credential.AccessToken
-		oldFbPage.PageName = credential.ApiData["name"].(string)
-		oldFbPage.PageUsername = credential.ApiData["username"].(string)
+		oldFbPage.PageName = credential.PanCakeData["name"].(string)
+		oldFbPage.PageUsername = credential.PanCakeData["username"].(string)
 
 		CustomBson := &utility.CustomBson{}
 		change, err := CustomBson.Set(oldFbPage)

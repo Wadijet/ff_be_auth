@@ -13,7 +13,7 @@ type FbMessage struct {
 	PageUsername   string                 `json:"pageUsername" bson:"pageUsername" index:"text"`            // Tên người dùng của trang
 	ConversationId string                 `json:"conversationId" bson:"conversationId" index:"unique;text"` // ID của trang
 	CustomerId     string                 `json:"customerId" bson:"customerId" index:"text"`                // ID của khách hàng
-	ApiData        map[string]interface{} `json:"apiData" bson:"apiData"`                                   // Dữ liệu API
+	PanCakeData    map[string]interface{} `json:"panCakeData" bson:"panCakeData"`                           // Dữ liệu API
 	CreatedAt      int64                  `json:"createdAt" bson:"createdAt"`                               // Thời gian tạo quyền
 	UpdatedAt      int64                  `json:"updatedAt" bson:"updatedAt"`                               // Thời gian cập nhật quyền
 }
@@ -26,5 +26,5 @@ type FbMessageCreateInput struct {
 	PageUsername   string                 `json:"pageUsername" bson:"pageUsername" validate:"required"`     // Tên người dùng của trang
 	ConversationId string                 `json:"conversationId" bson:"conversationId" index:"unique;text"` // ID của trang
 	CustomerId     string                 `json:"customerId" bson:"customerId" index:"text"`                // ID của khách hàng
-	ApiData        map[string]interface{} `json:"apiData" bson:"apiData" validate:"required"`               // Dữ liệu API
+	PanCakeData    map[string]interface{} `json:"panCakeData" bson:"panCakeData"`                           // Dữ liệu API
 }

@@ -28,13 +28,13 @@ func NewFbConversationService(c *config.Configuration, db *mongo.Client) *FbConv
 // Nhận data từ Facebook và lưu vào cơ sở dữ liệu
 func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.FbConversationCreateInput) (CreateResult interface{}, err error) {
 
-	if credential.ApiData == nil {
+	if credential.PanCakeData == nil {
 		return nil, errors.New("ApiData is required")
 	}
 
 	// Lấy thông tin ConversationID từ ApiData đưa vào biến
-	conversationId := credential.ApiData["id"].(string)
-	customerId := credential.ApiData["customer_id"].(string)
+	conversationId := credential.PanCakeData["id"].(string)
+	customerId := credential.PanCakeData["customer_id"].(string)
 
 	// Kiểm tra FbConversation đã tồn tại chưa
 	filter := bson.M{"conversationId": conversationId}
@@ -44,7 +44,7 @@ func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential 
 		newFbConversation := models.FbConversation{}
 		newFbConversation.PageId = credential.PageId
 		newFbConversation.PageUsername = credential.PageUsername
-		newFbConversation.ApiData = credential.ApiData
+		newFbConversation.PanCakeData = credential.PanCakeData
 		newFbConversation.ConversationId = conversationId
 		newFbConversation.CustomerId = customerId
 
@@ -65,7 +65,7 @@ func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential 
 		}
 
 		// Cập nhật thông tin mới
-		oldFbConversation.ApiData = credential.ApiData
+		oldFbConversation.PanCakeData = credential.PanCakeData
 		oldFbConversation.PageId = credential.PageId
 		oldFbConversation.PageUsername = credential.PageUsername
 		oldFbConversation.ConversationId = conversationId

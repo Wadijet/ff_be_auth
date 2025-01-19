@@ -15,7 +15,7 @@ type FbPage struct {
 	IsSync          bool                   `json:"isSync" bson:"isSync"`                     // Trạng thái đồng bộ
 	AccessToken     string                 `json:"accessToken" bson:"accessToken"`
 	PageAccessToken string                 `json:"pageAccessToken" bson:"pageAccessToken"` // Mã truy cập của trang
-	ApiData         map[string]interface{} `json:"apiData" bson:"apiData"`                 // Dữ liệu API
+	PanCakeData     map[string]interface{} `json:"panCakeData" bson:"panCakeData"`         // Dữ liệu API
 	CreatedAt       int64                  `json:"createdAt" bson:"createdAt"`             // Thời gian tạo quyền
 	UpdatedAt       int64                  `json:"updatedAt" bson:"updatedAt"`             // Thời gian cập nhật quyền
 }
@@ -25,7 +25,7 @@ type FbPage struct {
 // FbPageCreateInput dữ liệu đầu vào khi tạo page
 type FbPageCreateInput struct {
 	AccessToken string                 `json:"accessToken" bson:"accessToken" validate:"required"` // Mã truy cập của trang
-	ApiData     map[string]interface{} `json:"apiData" bson:"apiData" validate:"required"`         // Dữ liệu API
+	PanCakeData map[string]interface{} `json:"panCakeData" bson:"panCakeData"`                     // Dữ liệu API
 }
 
 type FbPageUpdateTokenInput struct {
