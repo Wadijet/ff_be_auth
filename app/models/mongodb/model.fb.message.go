@@ -22,9 +22,9 @@ type FbMessage struct {
 
 // FbPageCreateInput dữ liệu đầu vào khi tạo page
 type FbMessageCreateInput struct {
-	PageId         string                 `json:"pageId" bson:"pageId" validate:"required"`                 // ID của trang
-	PageUsername   string                 `json:"pageUsername" bson:"pageUsername" validate:"required"`     // Tên người dùng của trang
-	ConversationId string                 `json:"conversationId" bson:"conversationId" index:"unique;text"` // ID của trang
-	CustomerId     string                 `json:"customerId" bson:"customerId" index:"text"`                // ID của khách hàng
-	PanCakeData    map[string]interface{} `json:"panCakeData" bson:"panCakeData"`                           // Dữ liệu API
+	PageId         string                 `json:"pageId" bson:"pageId" validate:"required"`                                     // ID của trang
+	PageUsername   string                 `json:"pageUsername" bson:"pageUsername" validate:"required"`                         // Tên người dùng của trang
+	ConversationId string                 `json:"conversationId" bson:"conversationId" validate:"required" index:"unique;text"` // ID của trang
+	CustomerId     string                 `json:"customerId" bson:"customerId" validate:"required" index:"text"`                // ID của khách hàng
+	PanCakeData    map[string]interface{} `json:"panCakeData" bson:"panCakeData" validate:"required"`                           // Dữ liệu API
 }

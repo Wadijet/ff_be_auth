@@ -123,4 +123,11 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	r.POST(preV1+"/fb_messages", middle.CheckUserAuth("FbMessage.Create", FbMessageHandler.Create))        // Tạo tin nhắn
 	r.GET(preV1+"/fb_messages/{id}", middle.CheckUserAuth("FbMessage.Read", FbMessageHandler.FindOneById)) // Lấy tin nhắn theo ID
 	r.GET(preV1+"/fb_messages", middle.CheckUserAuth("FbMessage.Read", FbMessageHandler.FindAll))          // Lấy tất cả tin nhắn
+
+	// ====================================  FBPOST API =============================================
+	// Các API liên quan đến bài viết trên Facebook
+	FbPostHandler := handler.NewFbPostHandler(c, db)
+	r.POST(preV1+"/fb_posts", middle.CheckUserAuth("FbPost.Create", FbPostHandler.Create))        // Tạo bài viết
+	r.GET(preV1+"/fb_posts/{id}", middle.CheckUserAuth("FbPost.Read", FbPostHandler.FindOneById)) // Lấy bài viết theo ID
+	r.GET(preV1+"/fb_posts", middle.CheckUserAuth("FbPost.Read", FbPostHandler.FindAll))          // Lấy tất cả bài viết
 }

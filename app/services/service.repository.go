@@ -23,9 +23,7 @@ type RepositoryService struct {
 
 // GetDBName trả về tên cơ sở dữ liệu dựa trên tên collection
 func GetDBName(c *config.Configuration, collectionName string) string {
-
 	return c.MongoDB_DBNameAuth
-
 }
 
 // Khởi tạo Repository

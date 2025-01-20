@@ -83,7 +83,7 @@ func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential 
 }
 
 // Tìm một FbConversation theo ID
-func (h *FbConversationService) FindOneByConversationID(ctx *fasthttp.RequestCtx, id string) (FindResult interface{}, err error) {
+func (h *FbConversationService) FindOneById(ctx *fasthttp.RequestCtx, id string) (FindResult interface{}, err error) {
 	return h.crudFbConversation.FindOneById(ctx, utility.String2ObjectID(id), nil)
 }
 

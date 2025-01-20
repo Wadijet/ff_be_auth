@@ -25,10 +25,10 @@ type FbPage struct {
 // FbPageCreateInput dữ liệu đầu vào khi tạo page
 type FbPageCreateInput struct {
 	AccessToken string                 `json:"accessToken" bson:"accessToken" validate:"required"` // Mã truy cập của trang
-	PanCakeData map[string]interface{} `json:"panCakeData" bson:"panCakeData"`                     // Dữ liệu API
+	PanCakeData map[string]interface{} `json:"panCakeData" bson:"panCakeData" validate:"required"` // Dữ liệu API
 }
 
 type FbPageUpdateTokenInput struct {
-	PageId          string `json:"pageId" bson:"pageId" validate:"required"`                   // ID của trang
-	PageAccessToken string `json:"pageAccessToken" bson:"pageAccessToken" validate:"required"` // Mã truy cập của trang
+	PageId          string `json:"pageId" bson:"pageId" validate:"required" validate:"required"` // ID của trang
+	PageAccessToken string `json:"pageAccessToken" bson:"pageAccessToken" validate:"required"`   // Mã truy cập của trang
 }

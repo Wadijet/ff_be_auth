@@ -54,7 +54,7 @@ func (h *FbConversationHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 
 	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.FbConversationService.FindOneByConversationID(ctx, id))
+	response = utility.FinalResponse(h.FbConversationService.FindOneById(ctx, id))
 	if response != nil {
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	} else {
