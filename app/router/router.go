@@ -130,4 +130,12 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	r.POST(preV1+"/fb_posts", middle.CheckUserAuth("FbPost.Create", FbPostHandler.Create))        // Tạo bài viết
 	r.GET(preV1+"/fb_posts/{id}", middle.CheckUserAuth("FbPost.Read", FbPostHandler.FindOneById)) // Lấy bài viết theo ID
 	r.GET(preV1+"/fb_posts", middle.CheckUserAuth("FbPost.Read", FbPostHandler.FindAll))          // Lấy tất cả bài viết
+
+	// ====================================  PCORDER API ============================================
+	// Các API liên quan đến đơn hàng trên Pancake
+	PcOrderHandler := handler.NewPcOrderHandler(c, db)
+	r.POST(preV1+"/pc_orders", middle.CheckUserAuth("PcOrder.Create", PcOrderHandler.Create))        // Tạo đơn hàng
+	r.GET(preV1+"/pc_orders/{id}", middle.CheckUserAuth("PcOrder.Read", PcOrderHandler.FindOneById)) // Lấy đơn hàng theo ID
+	r.GET(preV1+"/pc_orders", middle.CheckUserAuth("PcOrder.Read", PcOrderHandler.FindAll))          // Lấy tất cả đơn hàng
+
 }

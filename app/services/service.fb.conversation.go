@@ -94,7 +94,7 @@ func (h *FbConversationService) FindAll(ctx *fasthttp.RequestCtx, page int64, li
 	opts := new(options.FindOptions)
 	opts.SetLimit(limit)
 	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", 1}})
+	opts.SetSort(bson.D{{"updatedAt", -1}})
 
 	return h.crudFbConversation.FindAllWithPaginate(ctx, nil, opts)
 }

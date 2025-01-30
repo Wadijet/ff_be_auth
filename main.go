@@ -39,6 +39,7 @@ func initColNames() {
 	global.MongoDB_ColNames.FbConvesations = "fb_conversations"
 	global.MongoDB_ColNames.FbMessages = "fb_messages"
 	global.MongoDB_ColNames.FbPosts = "fb_posts"
+	global.MongoDB_ColNames.PcOrders = "pc_orders"
 
 	logrus.Info("Initialized collection names") // Ghi log thông báo đã khởi tạo tên các collection
 }
@@ -85,11 +86,11 @@ func initDatabase_MongoDB() {
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.FbConvesations), models.FbConversation{})
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.FbMessages), models.FbMessage{})
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.FbPosts), models.FbPost{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcOrders), models.PcOrder{})
 
 	// gọi hàm khởi tạo các quyền mặc định
 	InitService := services.NewInitService(global.MongoDB_ServerConfig, global.MongoDB_Session)
 	InitService.InitPermission()
-	//InitService.InitRole()
 	InitService.CheckPermissionForAdministrator()
 
 }
@@ -134,5 +135,3 @@ func main() {
 	initGlobal()  // Khởi tạo các biến toàn cục
 	main_thread() // Chạy server
 }
-
-// test

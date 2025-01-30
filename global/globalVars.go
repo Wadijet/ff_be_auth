@@ -22,6 +22,7 @@ type MongoDB_Auth_CollectionName struct {
 	FbConvesations  string // Tên collection cho cuộc trò chuyện trên Facebook
 	FbMessages      string // Tên collection cho tin nhắn trên Facebook
 	FbPosts         string // Tên collection cho bài viết trên Facebook
+	PcOrders        string // Tên collection cho đơn hàng trên PanCake
 }
 
 // Các biến toàn cục
