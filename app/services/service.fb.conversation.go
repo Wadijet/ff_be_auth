@@ -6,6 +6,8 @@ import (
 	"atk-go-server/config"
 	"atk-go-server/global"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,6 +37,16 @@ func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential 
 	// Lấy thông tin ConversationID từ ApiData đưa vào biến
 	conversationId := credential.PanCakeData["id"].(string)
 	customerId := credential.PanCakeData["customer_id"].(string)
+	pancakeUpdatedAtStr := credential.PanCakeData["updated_at"].(string)
+	// Chuyển đổi thời gian từ string sang time.Time
+	parsedTime, err := time.Parse("2006-01-02T15:04:05", pancakeUpdatedAtStr)
+	if err != nil {
+		fmt.Println("Lỗi phân tích thời gian:", err)
+		return
+	}
+
+	// Chuyển sang kiểu float64 (Unix timestamp dạng float64)
+	pancakeUpdatedAt := int64(parsedTime.Unix())
 
 	// Kiểm tra FbConversation đã tồn tại chưa
 	filter := bson.M{"conversationId": conversationId}
@@ -47,7 +59,7 @@ func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential 
 		newFbConversation.PanCakeData = credential.PanCakeData
 		newFbConversation.ConversationId = conversationId
 		newFbConversation.CustomerId = customerId
-
+		newFbConversation.PanCakeUpdatedAt = pancakeUpdatedAt
 		// Thêm FbConversation vào cơ sở dữ liệu
 		return h.crudFbConversation.InsertOne(ctx, newFbConversation)
 
@@ -70,6 +82,7 @@ func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential 
 		oldFbConversation.PageUsername = credential.PageUsername
 		oldFbConversation.ConversationId = conversationId
 		oldFbConversation.CustomerId = customerId
+		oldFbConversation.PanCakeUpdatedAt = pancakeUpdatedAt
 
 		CustomBson := &utility.CustomBson{}
 		change, err := CustomBson.Set(oldFbConversation)
@@ -88,7 +101,7 @@ func (h *FbConversationService) FindOneById(ctx *fasthttp.RequestCtx, id string)
 }
 
 // Tìm tất cả các FbConversation với phân trang
-func (h *FbConversationService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64) (FindResult interface{}, err error) {
+func (h *FbConversationService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64, filter bson.M) (FindResult interface{}, err error) {
 
 	// Cài đặt tùy chọn tìm kiếm
 	opts := new(options.FindOptions)
@@ -97,4 +110,16 @@ func (h *FbConversationService) FindAll(ctx *fasthttp.RequestCtx, page int64, li
 	opts.SetSort(bson.D{{"updatedAt", -1}})
 
 	return h.crudFbConversation.FindAllWithPaginate(ctx, nil, opts)
+}
+
+// Tìm tất cả các FbConversation với phân trang sắp xếp theo thời gian cập nhật của dữ liệu API
+func (h *FbConversationService) FindAllSortByApiUpdate(ctx *fasthttp.RequestCtx, page int64, limit int64, filter bson.M) (FindResult interface{}, err error) {
+
+	// Cài đặt tùy chọn tìm kiếm
+	opts := new(options.FindOptions)
+	opts.SetLimit(limit)
+	opts.SetSkip(page * limit)
+	opts.SetSort(bson.D{{"panCakeUpdatedAt", -1}})
+
+	return h.crudFbConversation.FindAllWithPaginate(ctx, filter, opts)
 }

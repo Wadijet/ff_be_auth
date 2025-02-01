@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/valyala/fasthttp"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -81,7 +82,48 @@ func (h *FbConversationHandler) FindAll(ctx *fasthttp.RequestCtx) {
 		page = 0
 	}
 
-	response = utility.FinalResponse(h.FbConversationService.FindAll(ctx, page, limit))
+	filter := bson.M{}
+
+	pageId := string(ctx.FormValue("pageId"))
+	if pageId != "" {
+		filter = bson.M{"pageId": pageId}
+	}
+
+	response = utility.FinalResponse(h.FbConversationService.FindAll(ctx, page, limit, filter))
+	if response != nil {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	}
+
+	utility.JSON(ctx, response)
+}
+
+// Tìm tất cả các FbConversation với phân trang sắp xếp theo thời gian cập nhật của dữ liệu API
+func (h *FbConversationHandler) FindAllSortByApiUpdate(ctx *fasthttp.RequestCtx) {
+
+	var response map[string]interface{} = nil
+
+	buf := string(ctx.FormValue("limit"))
+	limit, err := strconv.ParseInt(buf, 10, 64)
+	if err != nil {
+		limit = 10
+	}
+
+	buf = string(ctx.FormValue("page"))
+	page, err := strconv.ParseInt(buf, 10, 64)
+	if err != nil {
+		page = 0
+	}
+
+	filter := bson.M{}
+
+	pageId := string(ctx.FormValue("pageId"))
+	if pageId != "" {
+		filter = bson.M{"pageId": pageId}
+	}
+
+	response = utility.FinalResponse(h.FbConversationService.FindAllSortByApiUpdate(ctx, page, limit, filter))
 	if response != nil {
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	} else {

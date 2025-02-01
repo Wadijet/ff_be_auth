@@ -113,9 +113,10 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	// ====================================  FBCONVERSATION API =====================================
 	// Các API liên quan đến cuộc trò chuyện trên Facebook
 	FbConversationHandler := handler.NewFbConversationHandler(c, db)
-	r.POST(preV1+"/fb_conversations", middle.CheckUserAuth("FbConversation.Create", FbConversationHandler.Create))        // Tạo cuộc trò chuyện
-	r.GET(preV1+"/fb_conversations/{id}", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindOneById)) // Lấy cuộc trò chuyện theo ID
-	r.GET(preV1+"/fb_conversations", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindAll))          // Lấy tất cả cuộc trò chuyện
+	r.POST(preV1+"/fb_conversations", middle.CheckUserAuth("FbConversation.Create", FbConversationHandler.Create))                     // Tạo cuộc trò chuyện
+	r.GET(preV1+"/fb_conversations/{id}", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindOneById))              // Lấy cuộc trò chuyện theo ID
+	r.GET(preV1+"/fb_conversations", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindAll))                       // Lấy tất cả cuộc trò chuyện
+	r.GET(preV1+"/fb_conversations/newest", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindAllSortByApiUpdate)) // Lấy tất cả cuộc trò chuyện
 
 	// ====================================  FBMESSAGE API ==========================================
 	// Các API liên quan đến tin nhắn trên Facebook
