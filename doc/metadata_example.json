@@ -7,7 +7,7 @@
     },
     "databases": [
     {
-        "name": "dwh_mongo",
+        "name": "ff_auth",
         "type": "MongoDB",
         "connectionDetails": {
         "host": "localhost",
@@ -20,7 +20,7 @@
         }
     },
     {
-        "name": "analytics_db",
+        "name": "log_db",
         "type": "MongoDB",
         "connectionDetails": {
         "host": "localhost",
