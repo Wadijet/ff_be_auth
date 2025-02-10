@@ -28,7 +28,10 @@ func GetInstance(c *config.Configuration) (*mongo.Client, error) {
 	}
 
 	clientOptions := options.Client().ApplyURI(c.MongoDB_ConnectionURL).
-		SetConnectTimeout(10 * time.Second) // Set a connection timeout
+		SetMaxPoolSize(50).                 // Giới hạn tối đa 50 connections
+		SetMinPoolSize(10).                 // Giữ tối thiểu 10 connections trong pool
+		SetConnectTimeout(5 * time.Second). // Timeout khi kết nối
+		SetSocketTimeout(10 * time.Second)  // Timeout khi gửi nhận dữ liệu
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

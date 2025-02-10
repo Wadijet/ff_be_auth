@@ -1,45 +1,34 @@
 {   
-    "metainfo" : {
+    "fileinfo" : {
         "name" : "metadata",
-        "description" : "metadata for the data warehouse",
+        "description" : "This file contains metadata of the project",
         "version" : "1.0",
         "author" : "Dao Manh Dung",
-        "date" : "05.02.2025"
+        "updateAt" : "05.02.2025"
     },
-    "sources" : [
+    "databases": [
         {
-            "name" : "source1",
-            "type" : "csv",
-            "path" : "source1.csv"
+            "name": "ff_auth",
+            "type": "MongoDB",
+            "connectionUrl": "mongodb://localhost:27017/ff_auth"
         },
         {
-            "name" : "source2",
-            "type" : "csv",
-            "path" : "source2.csv"
+            "name": "ff_data",
+            "type": "MongoDB",
+            "connectionUrl": "mongodb://localhost:27017/ff_data"
         }
     ],
-    "targets" : [
+    "collections": [
         {
-            "name" : "target1",
-            "type" : "csv",
-            "path" : "target1.csv"
-        },
-        {
-            "name" : "target2",
-            "type" : "csv",
-            "path" : "target2.csv"
-        }
-    ],
-    "transformations" : [
-        {
-            "name" : "transformation1",
-            "type" : "sql",
-            "path" : "transformation1.sql"
-        },
-        {
-            "name" : "transformation2",
-            "type" : "sql",
-            "path" : "transformation2.sql"
+            "database": ["ff_data"],
+            "name": "fb_conversations",
+            "description": "Collection contains Facebook conversations",
+            "fields": [
+                {"name": "conversation_id", "type": "string"},
+                {"name": "participants", "type": "array"},
+                {"name": "messages", "type": "array"},
+                {"name": "created_at", "type": "datetime"}
+            ]
         }
     ]
 
