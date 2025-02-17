@@ -16,14 +16,17 @@ import (
 	"atk-go-server/config"
 	"atk-go-server/database"
 	"atk-go-server/global"
+	"atk-go-server/metadata"
 )
 
 // Hàm khởi tạo các biến toàn cục
 func initGlobal() {
+
 	initColNames()         // Khởi tạo tên các collection trong database
 	initValidator()        // Khởi tạo validator
 	initConfig()           // Khởi tạo cấu hình server
 	initDatabase_MongoDB() // Khởi tạo kết nối database
+
 }
 
 // Hàm khởi tạo tên các collection trong database
@@ -95,6 +98,23 @@ func initDatabase_MongoDB() {
 
 }
 
+func initMetadata() {
+
+	readFileMetadata()       // Khởi tạo metadata
+	database.InitDatabases() // Khởi tạo các cơ sở dữ liệu dựa trên metadata
+}
+
+// Hàm khởi tạo metadata
+func readFileMetadata() {
+	metadataFilePath := global.MongoDB_ServerConfig.Metadata_Path
+	result, err := metadata.ReadMetadata(metadataFilePath)
+	if err != nil {
+		logrus.Fatalf("Failed to read metadata: %v", err)
+	}
+	global.Metadata = result
+	logrus.Info("Initialized metadata")
+}
+
 // Hàm khởi tạo kết nối database
 func initDatabase_MySql() {
 	var err error
@@ -115,6 +135,7 @@ func panicHandler(ctx *fasthttp.RequestCtx, data interface{}) {
 
 // Hàm chính để chạy server
 func main_thread() {
+
 	// Khởi tạo router
 	r := router.New()
 	api.InitRounters(r, global.MongoDB_ServerConfig, global.MongoDB_Session) // Khởi tạo các route cho API
@@ -132,6 +153,7 @@ func main_thread() {
 
 // Hàm main
 func main() {
-	initGlobal()  // Khởi tạo các biến toàn cục
-	main_thread() // Chạy server
+	initGlobal()   // Khởi tạo các biến toàn cục
+	initMetadata() // Khởi tạo metadata
+	main_thread()  // Chạy server
 }
