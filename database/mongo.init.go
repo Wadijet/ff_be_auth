@@ -48,6 +48,7 @@ func EnsureDatabaseAndCollections(client *mongo.Client) error {
 		log.Printf("Database %s does not exist, will create automatically by creating collections", dbName)
 	}
 
+	// Tạo database nếu chưa tồn tại
 	db := client.Database(dbName)
 	collections := []string{}
 	v := reflect.ValueOf(global.MongoDB_ColNames)
@@ -55,6 +56,7 @@ func EnsureDatabaseAndCollections(client *mongo.Client) error {
 		collections = append(collections, v.Field(i).String())
 	}
 
+	// Kiểm tra và tạo collections
 	collList, err := db.ListCollectionNames(ctx, bson.M{})
 	if err != nil {
 		return fmt.Errorf("failed to list collections: %w", err)

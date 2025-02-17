@@ -15,14 +15,14 @@ versionInfo:
 # Danh sách các database
 databases:
   # Tên cơ sở dữ liệu (viết đúng với tên thực tế)
-  - name: "ff_auth"
+  - name: "sso_auth"
     # Loại cơ sở dữ liệu, ví dụ: MongoDB, MySQL, PostgreSQL...
-    type: "string"
+    type: "MongoDB"
     # Connection URI, là biến môi trường lấy từ file .env
     connectionURI: "${MONGODB_URI_AUTH}"
   # Tên cơ sở dữ liệu (viết đúng với tên thực tế)
   - name: "ff_data"
     # Loại cơ sở dữ liệu, ví dụ: MongoDB, MySQL, PostgreSQL...
-    type: "string"
+    type: "MongoDB"
     # Connection URI, là biến môi trường lấy từ file .env
     connectionURI: "${MONGODB_URI_DATA}"

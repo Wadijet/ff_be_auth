@@ -47,33 +47,6 @@ func ConnectToMongoDB(uri string) (*mongo.Client, error) {
 	return client, nil
 }
 
-// EnsureDatabaseExists kiểm tra xem database đã tồn tại chưa, nếu chưa thì tạo mới
-func EnsureDatabaseExists(client *mongo.Client, dbName string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	databases, err := client.ListDatabaseNames(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to list databases: %w", err)
-	}
-
-	for _, db := range databases {
-		if db == dbName {
-			log.Printf("Database %s already exists", dbName)
-			return nil
-		}
-	}
-
-	// Tạo mới database
-	err = client.Database(dbName).CreateCollection(ctx, "dummyCollection")
-	if err != nil {
-		return fmt.Errorf("failed to create database %s: %w", dbName, err)
-	}
-
-	log.Printf("Database %s created successfully", dbName)
-	return nil
-}
-
 // CloseInstance closes the MongoDB client connection.
 func DisconnectFromMongoDB(client *mongo.Client) error {
 	if err := client.Disconnect(context.TODO()); err != nil {
