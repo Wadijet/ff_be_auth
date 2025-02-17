@@ -20,6 +20,9 @@ type Configuration struct {
 	MongoDB_DBNameAuth    string `env:"MONGODB_DBNAME_AUTH,required"`    // Tên cơ sở dữ liệu xác thực
 	MySQLConnectionURL    string `env:"MYSQL_CONNECTION_URL,required"`   // URL kết nối MySQL
 
+	Metadata_Path    string `env:"METADATA_PATH,required"`    // Đường dẫn đến file metadata
+	MongoDb_Uri_Auth string `env:"MONGODB_URI_AUTH,required"` // URI kết nối MongoDB
+	MongoDb_Uri_Data string `env:"MONGODB_URI_DATA,required"` // URI kết nối MongoDB
 }
 
 // NewConfig sẽ đọc dữ liệu cấu hình từ file .env được cung cấp

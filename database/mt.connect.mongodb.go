@@ -1,34 +1,24 @@
 package database
 
 import (
-	"atk-go-server/config"
 	"context"
 	"fmt"
 	"log"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// GetInstance initializes and returns a *mongo.Client object.
-// This function uses the database connection URL from the provided configuration.
-//
-// Parameters:
-// - c: Pointer to the config.Configuration object containing configuration information.
-//
-// Returns:
-// - *mongo.Client: The connected MongoDB client object.
-//
-// Notes:
-// - This function will log and return an error if there is an issue during connection or connection check.
-func GetInstance(c *config.Configuration) (*mongo.Client, error) {
-	if c.MongoDB_ConnectionURL == "" {
-		return nil, fmt.Errorf("database connection URL is empty")
+// connectToMongoDB kết nối đến cơ sở dữ liệu MongoDB và trả về client
+func ConnectToMongoDB(uri string) (*mongo.Client, error) {
+
+	if uri == "" {
+		return nil, fmt.Errorf("URI kết nối cơ sở dữ liệu MongoDB trống")
 	}
 
-	// Cài đặt các options cho client
-	clientOptions := options.Client().ApplyURI(c.MongoDB_ConnectionURL).
+	clientOptions := options.Client().ApplyURI(uri).
 		SetMaxPoolSize(50).                 // Giới hạn tối đa 50 connections
 		SetMinPoolSize(10).                 // Giữ tối thiểu 10 connections trong pool
 		SetConnectTimeout(5 * time.Second). // Timeout khi kết nối
@@ -57,8 +47,35 @@ func GetInstance(c *config.Configuration) (*mongo.Client, error) {
 	return client, nil
 }
 
+// EnsureDatabaseExists kiểm tra xem database đã tồn tại chưa, nếu chưa thì tạo mới
+func EnsureDatabaseExists(client *mongo.Client, dbName string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	databases, err := client.ListDatabaseNames(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to list databases: %w", err)
+	}
+
+	for _, db := range databases {
+		if db == dbName {
+			log.Printf("Database %s already exists", dbName)
+			return nil
+		}
+	}
+
+	// Tạo mới database
+	err = client.Database(dbName).CreateCollection(ctx, "dummyCollection")
+	if err != nil {
+		return fmt.Errorf("failed to create database %s: %w", dbName, err)
+	}
+
+	log.Printf("Database %s created successfully", dbName)
+	return nil
+}
+
 // CloseInstance closes the MongoDB client connection.
-func CloseInstance(client *mongo.Client) error {
+func DisconnectFromMongoDB(client *mongo.Client) error {
 	if err := client.Disconnect(context.TODO()); err != nil {
 		log.Printf("Failed to disconnect MongoDB client: %v", err)
 		return err

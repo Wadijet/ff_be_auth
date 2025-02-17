@@ -1,0 +1,28 @@
+# Phiên bản của metadata schema, giúp theo dõi thay đổi và đảm bảo tính tương thích ngược
+schemaVersion: "1.0"
+
+# Thông tin về phiên bản file metadata
+versionInfo:
+  # Mô tả chung về metadata schema
+  description: "string"
+  # Phiên bản hiện tại của schema
+  version: "1.0"
+  # Ngày cập nhật cuối cùng của schema
+  lastUpdated: "dd/mm/yyyy"
+  # Tác giả hoặc người chịu trách nhiệm về schema này
+  author: "string"
+
+# Danh sách các database
+databases:
+  # Tên cơ sở dữ liệu (viết đúng với tên thực tế)
+  - name: "ff_auth"
+    # Loại cơ sở dữ liệu, ví dụ: MongoDB, MySQL, PostgreSQL...
+    type: "string"
+    # Connection URI, là biến môi trường lấy từ file .env
+    connectionURI: "${MONGODB_URI_AUTH}"
+  # Tên cơ sở dữ liệu (viết đúng với tên thực tế)
+  - name: "ff_data"
+    # Loại cơ sở dữ liệu, ví dụ: MongoDB, MySQL, PostgreSQL...
+    type: "string"
+    # Connection URI, là biến môi trường lấy từ file .env
+    connectionURI: "${MONGODB_URI_DATA}"
