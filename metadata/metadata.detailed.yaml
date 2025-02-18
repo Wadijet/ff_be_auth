@@ -47,6 +47,7 @@ collections:
         bson: "_id, omitempty"
         # Mô tả về field
         description: ""
+
     # Danh sách các index theo cấu trúc của MongoDB
     indexes:
       # Tên index theo quy tắc: collectionName_indexType
