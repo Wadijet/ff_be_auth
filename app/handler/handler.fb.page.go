@@ -27,25 +27,11 @@ func NewFbPageHandler(c *config.Configuration, db *mongo.Client) *FbPageHandler 
 
 // Tạo mới một FbPage
 func (h *FbPageHandler) Create(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
-	inputStruct := new(models.FbPageCreateInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.FbPageHandlerService.ReviceData(ctx, inputStruct))
-			ctx.SetStatusCode(fasthttp.StatusOK)
-		} else {
-			ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		}
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-	}
-
-	utility.JSON(ctx, response)
+	// Sử dụng GenericHandler để xử lý yêu cầu tạo mới FbPage
+	utility.GenericHandler[models.FbPageCreateInput](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		inputStruct := input.(*models.FbPageCreateInput)
+		return h.FbPageHandlerService.ReviceData(ctx, inputStruct)
+	})
 }
 
 // Tìm một FbPage theo ID

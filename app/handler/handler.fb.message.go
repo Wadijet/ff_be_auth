@@ -25,27 +25,12 @@ func NewFbMessageHandler(c *config.Configuration, db *mongo.Client) *FbMessageHa
 
 // CRUD functions ==========================================================================
 
-// Tạo mới một FbMessage
+// Create xử lý tạo mới FbMessage
 func (h *FbMessageHandler) Create(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
-	inputStruct := new(models.FbMessageCreateInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.FbMessageService.ReviceData(ctx, inputStruct))
-			ctx.SetStatusCode(fasthttp.StatusOK)
-		} else {
-			ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		}
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-	}
-
-	utility.JSON(ctx, response)
+	utility.GenericHandler[models.FbMessageCreateInput](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		inputStruct := input.(*models.FbMessageCreateInput)
+		return h.FbMessageService.ReviceData(ctx, inputStruct)
+	})
 }
 
 // Tìm một FbMessage theo ID

@@ -24,26 +24,12 @@ func NewRolePermissionHandler(c *config.Configuration, db *mongo.Client) *RolePe
 
 // CRUD functions ==========================================================================
 
-// Tạo mới một RolePermission
+// Create xử lý tạo mới RolePermission
 func (h *RolePermissionHandler) Create(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
-	inputStruct := new(models.RolePermissionCreateInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.RolePermissionService.Create(ctx, inputStruct))
-			ctx.SetStatusCode(fasthttp.StatusCreated) // 201 Created
-		} else {
-			ctx.SetStatusCode(fasthttp.StatusBadRequest) // 400 Bad Request
-		}
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest) // 400 Bad Request
-	}
-	utility.JSON(ctx, response)
+	utility.GenericHandler[models.RolePermissionCreateInput](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		inputStruct := input.(*models.RolePermissionCreateInput)
+		return h.RolePermissionService.Create(ctx, inputStruct)
+	})
 }
 
 // Xóa một RolePermission

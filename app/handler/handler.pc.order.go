@@ -25,43 +25,25 @@ func NewPcOrderHandler(c *config.Configuration, db *mongo.Client) *PcOrderHandle
 
 // CRUD functions ==========================================================================
 
-// Tạo mới một PcOrder
+// Create xử lý tạo mới PcOrder
 func (h *PcOrderHandler) Create(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
-	inputStruct := new(models.PcOrderCreateInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.PcOrderService.ReviceData(ctx, inputStruct))
-			ctx.SetStatusCode(fasthttp.StatusOK)
-		} else {
-			ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		}
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-	}
-
-	utility.JSON(ctx, response)
+	utility.GenericHandler[models.PcOrderCreateInput](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		inputStruct := input.(*models.PcOrderCreateInput)
+		return h.PcOrderService.ReviceData(ctx, inputStruct)
+	})
 }
 
-// Tìm một PcOrder theo ID
+// FindOneById tìm PcOrder theo ID
 func (h *PcOrderHandler) FindOneById(ctx *fasthttp.RequestCtx) {
-
-	var response map[string]interface{} = nil
-
-	// Lấy ID từ yêu cầu
 	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.PcOrderService.FindOneById(ctx, id))
-	if response != nil {
-		ctx.SetStatusCode(fasthttp.StatusOK)
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-	}
+	result, err := h.PcOrderService.FindOneById(ctx, id)
+	response := utility.FinalResponse(result, err)
 
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
 	utility.JSON(ctx, response)
 }
 

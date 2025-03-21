@@ -24,26 +24,12 @@ func NewUserRoleHandler(c *config.Configuration, db *mongo.Client) *UserRoleHand
 
 // CRUD functions ==========================================================================
 
-// Tạo mới một UserRole
+// Create xử lý tạo mới UserRole
 func (h *UserRoleHandler) Create(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
-	inputStruct := new(models.UserRoleCreateInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.UserRoleService.Create(ctx, inputStruct))
-			ctx.SetStatusCode(fasthttp.StatusCreated) // Set status code to 201 Created
-		} else {
-			ctx.SetStatusCode(fasthttp.StatusBadRequest) // Set status code to 400 Bad Request
-		}
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest) // Set status code to 400 Bad Request
-	}
-	utility.JSON(ctx, response)
+	utility.GenericHandler[models.UserRoleCreateInput](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		inputStruct := input.(*models.UserRoleCreateInput)
+		return h.UserRoleService.Create(ctx, inputStruct)
+	})
 }
 
 // Xóa một UserRole

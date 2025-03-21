@@ -42,25 +42,10 @@ type SetRoleStruct struct {
 
 // SetRole xử lý yêu cầu thiết lập vai trò cho người dùng
 func (h *AdminHandler) SetRole(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
-	inputStruct := new(SetRoleStruct)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.AdminService.SetRole(ctx, inputStruct.Email, inputStruct.RoleID))
-			ctx.SetStatusCode(http.StatusOK)
-		} else {
-			ctx.SetStatusCode(http.StatusBadRequest)
-		}
-	} else {
-		ctx.SetStatusCode(http.StatusBadRequest)
-	}
-
-	utility.JSON(ctx, response)
+	utility.GenericHandler[SetRoleStruct](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		inputStruct := input.(*SetRoleStruct)
+		return h.AdminService.SetRole(ctx, inputStruct.Email, inputStruct.RoleID)
+	})
 }
 
 // =================================================================================
@@ -73,25 +58,10 @@ type BlockUserInput struct {
 
 // BlockUser xử lý yêu cầu khóa người dùng
 func (h *AdminHandler) BlockUser(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
-	inputStruct := new(BlockUserInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.AdminService.BlockUser(ctx, inputStruct.Email, true, inputStruct.Note))
-			ctx.SetStatusCode(http.StatusOK)
-		} else {
-			ctx.SetStatusCode(http.StatusBadRequest)
-		}
-	} else {
-		ctx.SetStatusCode(http.StatusBadRequest)
-	}
-
-	utility.JSON(ctx, response)
+	utility.GenericHandler[BlockUserInput](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		inputStruct := input.(*BlockUserInput)
+		return h.AdminService.BlockUser(ctx, inputStruct.Email, true, inputStruct.Note)
+	})
 }
 
 // UnBlockUser xử lý yêu cầu mở khóa người dùng
