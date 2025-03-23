@@ -1,125 +1,151 @@
 package services
 
 import (
-	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/utility"
-	"atk-go-server/config"
-	"atk-go-server/global"
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/valyala/fasthttp"
+	models "atk-go-server/app/models/mongodb"
+	"atk-go-server/config"
+	"atk-go-server/global"
+
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// AccessTokenService là cấu trúc chứa các phương thức liên quan đến người dùng
+// FbConversationService là cấu trúc chứa các phương thức liên quan đến cuộc trò chuyện Facebook
 type FbConversationService struct {
-	crudFbConversation RepositoryService
+	*BaseServiceImpl[models.FbConversation]
 }
 
-// Khởi tạo AccessTokenService với cấu hình và kết nối cơ sở dữ liệu
+// NewFbConversationService tạo mới FbConversationService
 func NewFbConversationService(c *config.Configuration, db *mongo.Client) *FbConversationService {
-	newService := new(FbConversationService)
-	newService.crudFbConversation = *NewRepository(c, db, global.MongoDB_ColNames.FbConvesations)
-	return newService
+	fbConversationCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.FbConvesations)).Collection(global.MongoDB_ColNames.FbConvesations)
+	return &FbConversationService{
+		BaseServiceImpl: NewBaseService[models.FbConversation](fbConversationCollection),
+	}
 }
 
-// Nhận data từ Facebook và lưu vào cơ sở dữ liệu
-func (h *FbConversationService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.FbConversationCreateInput) (CreateResult interface{}, err error) {
+// IsConversationIdExist kiểm tra ID cuộc trò chuyện có tồn tại hay không
+func (s *FbConversationService) IsConversationIdExist(ctx context.Context, conversationId string) (bool, error) {
+	filter := bson.M{"conversationId": conversationId}
+	var conversation models.FbConversation
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&conversation)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
 
-	if credential.PanCakeData == nil {
+// ReviceData nhận data từ Facebook và lưu vào cơ sở dữ liệu
+func (s *FbConversationService) ReviceData(ctx context.Context, input *models.FbConversationCreateInput) (*models.FbConversation, error) {
+	if input.PanCakeData == nil {
 		return nil, errors.New("ApiData is required")
 	}
 
 	// Lấy thông tin ConversationID từ ApiData đưa vào biến
-	conversationId := credential.PanCakeData["id"].(string)
-	customerId := credential.PanCakeData["customer_id"].(string)
-	pancakeUpdatedAtStr := credential.PanCakeData["updated_at"].(string)
+	conversationId := input.PanCakeData["id"].(string)
+	customerId := input.PanCakeData["customer_id"].(string)
+	pancakeUpdatedAtStr := input.PanCakeData["updated_at"].(string)
+
 	// Chuyển đổi thời gian từ string sang time.Time
 	parsedTime, err := time.Parse("2006-01-02T15:04:05", pancakeUpdatedAtStr)
 	if err != nil {
-		fmt.Println("Lỗi phân tích thời gian:", err)
-		return
+		return nil, fmt.Errorf("lỗi phân tích thời gian: %v", err)
 	}
 
 	// Chuyển sang kiểu float64 (Unix timestamp dạng float64)
 	pancakeUpdatedAt := int64(parsedTime.Unix())
 
 	// Kiểm tra FbConversation đã tồn tại chưa
-	filter := bson.M{"conversationId": conversationId}
-	checkResult, _ := h.crudFbConversation.FindOne(ctx, filter, nil)
-	if checkResult == nil { // Nếu FbConversation chưa tồn tại thì tạo mới
-		// Tạo một FbConversation mới
-		newFbConversation := models.FbConversation{}
-		newFbConversation.PageId = credential.PageId
-		newFbConversation.PageUsername = credential.PageUsername
-		newFbConversation.PanCakeData = credential.PanCakeData
-		newFbConversation.ConversationId = conversationId
-		newFbConversation.CustomerId = customerId
-		newFbConversation.PanCakeUpdatedAt = pancakeUpdatedAt
-		// Thêm FbConversation vào cơ sở dữ liệu
-		return h.crudFbConversation.InsertOne(ctx, newFbConversation)
+	exists, err := s.IsConversationIdExist(ctx, conversationId)
+	if err != nil {
+		return nil, err
+	}
 
-	} else { // Nếu FbConversation đã tồn tại thì cập nhật thông tin mới
-		// chuyển đổi checkResult từ interface{} sang models.FbConversation
-		var oldFbConversation models.FbConversation
-		bsonBytes, err := bson.Marshal(checkResult)
+	if !exists {
+		// Tạo một FbConversation mới
+		conversation := &models.FbConversation{
+			ID:               primitive.NewObjectID(),
+			PageId:           input.PageId,
+			PageUsername:     input.PageUsername,
+			PanCakeData:      input.PanCakeData,
+			ConversationId:   conversationId,
+			CustomerId:       customerId,
+			PanCakeUpdatedAt: pancakeUpdatedAt,
+			CreatedAt:        time.Now().Unix(),
+			UpdatedAt:        time.Now().Unix(),
+		}
+
+		// Lưu FbConversation
+		createdConversation, err := s.BaseServiceImpl.Create(ctx, *conversation)
 		if err != nil {
 			return nil, err
 		}
 
-		err = bson.Unmarshal(bsonBytes, &oldFbConversation)
+		return &createdConversation, nil
+	} else {
+		// Lấy FbConversation hiện tại
+		conversation, err := s.BaseServiceImpl.FindOne(ctx, conversationId)
 		if err != nil {
 			return nil, err
 		}
 
 		// Cập nhật thông tin mới
-		oldFbConversation.PanCakeData = credential.PanCakeData
-		oldFbConversation.PageId = credential.PageId
-		oldFbConversation.PageUsername = credential.PageUsername
-		oldFbConversation.ConversationId = conversationId
-		oldFbConversation.CustomerId = customerId
-		oldFbConversation.PanCakeUpdatedAt = pancakeUpdatedAt
+		conversation.PanCakeData = input.PanCakeData
+		conversation.PageId = input.PageId
+		conversation.PageUsername = input.PageUsername
+		conversation.ConversationId = conversationId
+		conversation.CustomerId = customerId
+		conversation.PanCakeUpdatedAt = pancakeUpdatedAt
+		conversation.UpdatedAt = time.Now().Unix()
 
-		CustomBson := &utility.CustomBson{}
-		change, err := CustomBson.Set(oldFbConversation)
+		// Cập nhật FbConversation
+		updatedConversation, err := s.BaseServiceImpl.Update(ctx, conversation.ID.Hex(), conversation)
 		if err != nil {
 			return nil, err
 		}
 
-		// Cập nhật FbConversation vào cơ sở dữ liệu
-		return h.crudFbConversation.UpdateOneById(ctx, oldFbConversation.ID, change)
+		return &updatedConversation, nil
 	}
 }
 
-// Tìm một FbConversation theo ID
-func (h *FbConversationService) FindOneById(ctx *fasthttp.RequestCtx, id string) (FindResult interface{}, err error) {
-	return h.crudFbConversation.FindOneById(ctx, utility.String2ObjectID(id), nil)
+// FindOneById tìm một FbConversation theo ID
+func (s *FbConversationService) FindOneById(ctx context.Context, id string) (models.FbConversation, error) {
+	return s.BaseServiceImpl.FindOne(ctx, id)
 }
 
-// Tìm tất cả các FbConversation với phân trang
-func (h *FbConversationService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64, filter bson.M) (FindResult interface{}, err error) {
-
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", -1}})
-
-	return h.crudFbConversation.FindAllWithPaginate(ctx, nil, opts)
+// FindAll tìm tất cả các FbConversation với phân trang
+func (s *FbConversationService) FindAll(ctx context.Context, page int64, limit int64, filter bson.M) ([]models.FbConversation, error) {
+	opts := options.Find().
+		SetSkip((page - 1) * limit).
+		SetLimit(limit)
+	return s.BaseServiceImpl.FindAll(ctx, filter, opts)
 }
 
-// Tìm tất cả các FbConversation với phân trang sắp xếp theo thời gian cập nhật của dữ liệu API
-func (h *FbConversationService) FindAllSortByApiUpdate(ctx *fasthttp.RequestCtx, page int64, limit int64, filter bson.M) (FindResult interface{}, err error) {
+// FindAllSortByApiUpdate tìm tất cả các FbConversation với phân trang sắp xếp theo thời gian cập nhật của dữ liệu API
+func (s *FbConversationService) FindAllSortByApiUpdate(ctx context.Context, page int64, limit int64, filter bson.M) ([]models.FbConversation, error) {
+	opts := options.Find().
+		SetSkip((page - 1) * limit).
+		SetLimit(limit).
+		SetSort(bson.D{{"panCakeUpdatedAt", -1}})
 
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"panCakeUpdatedAt", -1}})
+	cursor, err := s.BaseServiceImpl.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
 
-	return h.crudFbConversation.FindAllWithPaginate(ctx, filter, opts)
+	var results []models.FbConversation
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }

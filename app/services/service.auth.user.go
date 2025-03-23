@@ -1,403 +1,239 @@
 package services
 
 import (
-	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/utility"
-	"atk-go-server/config"
-	"atk-go-server/global"
+	"context"
 	"errors"
-	"math/rand"
-	"strconv"
 	"time"
 
+	models "atk-go-server/app/models/mongodb"
+	"atk-go-server/config"
+	"atk-go-server/global"
+
 	"github.com/google/uuid"
-	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // UserService là cấu trúc chứa các phương thức liên quan đến người dùng
 type UserService struct {
-	crudUser     RepositoryService
-	crudUserRole RepositoryService
+	*BaseServiceImpl[models.User]
+	userRoleService *BaseServiceImpl[models.UserRole]
 }
 
-// Khởi tạo UserService với cấu hình và kết nối cơ sở dữ liệu
+// NewUserService tạo mới UserService
 func NewUserService(c *config.Configuration, db *mongo.Client) *UserService {
-	newService := new(UserService)
-	newService.crudUser = *NewRepository(c, db, global.MongoDB_ColNames.Users)
-	newService.crudUserRole = *NewRepository(c, db, global.MongoDB_ColNames.UserRoles)
-	return newService
+	userCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
+	userRoleCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.UserRoles)).Collection(global.MongoDB_ColNames.UserRoles)
+
+	return &UserService{
+		BaseServiceImpl: NewBaseService[models.User](userCollection),
+		userRoleService: NewBaseService[models.UserRole](userRoleCollection),
+	}
 }
 
-// Kiểm tra email có tồn tại hay không
-func (h *UserService) IsEmailExist(ctx *fasthttp.RequestCtx, email string) bool {
+// IsEmailExist kiểm tra email có tồn tại hay không
+func (s *UserService) IsEmailExist(ctx context.Context, email string) (bool, error) {
 	filter := bson.M{"email": email}
-	result, _ := h.crudUser.FindOne(ctx, filter, nil)
-	if result == nil {
-		return false
-	} else {
-		return true
-	}
-}
-
-// Tạo mới một người dùng
-func (h *UserService) Create(ctx *fasthttp.RequestCtx, credential *models.UserCreateInput) (CreateResult interface{}, err error) {
-	// Kiểm tra email của người dùng đã tồn tại chưa bằng cách gọi hàm IsEmailExist
-	if h.IsEmailExist(ctx, credential.Email) {
-		ctx.SetStatusCode(fasthttp.StatusConflict)
-		return nil, errors.New("Email already exists")
-	}
-
-	// Tạo mới người dùng
-	newUser := new(models.User)
-	newUser.Name = credential.Name
-	newUser.Email = credential.Email
-
-	newUser.Salt = uuid.New().String()
-	passwordBytes := []byte(credential.Password + newUser.Salt)
-
-	hash, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-	newUser.Password = string(hash[:])
-
-	// Thêm người dùng vào cơ sở dữ liệu
-	result, err := h.crudUser.InsertOne(ctx, newUser)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-	ctx.SetStatusCode(fasthttp.StatusCreated)
-	return result, nil
-}
-
-// Tìm một người dùng theo ID
-func (h *UserService) FindOneById(ctx *fasthttp.RequestCtx, userID string) (result *models.User, err error) {
-	findOneResult, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		return nil, err
-	}
-
 	var user models.User
-	bsonBytes, err := bson.Marshal(findOneResult)
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
 	}
-
-	err = bson.Unmarshal(bsonBytes, &user)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	return &user, nil
+	return true, nil
 }
 
-// Tìm tất cả các người dùng với phân trang
-func (h *UserService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64) (results interface{}, err error) {
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", 1}})
-
-	findAllResult, err := h.crudUser.FindAllWithPaginate(ctx, bson.D{}, opts)
+// Create tạo mới một người dùng
+func (s *UserService) Create(ctx context.Context, input *models.UserCreateInput) (*models.User, error) {
+	// Kiểm tra email tồn tại
+	exists, err := s.IsEmailExist(ctx, input.Email)
 	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		return nil, err
+	}
+	if exists {
+		return nil, ErrDuplicate
+	}
+
+	// Validate email
+	if err := ValidateEmail(input.Email); err != nil {
 		return nil, err
 	}
 
-	var bsonMUsers []models.User
-	for _, bsonM := range findAllResult.Items {
-		var user models.User
-		bsonBytes, err := bson.Marshal(bsonM)
-		if err != nil {
-			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-			return nil, err
-		}
-
-		err = bson.Unmarshal(bsonBytes, &user)
-		if err != nil {
-			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-			return nil, err
-		}
-
-		bsonMUsers = append(bsonMUsers, user)
+	// Validate password
+	if err := ValidatePassword(input.Password); err != nil {
+		return nil, err
 	}
 
-	var findAllResult2 models.UserPaginateResult
-	findAllResult2.Page = findAllResult.Page
-	findAllResult2.Limit = findAllResult.Limit
-	findAllResult2.Items = bsonMUsers
+	// Hash password
+	salt := uuid.New().String()
+	passwordBytes := []byte(input.Password + salt)
+	hashedPassword, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
 
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	return findAllResult2, nil
+	// Tạo user mới
+	user := &models.User{
+		ID:        primitive.NewObjectID(),
+		Name:      input.Name,
+		Email:     input.Email,
+		Password:  string(hashedPassword),
+		Salt:      salt,
+		IsBlock:   false,
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
+	}
+
+	// Lưu user
+	createdUser, err := s.BaseServiceImpl.Create(ctx, *user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &createdUser, nil
 }
 
-// Đăng nhập người dùng bằng email và mật khẩu
-func (h *UserService) Login(ctx *fasthttp.RequestCtx, credential *models.UserLoginInput) (*models.User, error) {
+// Update cập nhật thông tin người dùng
+func (s *UserService) Update(ctx context.Context, id string, input *models.UserChangeInfoInput) (*models.User, error) {
+	// Kiểm tra user tồn tại
+	user, err := s.BaseServiceImpl.FindOne(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 
-	// Tìm người dùng theo email
-	query := bson.M{"email": credential.Email}
-	result, err := h.crudUser.FindOne(ctx, query, nil)
-	if result == nil {
-		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+	// Cập nhật thông tin
+	user.Name = input.Name
+	user.UpdatedAt = time.Now().Unix()
+
+	// Cập nhật user
+	updatedUser, err := s.BaseServiceImpl.Update(ctx, id, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedUser, nil
+}
+
+// Delete xóa người dùng
+func (s *UserService) Delete(ctx context.Context, id string) error {
+	// Xóa user roles trước
+	filter := bson.M{"user_id": id}
+	_, err := s.userRoleService.DeleteMany(ctx, filter)
+	if err != nil {
+		return err
+	}
+
+	// Xóa user
+	return s.BaseServiceImpl.Delete(ctx, id)
+}
+
+// Login đăng nhập người dùng
+func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (*models.User, error) {
+	// Tìm user theo email
+	user, err := s.BaseServiceImpl.FindOne(ctx, input.Email)
+	if err != nil {
+		if err == ErrNotFound {
+			return nil, errors.New("Invalid email or password")
+		}
+		return nil, err
+	}
+
+	// Kiểm tra mật khẩu
+	if err := user.ComparePassword(input.Password); err != nil {
 		return nil, errors.New("Invalid email or password")
 	}
-
-	var user models.User
-	bsonBytes, err := bson.Marshal(result)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	err = bson.Unmarshal(bsonBytes, &user)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	// So sánh mật khẩu
-	if err = user.ComparePassword(credential.Password); err != nil {
-		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
-		return nil, errors.New("Invalid email or password")
-	}
-
-	// Tạo chuỗi random và curentTime để tạo token mới
-	rdNumber := rand.Intn(100)
-	currentTime := time.Now().Unix()
 
 	// Tạo token mới
-	tokenMap, err := utility.CreateToken(global.MongoDB_ServerConfig.JwtSecret, user.ID.Hex(), strconv.FormatInt(currentTime, 16), strconv.Itoa(rdNumber))
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
+	token := uuid.New().String()
+	user.Token = token
 
-	var idTokenExist int = -1
-	// duyệt qua tất cả các token, kiểm tra hwid đó đã có token chưa, nếu có thì idTokenExist = i
-	for i, _token := range user.Tokens {
-		if _token.Hwid == credential.Hwid {
-			idTokenExist = i
+	// Cập nhật hoặc thêm token mới cho hwid
+	found := false
+	for i, t := range user.Tokens {
+		if t.Hwid == input.Hwid {
+			user.Tokens[i].JwtToken = token
+			found = true
+			break
 		}
 	}
-
-	// Cập nhật token nếu đã tồn tại
-	if idTokenExist != -1 { // nếu idTokenExist != -1 thì cập nhật token mới
-		user.Tokens[idTokenExist].JwtToken = tokenMap["token"]
-
-	} else { // Thêm token mới nếu chưa tồn tại hwid
-		// Thêm token mới nếu chưa tồn tại
-		var newToken models.Token
-		newToken.Hwid = credential.Hwid
-		newToken.JwtToken = tokenMap["token"]
-		newToken.RoleID = ""
-
-		user.Tokens = append(user.Tokens, newToken)
-
+	if !found {
+		user.Tokens = append(user.Tokens, models.Token{
+			Hwid:     input.Hwid,
+			JwtToken: token,
+		})
 	}
-	user.Token = tokenMap["token"]
 
-	CustomBson := &utility.CustomBson{}
-	change, err := CustomBson.Set(user)
+	// Cập nhật user
+	user.UpdatedAt = time.Now().Unix()
+	updatedUser, err := s.BaseServiceImpl.Update(ctx, user.ID.Hex(), user)
 	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return nil, err
 	}
 
-	// Cập nhật thông tin người dùng trong cơ sở dữ liệu
-	_, err = h.crudUser.UpdateOneById(ctx, user.ID, change)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	return &user, nil
+	return &updatedUser, nil
 }
 
-// Đăng xuất người dùng
-func (h *UserService) Logout(ctx *fasthttp.RequestCtx, userID string, credential *models.UserLogoutInput) (LogoutResult interface{}, err error) {
-
-	// Tìm người dùng theo userID
-	result, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
+// Logout đăng xuất người dùng
+func (s *UserService) Logout(ctx context.Context, userID string, input *models.UserLogoutInput) error {
+	// Tìm user
+	user, err := s.BaseServiceImpl.FindOne(ctx, userID)
 	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		return nil, err
+		return err
 	}
 
-	var user models.User
-	bsonBytes, err := bson.Marshal(result)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	err = bson.Unmarshal(bsonBytes, &user)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	// Tạo mảng mới, không chứa token có hwid trùng với hwid trong credential
-	var newTokens []models.Token = []models.Token{}
-	for _, _token := range user.Tokens {
-		if _token.Hwid != credential.Hwid {
-			newTokens = append(newTokens, _token)
+	// Xóa token của hwid
+	newTokens := make([]models.Token, 0)
+	for _, t := range user.Tokens {
+		if t.Hwid != input.Hwid {
+			newTokens = append(newTokens, t)
 		}
 	}
-
-	// Cập nhật danh sách token
 	user.Tokens = newTokens
+	user.Token = "" // Xóa token hiện tại
+	user.UpdatedAt = time.Now().Unix()
 
-	CustomBson := &utility.CustomBson{}
-	change, err := CustomBson.Set(user)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	updateResult, err := h.crudUser.UpdateOneById(ctx, user.ID, change)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	return updateResult, nil
+	// Cập nhật user
+	_, err = s.BaseServiceImpl.Update(ctx, userID, user)
+	return err
 }
 
-// Thay đổi mật khẩu người dùng
-func (h *UserService) ChangePassword(ctx *fasthttp.RequestCtx, userID string, credential *models.UserChangePasswordInput) (ChangePasswordResult interface{}, err error) {
-
-	// Tìm người dùng theo userID
-	result, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
-	if result == nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		return nil, err
-	}
-
-	var user models.User
-	bsonBytes, err := bson.Marshal(result)
+// ChangePassword thay đổi mật khẩu
+func (s *UserService) ChangePassword(ctx context.Context, userID string, input *models.UserChangePasswordInput) error {
+	// Tìm user
+	user, err := s.BaseServiceImpl.FindOne(ctx, userID)
 	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
+		return err
 	}
 
-	err = bson.Unmarshal(bsonBytes, &user)
+	// Kiểm tra mật khẩu cũ
+	if err := user.ComparePassword(input.OldPassword); err != nil {
+		return errors.New("Invalid old password")
+	}
+
+	// Validate mật khẩu mới
+	if err := ValidatePassword(input.NewPassword); err != nil {
+		return err
+	}
+
+	// Tạo salt mới và hash mật khẩu mới
+	salt := uuid.New().String()
+	passwordBytes := []byte(input.NewPassword + salt)
+	hashedPassword, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
 	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
+		return err
 	}
 
-	// So sánh mật khẩu cũ
-	err = user.ComparePassword(credential.OldPassword)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
-		return nil, errors.New("Invalid old password")
-	}
+	// Cập nhật thông tin
+	user.Password = string(hashedPassword)
+	user.Salt = salt
+	user.Tokens = nil // Xóa tất cả token
+	user.UpdatedAt = time.Now().Unix()
 
-	// Thay đổi mật khẩu
-	user.Salt = uuid.New().String()
-	passwordBytes := []byte(credential.NewPassword + user.Salt)
-
-	hash, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-	user.Password = string(hash[:])
-	user.Tokens = nil
-
-	CustomBson := &utility.CustomBson{}
-	change, err := CustomBson.Set(user)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	updateResult, err := h.crudUser.UpdateOneById(ctx, user.ID, change)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	return updateResult, nil
-}
-
-// Thay đổi thông tin người dùng
-func (h *UserService) ChangeInfo(ctx *fasthttp.RequestCtx, userID string, credential *models.UserChangeInfoInput) (ChangeInfoResult interface{}, err error) {
-
-	// Tìm người dùng theo userID
-	result, err := h.crudUser.FindOneById(ctx, utility.String2ObjectID(userID), nil)
-	if result == nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		return nil, err
-	}
-
-	var user models.User
-	bsonBytes, err := bson.Marshal(result)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	err = bson.Unmarshal(bsonBytes, &user)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	// Thay đổi thông tin
-	user.Name = credential.Name
-
-	CustomBson := &utility.CustomBson{}
-	change, err := CustomBson.Set(user)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	updateResult, err := h.crudUser.UpdateOneById(ctx, user.ID, change)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	return updateResult, nil
-}
-
-// Lấy tất cả các Role của người dùng
-func (h *UserService) GetRoles(ctx *fasthttp.RequestCtx, strUserID string) (GetRolesResult interface{}, err error) {
-
-	userID := utility.String2ObjectID(strUserID)
-
-	// Tìm tất cả các Role của người dùng
-	// Cài đặt bộ lọc tìm kiếm
-	filter := bson.D{{Key: "userId", Value: userID}}
-
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetSort(bson.D{{Key: "updatedAt", Value: 1}})
-
-	// Tìm tất cả các Role của người dùng
-	findAllResult, err := h.crudUserRole.FindAll(ctx, filter, opts)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return nil, err
-	}
-
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	return findAllResult, nil
+	// Cập nhật user
+	_, err = s.BaseServiceImpl.Update(ctx, userID, user)
+	return err
 }

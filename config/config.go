@@ -18,7 +18,6 @@ type Configuration struct {
 	JwtSecret             string `env:"JWT_SECRET,required"`             // Bí mật JWT
 	MongoDB_ConnectionURL string `env:"MONGODB_CONNECTION_URL,required"` // URL kết nối cơ sở dữ liệu
 	MongoDB_DBNameAuth    string `env:"MONGODB_DBNAME_AUTH,required"`    // Tên cơ sở dữ liệu xác thực
-	MySQLConnectionURL    string `env:"MYSQL_CONNECTION_URL,required"`   // URL kết nối MySQL
 
 	Metadata_Path    string `env:"METADATA_PATH,required"`    // Đường dẫn đến file metadata
 	MongoDb_Uri_Auth string `env:"MONGODB_URI_AUTH,required"` // URI kết nối MongoDB

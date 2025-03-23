@@ -1,95 +1,159 @@
 package services
 
 import (
+	"context"
+	"errors"
+	"time"
+
 	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
-	"errors"
 
-	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// AccessTokenService là cấu trúc chứa các phương thức liên quan đến người dùng
+// FbPostService là cấu trúc chứa các phương thức liên quan đến bài viết Facebook
 type FbPostService struct {
-	crudFbPost RepositoryService
+	*BaseServiceImpl[models.FbPost]
 }
 
-// Khởi tạo AccessTokenService với cấu hình và kết nối cơ sở dữ liệu
+// NewFbPostService tạo mới FbPostService
 func NewFbPostService(c *config.Configuration, db *mongo.Client) *FbPostService {
-	newService := new(FbPostService)
-	newService.crudFbPost = *NewRepository(c, db, global.MongoDB_ColNames.FbPosts)
-	return newService
+	fbPostCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.FbPosts)).Collection(global.MongoDB_ColNames.FbPosts)
+	return &FbPostService{
+		BaseServiceImpl: NewBaseService[models.FbPost](fbPostCollection),
+	}
 }
 
-// Nhận data từ Facebook và lưu vào cơ sở dữ liệu
-func (h *FbPostService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.FbPostCreateInput) (CreateResult interface{}, err error) {
+// IsPostExist kiểm tra bài viết có tồn tại hay không
+func (s *FbPostService) IsPostExist(ctx context.Context, postId string) (bool, error) {
+	filter := bson.M{"postId": postId}
+	var post models.FbPost
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&post)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
 
-	if credential.PanCakeData == nil {
+// ReviceData nhận data từ Facebook và lưu vào cơ sở dữ liệu
+func (s *FbPostService) ReviceData(ctx context.Context, input *models.FbPostCreateInput) (*models.FbPost, error) {
+	if input.PanCakeData == nil {
 		return nil, errors.New("ApiData is required")
 	}
 
 	// Lấy thông tin PostId từ ApiData đưa vào biến
-	pageId := credential.PanCakeData["page_id"].(string)
-	postId := credential.PanCakeData["id"].(string)
+	pageId := input.PanCakeData["page_id"].(string)
+	postId := input.PanCakeData["id"].(string)
 
 	// Kiểm tra FbPost đã tồn tại chưa
-	filter := bson.M{"postId": postId}
-	checkResult, _ := h.crudFbPost.FindOne(ctx, filter, nil)
-	if checkResult == nil { // Nếu FbPost chưa tồn tại thì tạo mới
+	exists, err := s.IsPostExist(ctx, postId)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
 		// Tạo một FbPost mới
-		newFbPost := models.FbPost{}
-		newFbPost.PageId = pageId
-		newFbPost.PostId = postId
-		newFbPost.PanCakeData = credential.PanCakeData
+		post := &models.FbPost{
+			ID:          primitive.NewObjectID(),
+			PageId:      pageId,
+			PostId:      postId,
+			PanCakeData: input.PanCakeData,
+			CreatedAt:   time.Now().Unix(),
+			UpdatedAt:   time.Now().Unix(),
+		}
 
-		// Thêm FbPost vào cơ sở dữ liệu
-		return h.crudFbPost.InsertOne(ctx, newFbPost)
-
-	} else { // Nếu FbPost đã tồn tại thì cập nhật thông tin mới
-		// chuyển đổi checkResult từ interface{} sang models.FbPost
-		var oldFbPost models.FbPost
-		bsonBytes, err := bson.Marshal(checkResult)
+		// Lưu FbPost
+		createdPost, err := s.BaseServiceImpl.Create(ctx, *post)
 		if err != nil {
 			return nil, err
 		}
 
-		// chuyển đổi bsonBytes sang models.FbPost
-		err = bson.Unmarshal(bsonBytes, &oldFbPost)
+		return &createdPost, nil
+	} else {
+		// Lấy FbPost hiện tại
+		post, err := s.BaseServiceImpl.FindOne(ctx, postId)
 		if err != nil {
 			return nil, err
 		}
 
 		// Cập nhật thông tin mới
-		oldFbPost.PanCakeData = credential.PanCakeData
+		post.PanCakeData = input.PanCakeData
+		post.UpdatedAt = time.Now().Unix()
 
-		CustomBson := &utility.CustomBson{}
-		change, err := CustomBson.Set(oldFbPost)
+		// Cập nhật FbPost
+		updatedPost, err := s.BaseServiceImpl.Update(ctx, post.ID.Hex(), post)
 		if err != nil {
 			return nil, err
 		}
 
-		// Cập nhật vào cơ sở dữ liệu
-		return h.crudFbPost.UpdateOneById(ctx, oldFbPost.ID, change)
+		return &updatedPost, nil
 	}
 }
 
-// FindOneById tìm kiếm một bài viết theo ID
-func (h *FbPostService) FindOneById(ctx *fasthttp.RequestCtx, Id string) (FindResult interface{}, err error) {
-	filter := bson.M{"postId": utility.String2ObjectID(Id)}
-	return h.crudFbPost.FindOne(ctx, filter, nil)
+// FindOne tìm kiếm một bài viết theo ID
+func (s *FbPostService) FindOne(ctx context.Context, id string) (models.FbPost, error) {
+	return s.BaseServiceImpl.FindOne(ctx, id)
+}
+
+// FindOneByPostID tìm một FbPost theo PostID
+func (s *FbPostService) FindOneByPostID(ctx context.Context, postID string) (models.FbPost, error) {
+	filter := bson.M{"postId": postID}
+	var post models.FbPost
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&post)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return post, errors.New("post not found")
+		}
+		return post, err
+	}
+	return post, nil
 }
 
 // FindAll tìm kiếm tất cả bài viết
-func (h *FbPostService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64) (FindResult interface{}, err error) {
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", 1}})
+func (s *FbPostService) FindAll(ctx context.Context, page int64, limit int64) ([]models.FbPost, error) {
+	opts := options.Find().
+		SetSkip((page - 1) * limit).
+		SetLimit(limit).
+		SetSort(bson.D{{"updatedAt", 1}})
 
-	return h.crudFbPost.FindAllWithPaginate(ctx, nil, opts)
+	cursor, err := s.BaseServiceImpl.collection.Find(ctx, nil, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []models.FbPost
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// UpdateToken cập nhật access token của một FbPost theo ID
+func (s *FbPostService) UpdateToken(ctx context.Context, input *models.FbPostUpdateTokenInput) (*models.FbPost, error) {
+	// Tìm FbPost theo post
+	post, err := s.FindOneByPostID(ctx, input.PostId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cập nhật thông tin FbPost
+	post.PanCakeData = input.PanCakeData
+	post.UpdatedAt = time.Now().Unix()
+
+	// Cập nhật FbPost
+	updatedPost, err := s.BaseServiceImpl.Update(ctx, post.ID.Hex(), post)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedPost, nil
 }

@@ -8,8 +8,19 @@
             "name": "Launch Package",
             "type": "go",
             "request": "launch",
-            "mode": "debug",
-            "program": "${workspaceFolder}/main.go"
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "env": {},
+            "args": []
+        },
+        {
+            "name": "Launch with Arguments",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": [],
+            "env": {}
         }
     ]
 }

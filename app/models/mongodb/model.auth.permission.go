@@ -16,3 +16,19 @@ type Permission struct {
 	CreatedAt int64              `json:"createdAt" bson:"createdAt"`        // Thời gian tạo quyền
 	UpdatedAt int64              `json:"updatedAt" bson:"updatedAt"`        // Thời gian cập nhật quyền
 }
+
+// PermissionCreateInput là dữ liệu đầu vào để tạo mới quyền
+type PermissionCreateInput struct {
+	Name     string `json:"name" bson:"name" validate:"required"`         // Tên của quyền
+	Describe string `json:"describe" bson:"describe" validate:"required"` // Mô tả quyền
+	Category string `json:"category" bson:"category" validate:"required"` // Danh mục của quyền
+	Group    string `json:"group" bson:"group" validate:"required"`       // Nhóm của quyền
+}
+
+// PermissionUpdateInput là dữ liệu đầu vào để cập nhật quyền
+type PermissionUpdateInput struct {
+	Name     string `json:"name" bson:"name"`         // Tên của quyền
+	Describe string `json:"describe" bson:"describe"` // Mô tả quyền
+	Category string `json:"category" bson:"category"` // Danh mục của quyền
+	Group    string `json:"group" bson:"group"`       // Nhóm của quyền
+}

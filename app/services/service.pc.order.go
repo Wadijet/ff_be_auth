@@ -1,93 +1,113 @@
 package services
 
 import (
-	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/utility"
-	"atk-go-server/config"
-	"atk-go-server/global"
+	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
-	"github.com/valyala/fasthttp"
+	models "atk-go-server/app/models/mongodb"
+	"atk-go-server/config"
+	"atk-go-server/global"
+
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// AccessTokenService là cấu trúc chứa các phương thức liên quan đến người dùng
+// PcOrderService là cấu trúc chứa các phương thức liên quan đến đơn hàng
 type PcOrderService struct {
-	crudPcOrder RepositoryService
+	*BaseServiceImpl[models.PcOrder]
 }
 
-// Khởi tạo AccessTokenService với cấu hình và kết nối cơ sở dữ liệu
+// NewPcOrderService tạo mới PcOrderService
 func NewPcOrderService(c *config.Configuration, db *mongo.Client) *PcOrderService {
-	newService := new(PcOrderService)
-	newService.crudPcOrder = *NewRepository(c, db, global.MongoDB_ColNames.PcOrders)
-	return newService
+	pcOrderCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.PcOrders)).Collection(global.MongoDB_ColNames.PcOrders)
+	return &PcOrderService{
+		BaseServiceImpl: NewBaseService[models.PcOrder](pcOrderCollection),
+	}
 }
 
-// Nhận data từ Pancake và lưu vào cơ sở dữ liệu
-func (h *PcOrderService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.PcOrderCreateInput) (CreateResult interface{}, err error) {
+// IsPancakeOrderIdExist kiểm tra ID đơn hàng Pancake có tồn tại hay không
+func (s *PcOrderService) IsPancakeOrderIdExist(ctx context.Context, pancakeOrderId string) (bool, error) {
+	filter := bson.M{"pancakeOrderId": pancakeOrderId}
+	var pcOrder models.PcOrder
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&pcOrder)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
 
-	if credential.PanCakeData == nil {
+// ReviceData nhận data từ Pancake và lưu vào cơ sở dữ liệu
+func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCreateInput) (*models.PcOrder, error) {
+	if input.PanCakeData == nil {
 		return nil, errors.New("ApiData is required")
 	}
 
 	// Lấy thông tin OrderID từ ApiData đưa vào biến
-	pancakeOrderId := credential.PanCakeData["id"]
+	pancakeOrderId := input.PanCakeData["id"]
 	pancakeOrderNumber := pancakeOrderId.(json.Number)
 	pancakeOrderIdStr := pancakeOrderNumber.String()
-	
+
 	// Kiểm tra PcOrder đã tồn tại chưa
-	filter := bson.M{"pancakeOrderId": pancakeOrderIdStr}
-	checkResult, _ := h.crudPcOrder.FindOne(ctx, filter, nil)
-	if checkResult == nil { // Nếu PcOrder chưa tồn tại thì tạo mới
+	exists, err := s.IsPancakeOrderIdExist(ctx, pancakeOrderIdStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
 		// Tạo một PcOrder mới
-		newPcOrder := models.PcOrder{}
-		newPcOrder.PancakeOrderId = pancakeOrderIdStr
-		newPcOrder.PanCakeData = credential.PanCakeData
+		pcOrder := &models.PcOrder{
+			ID:             primitive.NewObjectID(),
+			PancakeOrderId: pancakeOrderIdStr,
+			PanCakeData:    input.PanCakeData,
+			Status:         0,
+			CreatedAt:      time.Now().Unix(),
+			UpdatedAt:      time.Now().Unix(),
+		}
 
-		// Thêm PcOrder vào cơ sở dữ liệu
-		return h.crudPcOrder.InsertOne(ctx, newPcOrder)
-
-	} else { // Nếu PcOrder đã tồn tại thì cập nhật thông tin mới
-		// chuyển đổi checkResult từ interface{} sang models.PcOrder
-		var oldPcOrder models.PcOrder
-		bsonBytes, err := bson.Marshal(checkResult)
+		// Lưu PcOrder
+		createdPcOrder, err := s.BaseServiceImpl.Create(ctx, *pcOrder)
 		if err != nil {
 			return nil, err
 		}
-		err = bson.Unmarshal(bsonBytes, &oldPcOrder)
+
+		return &createdPcOrder, nil
+	} else {
+		// Lấy PcOrder hiện tại
+		pcOrder, err := s.BaseServiceImpl.FindOne(ctx, pancakeOrderIdStr)
 		if err != nil {
 			return nil, err
 		}
 
 		// Cập nhật thông tin mới
-		oldPcOrder.PanCakeData = credential.PanCakeData
+		pcOrder.PanCakeData = input.PanCakeData
+		pcOrder.UpdatedAt = time.Now().Unix()
 
-		CustomBson := &utility.CustomBson{}
-		change, err := CustomBson.Set(oldPcOrder)
+		// Cập nhật PcOrder
+		updatedPcOrder, err := s.BaseServiceImpl.Update(ctx, pcOrder.ID.Hex(), pcOrder)
 		if err != nil {
 			return nil, err
 		}
 
-		// Cập nhật thông tin mới vào cơ sở dữ liệu
-		return h.crudPcOrder.UpdateOneById(ctx, oldPcOrder.ID, change)
+		return &updatedPcOrder, nil
 	}
 }
 
-// Tìm một PcOrder theo ID
-func (h *PcOrderService) FindOneById(ctx *fasthttp.RequestCtx, id string) (FindResult interface{}, err error) {
-	return h.crudPcOrder.FindOneById(ctx, utility.String2ObjectID(id), nil)
+// FindOneById tìm một PcOrder theo ID
+func (s *PcOrderService) FindOneById(ctx context.Context, id string) (models.PcOrder, error) {
+	return s.BaseServiceImpl.FindOne(ctx, id)
 }
 
-// Tìm tất cả các PcOrder với phân trang
-func (h *PcOrderService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64) (FindResult interface{}, err error) {
-
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", 1}})
-	return h.crudPcOrder.FindAllWithPaginate(ctx, nil, opts)
+// FindAll tìm tất cả các PcOrder với phân trang
+func (s *PcOrderService) FindAll(ctx context.Context, page int64, limit int64) ([]models.PcOrder, error) {
+	opts := options.Find().
+		SetSkip((page - 1) * limit).
+		SetLimit(limit)
+	return s.BaseServiceImpl.FindAll(ctx, nil, opts)
 }

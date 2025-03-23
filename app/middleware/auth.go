@@ -19,22 +19,31 @@ import (
 // JwtToken , basic jwt model
 type JwtToken struct {
 	C                  *config.Configuration
-	UserCRUD           services.RepositoryService
-	RoleCRUD           services.RepositoryService
-	PermissionCRUD     services.RepositoryService
-	RolePermissionCRUD services.RepositoryService
-	UserRoleCRUD       services.RepositoryService
+	UserCRUD           services.BaseService[models.User]
+	RoleCRUD           services.BaseService[models.Role]
+	PermissionCRUD     services.BaseService[models.Permission]
+	RolePermissionCRUD services.BaseService[models.RolePermission]
+	UserRoleCRUD       services.BaseService[models.UserRole]
 }
 
 // NewJwtToken , khởi tạo một JwtToken mới
 func NewJwtToken(c *config.Configuration, db *mongo.Client) *JwtToken {
 	newHandler := new(JwtToken)
 	newHandler.C = c
-	newHandler.UserCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Users)
-	newHandler.RoleCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Roles)
-	newHandler.PermissionCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Permissions)
-	newHandler.RolePermissionCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.RolePermissions)
-	newHandler.UserRoleCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.UserRoles)
+
+	// Khởi tạo các collection
+	userCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
+	roleCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
+	permissionCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
+	rolePermissionCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.RolePermissions)).Collection(global.MongoDB_ColNames.RolePermissions)
+	userRoleCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.UserRoles)).Collection(global.MongoDB_ColNames.UserRoles)
+
+	// Khởi tạo các service với BaseService
+	newHandler.UserCRUD = services.NewBaseService[models.User](userCol)
+	newHandler.RoleCRUD = services.NewBaseService[models.Role](roleCol)
+	newHandler.PermissionCRUD = services.NewBaseService[models.Permission](permissionCol)
+	newHandler.RolePermissionCRUD = services.NewBaseService[models.RolePermission](rolePermissionCol)
+	newHandler.UserRoleCRUD = services.NewBaseService[models.UserRole](userRoleCol)
 
 	return newHandler
 }
@@ -62,35 +71,21 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 					return
 				}
 
-				findUser, err := jt.UserCRUD.FindOneById(context.TODO(), utility.String2ObjectID(t.UserID), nil)
-				if findUser == nil {
+				findUser, err := jt.UserCRUD.FindOne(context.TODO(), t.UserID)
+				if err != nil {
 					ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 					utility.JSON(ctx, utility.Payload(false, err, notAuthError))
 					return
 				}
 
-				var user models.User
-				bsonBytes, err := bson.Marshal(findUser)
-				if err != nil {
-					ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-					utility.JSON(ctx, utility.Payload(false, err, notAuthError))
-					return
-				}
-				err = bson.Unmarshal(bsonBytes, &user)
-				if err != nil {
-					ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-					utility.JSON(ctx, utility.Payload(false, err, notAuthError))
-					return
-				}
-
-				if user.IsBlock {
+				if findUser.IsBlock {
 					ctx.SetStatusCode(fasthttp.StatusForbidden)
 					utility.JSON(ctx, utility.Payload(false, nil, notAuthError))
 					return
 				}
 
 				isRightToken := false
-				for _, _token := range user.Tokens {
+				for _, _token := range findUser.Tokens {
 					if _token.JwtToken == jwtTokenString {
 						ctx.SetUserValue("userId", t.UserID)
 						ctx.SetUserValue("userToken", _token.JwtToken)
@@ -109,25 +104,16 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 					return
 				}
 
-				findPermission, err := jt.PermissionCRUD.FindOne(context.TODO(), bson.M{"name": requirePermission}, nil)
-				if findPermission == nil {
+				findPermission, err := jt.PermissionCRUD.FindOneByFilter(context.TODO(), bson.M{"name": requirePermission}, nil)
+				if err != nil {
 					ctx.SetStatusCode(fasthttp.StatusForbidden)
 					utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
 					return
 				}
 
-				var permission models.Permission
-				bsonBytes, _ = bson.Marshal(findPermission)
-				err = bson.Unmarshal(bsonBytes, &permission)
-				if err != nil {
-					ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-					utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
-					return
-				}
-
-				requirePermissionID := permission.ID
+				requirePermissionID := findPermission.ID
 				findRoles, err := jt.UserRoleCRUD.FindAll(context.TODO(), bson.M{"userId": utility.String2ObjectID(t.UserID)}, nil)
-				if findRoles == nil {
+				if err != nil {
 					ctx.SetStatusCode(fasthttp.StatusForbidden)
 					utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
 					return
@@ -135,27 +121,13 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 
 				isRightRole := false
 				var minScope byte = 1
-				for _, findRoleData := range findRoles {
-					var modelUserRole models.UserRole
-					bsonBytes, _ = bson.Marshal(findRoleData)
-					err = bson.Unmarshal(bsonBytes, &modelUserRole)
+				for _, modelUserRole := range findRoles {
+					findRolePermissions, err := jt.RolePermissionCRUD.FindAll(context.TODO(), bson.M{"roleId": modelUserRole.RoleID}, nil)
 					if err != nil {
 						continue
 					}
 
-					findRolePermissions, err := jt.RolePermissionCRUD.FindAll(context.TODO(), bson.M{"roleId": modelUserRole.RoleID}, nil)
-					if findRolePermissions == nil {
-						continue
-					}
-
-					for _, findRolePermission := range findRolePermissions {
-						var modelRolePermission models.RolePermission
-						bsonBytes, _ = bson.Marshal(findRolePermission)
-						err = bson.Unmarshal(bsonBytes, &modelRolePermission)
-						if err != nil {
-							continue
-						}
-
+					for _, modelRolePermission := range findRolePermissions {
 						if modelRolePermission.PermissionID == requirePermissionID {
 							isRightRole = true
 							ctx.SetUserValue("RoleId", modelUserRole.RoleID)
@@ -168,7 +140,7 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 				}
 				if !isRightRole {
 					ctx.SetStatusCode(fasthttp.StatusForbidden)
-					utility.JSON(ctx, utility.Payload(false, err, notPermissionError))
+					utility.JSON(ctx, utility.Payload(false, nil, notPermissionError))
 					return
 				}
 

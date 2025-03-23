@@ -1,73 +1,95 @@
 package services
 
 import (
+	"context"
+	"time"
+
 	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
 	"errors"
 
-	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// UserService là cấu trúc chứa các phương thức liên quan đến người dùng
+// RolePermissionService là cấu trúc chứa các phương thức liên quan đến quyền vai trò
 type RolePermissionService struct {
-	crudRole           RepositoryService
-	crudPermission     RepositoryService
-	crudRolePermission RepositoryService
+	*BaseServiceImpl[models.RolePermission]
+	roleService       *RoleService
+	permissionService *PermissionService
 }
 
-// Khởi tạo UserService với cấu hình và kết nối cơ sở dữ liệu
+// NewRolePermissionService tạo mới RolePermissionService
 func NewRolePermissionService(c *config.Configuration, db *mongo.Client) *RolePermissionService {
-	newService := new(RolePermissionService)
-	newService.crudRole = *NewRepository(c, db, global.MongoDB_ColNames.Roles)
-	newService.crudRole = *NewRepository(c, db, global.MongoDB_ColNames.Permissions)
-	newService.crudRole = *NewRepository(c, db, global.MongoDB_ColNames.RolePermissions)
-	return newService
+	rolePermissionCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.RolePermissions)).Collection(global.MongoDB_ColNames.RolePermissions)
+	return &RolePermissionService{
+		BaseServiceImpl:   NewBaseService[models.RolePermission](rolePermissionCollection),
+		roleService:       NewRoleService(c, db),
+		permissionService: NewPermissionService(c, db),
+	}
 }
 
-// Tạo mới một RolePermission
-func (h *RolePermissionService) Create(ctx *fasthttp.RequestCtx, credential *models.RolePermissionCreateInput) (CreateResult interface{}, err error) {
+// IsExist kiểm tra quyền vai trò có tồn tại hay không
+func (s *RolePermissionService) IsExist(ctx context.Context, roleID, permissionID primitive.ObjectID, scope byte) (bool, error) {
+	filter := bson.M{
+		"roleId":       roleID,
+		"permissionId": permissionID,
+		"scope":        scope,
+	}
+	var rolePermission models.RolePermission
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&rolePermission)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// Create tạo mới một quyền vai trò
+func (s *RolePermissionService) Create(ctx context.Context, input *models.RolePermissionCreateInput) (*models.RolePermission, error) {
 	// Kiểm tra Role có tồn tại không
-	roleFilter := bson.M{"_id": credential.RoleID}
-	roleResult, _ := h.crudRole.FindOne(ctx, roleFilter, nil)
-	if roleResult == nil {
+	if _, err := s.roleService.FindOne(ctx, input.RoleID.Hex()); err != nil {
 		return nil, errors.New("Role not found")
 	}
 
 	// Kiểm tra Permission có tồn tại không
-	permissionFilter := bson.M{"_id": credential.PermissionID}
-	permissionResult, _ := h.crudPermission.FindOne(ctx, permissionFilter, nil)
-	if permissionResult == nil {
+	if _, err := s.permissionService.FindOne(ctx, input.PermissionID.Hex()); err != nil {
 		return nil, errors.New("Permission not found")
 	}
 
 	// Kiểm tra RolePermission đã tồn tại chưa
-	filter := bson.M{"role_id": credential.RoleID, "permission_id": credential.PermissionID, "scope": credential.Scope}
-	checkResult, _ := h.crudRolePermission.FindOne(ctx, filter, nil)
-	if checkResult != nil {
+	exists, err := s.IsExist(ctx, input.RoleID, input.PermissionID, input.Scope)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
 		return nil, errors.New("RolePermission already exists")
 	}
 
-	// Tạo mới RolePermission
-	newRolePermission := models.RolePermission{
-		RoleID:       credential.RoleID,
-		PermissionID: credential.PermissionID,
-		Scope:        credential.Scope,
+	// Tạo rolePermission mới
+	rolePermission := &models.RolePermission{
+		ID:           primitive.NewObjectID(),
+		RoleID:       input.RoleID,
+		PermissionID: input.PermissionID,
+		Scope:        input.Scope,
+		CreatedAt:    time.Now().Unix(),
+		UpdatedAt:    time.Now().Unix(),
 	}
 
-	// Thêm RolePermission vào cơ sở dữ liệu
-	result, err := h.crudRolePermission.InsertOne(ctx, newRolePermission)
+	// Lưu rolePermission
+	createdRolePermission, err := s.BaseServiceImpl.Create(ctx, *rolePermission)
 	if err != nil {
 		return nil, err
 	}
 
-	return result, nil
+	return &createdRolePermission, nil
 }
 
-// Xóa một RolePermission theo ID
-func (h *RolePermissionService) Delete(ctx *fasthttp.RequestCtx, id string) (DeleteResult interface{}, err error) {
-	return h.crudRolePermission.DeleteOneById(ctx, utility.String2ObjectID(id))
+// Delete xóa quyền vai trò
+func (s *RolePermissionService) Delete(ctx context.Context, id string) error {
+	return s.BaseServiceImpl.Delete(ctx, id)
 }

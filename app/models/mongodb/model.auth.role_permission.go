@@ -29,3 +29,9 @@ type RolePermissionCreateInput struct {
 	PermissionID primitive.ObjectID `json:"permissionId" bson:"permissionId" validate:"required"` // ID của quyền (bắt buộc)
 	Scope        byte               `json:"scope" bson:"scope"`                                   // Phạm vi của quyền (0: All, 1: Assign)
 }
+
+// RolePermissionUpdateInput dữ liệu đầu vào khi cập nhật quyền của vai trò
+type RolePermissionUpdateInput struct {
+	RoleId        string   `json:"roleId" bson:"roleId" validate:"required"`               // ID của vai trò
+	PermissionIds []string `json:"permissionIds" bson:"permissionIds" validate:"required"` // Danh sách ID của quyền
+}

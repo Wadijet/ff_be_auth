@@ -1,6 +1,7 @@
 package handler
 
 import (
+	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
 	"atk-go-server/config"
 	"atk-go-server/global"
@@ -14,9 +15,9 @@ import (
 // Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
 type AdminHandler struct {
 	BaseHandler
-	UserCRUD       services.RepositoryService
-	PermissionCRUD services.RepositoryService
-	RoleCRUD       services.RepositoryService
+	UserCRUD       services.BaseService[models.User]
+	PermissionCRUD services.BaseService[models.Permission]
+	RoleCRUD       services.BaseService[models.Role]
 	InitService    services.InitService
 	AdminService   services.AdminService
 }
@@ -24,9 +25,16 @@ type AdminHandler struct {
 // NewAdminHandler khởi tạo một AdminHandler mới với cấu hình và kết nối cơ sở dữ liệu
 func NewAdminHandler(c *config.Configuration, db *mongo.Client) *AdminHandler {
 	newHandler := new(AdminHandler)
-	newHandler.UserCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Users)
-	newHandler.PermissionCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Permissions)
-	newHandler.RoleCRUD = *services.NewRepository(c, db, global.MongoDB_ColNames.Roles)
+
+	// Khởi tạo các collection
+	userCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
+	permissionCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
+	roleCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
+
+	// Khởi tạo các service với BaseService
+	newHandler.UserCRUD = services.NewBaseService[models.User](userCol)
+	newHandler.PermissionCRUD = services.NewBaseService[models.Permission](permissionCol)
+	newHandler.RoleCRUD = services.NewBaseService[models.Role](roleCol)
 	newHandler.InitService = *services.NewInitService(c, db)
 	newHandler.AdminService = *services.NewAdminService(c, db)
 	return newHandler

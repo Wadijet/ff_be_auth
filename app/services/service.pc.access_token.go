@@ -1,97 +1,135 @@
 package services
 
 import (
+	"context"
+	"time"
+
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
+	"errors"
 
-	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// AccessTokenService là cấu trúc chứa các phương thức liên quan đến người dùng
+// AccessTokenService là cấu trúc chứa các phương thức liên quan đến access token
 type AccessTokenService struct {
-	crudAccessToken RepositoryService
+	*BaseServiceImpl[models.AccessToken]
 }
 
-// Khởi tạo AccessTokenService với cấu hình và kết nối cơ sở dữ liệu
+// NewAccessTokenService tạo mới AccessTokenService
 func NewAccessTokenService(c *config.Configuration, db *mongo.Client) *AccessTokenService {
-	newService := new(AccessTokenService)
-	newService.crudAccessToken = *NewRepository(c, db, global.MongoDB_ColNames.AccessTokens)
-	return newService
+	accessTokenCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.AccessTokens)).Collection(global.MongoDB_ColNames.AccessTokens)
+	return &AccessTokenService{
+		BaseServiceImpl: NewBaseService[models.AccessToken](accessTokenCollection),
+	}
 }
 
-// Tạo mới một Access Token
-func (h *AccessTokenService) Create(ctx *fasthttp.RequestCtx, credential *models.AccessTokenCreateInput) (CreateResult interface{}, err error) {
+// IsNameExist kiểm tra tên access token có tồn tại hay không
+func (s *AccessTokenService) IsNameExist(ctx context.Context, name string) (bool, error) {
+	filter := bson.M{"name": name}
+	var accessToken models.AccessToken
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&accessToken)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
 
-	// Chuyển đổi credential.AssignedUsers từ mảng []string sang mảng []ObjectID
-	newAssignedUsers := make([]primitive.ObjectID, 0)
-	for _, userID := range credential.AssignedUsers {
-		newAssignedUsers = append(newAssignedUsers, utility.String2ObjectID(userID))
+// Create tạo mới một access token
+func (s *AccessTokenService) Create(ctx context.Context, input *models.AccessTokenCreateInput) (*models.AccessToken, error) {
+	// Kiểm tra tên tồn tại
+	exists, err := s.IsNameExist(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, errors.New("Access token name already exists")
 	}
 
-	// Tạo mới Access Token
-	newAccessToken := models.AccessToken{
-		Name:          credential.Name,
-		Describe:      credential.Describe,
-		System:        credential.System,
-		Value:         credential.Value,
-		AssignedUsers: newAssignedUsers,
+	// Chuyển đổi input.AssignedUsers từ mảng []string sang mảng []ObjectID
+	assignedUsers := make([]primitive.ObjectID, 0)
+	for _, userID := range input.AssignedUsers {
+		assignedUsers = append(assignedUsers, utility.String2ObjectID(userID))
+	}
+
+	// Tạo access token mới
+	accessToken := &models.AccessToken{
+		ID:            primitive.NewObjectID(),
+		Name:          input.Name,
+		Describe:      input.Describe,
+		System:        input.System,
+		Value:         input.Value,
+		AssignedUsers: assignedUsers,
 		Status:        0,
+		CreatedAt:     time.Now().Unix(),
+		UpdatedAt:     time.Now().Unix(),
 	}
 
-	// Thêm Access Token vào cơ sở dữ liệu
-	return h.crudAccessToken.InsertOne(ctx, newAccessToken)
-}
-
-// Tìm một Access Token theo ID
-func (h *AccessTokenService) FindOneById(ctx *fasthttp.RequestCtx, id string) (FindResult interface{}, err error) {
-	return h.crudAccessToken.FindOneById(ctx, utility.String2ObjectID(id), nil)
-}
-
-// Tìm tất cả các Access Token với phân trang
-func (h *AccessTokenService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64) (FindResult interface{}, err error) {
-
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", 1}})
-	return h.crudAccessToken.FindAllWithPaginate(ctx, nil, opts)
-}
-
-// Cập nhật một Access Token theo ID
-func (h *AccessTokenService) UpdateOneById(ctx *fasthttp.RequestCtx, id string, credential *models.AccessTokenUpdateInput) (UpdateResult interface{}, err error) {
-
-	// Chuyển đổi credential.AssignedUsers từ mảng []string sang mảng []ObjectID
-	newAssignedUsers := make([]primitive.ObjectID, 0)
-	for _, userID := range credential.AssignedUsers {
-		newAssignedUsers = append(newAssignedUsers, utility.String2ObjectID(userID))
-	}
-
-	// Cập nhật Access Token
-	updateFields := bson.M{
-		"name":          credential.Name,
-		"describe":      credential.Describe,
-		"system":        credential.System,
-		"value":         credential.Value,
-		"assignedUsers": newAssignedUsers,
-	}
-
-	CustomBson := &utility.CustomBson{}
-	change, err := CustomBson.Set(updateFields)
+	// Lưu access token
+	createdAccessToken, err := s.BaseServiceImpl.Create(ctx, *accessToken)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.crudAccessToken.UpdateOneById(ctx, utility.String2ObjectID(id), change)
+	return &createdAccessToken, nil
 }
 
-// Xóa một Access Token theo ID
-func (h *AccessTokenService) DeleteOneById(ctx *fasthttp.RequestCtx, id string) (DeleteResult interface{}, err error) {
-	return h.crudAccessToken.DeleteOneById(ctx, utility.String2ObjectID(id))
+// Update cập nhật thông tin access token
+func (s *AccessTokenService) Update(ctx context.Context, id string, input *models.AccessTokenUpdateInput) (*models.AccessToken, error) {
+	// Kiểm tra access token tồn tại
+	accessToken, err := s.BaseServiceImpl.FindOne(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Nếu có thay đổi tên, kiểm tra tên mới
+	if input.Name != "" && input.Name != accessToken.Name {
+		exists, err := s.IsNameExist(ctx, input.Name)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return nil, errors.New("Access token name already exists")
+		}
+		accessToken.Name = input.Name
+	}
+
+	// Cập nhật thông tin khác
+	if input.Describe != "" {
+		accessToken.Describe = input.Describe
+	}
+	if input.System != "" {
+		accessToken.System = input.System
+	}
+	if input.Value != "" {
+		accessToken.Value = input.Value
+	}
+	if len(input.AssignedUsers) > 0 {
+		assignedUsers := make([]primitive.ObjectID, 0)
+		for _, userID := range input.AssignedUsers {
+			assignedUsers = append(assignedUsers, utility.String2ObjectID(userID))
+		}
+		accessToken.AssignedUsers = assignedUsers
+	}
+	accessToken.UpdatedAt = time.Now().Unix()
+
+	// Cập nhật access token
+	updatedAccessToken, err := s.BaseServiceImpl.Update(ctx, id, accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedAccessToken, nil
+}
+
+// Delete xóa access token
+func (s *AccessTokenService) Delete(ctx context.Context, id string) error {
+	return s.BaseServiceImpl.Delete(ctx, id)
 }

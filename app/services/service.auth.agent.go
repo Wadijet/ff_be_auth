@@ -1,182 +1,187 @@
 package services
 
 import (
+	"context"
+	"time"
+
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
 	"errors"
 
-	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// AgentService là cấu trúc chứa các phương thức liên quan đến người dùng
+// AgentService là cấu trúc chứa các phương thức liên quan đến trợ lý
 type AgentService struct {
-	crudAgent RepositoryService
+	*BaseServiceImpl[models.Agent]
 }
 
-// Khởi tạo UserService với cấu hình và kết nối cơ sở dữ liệu
+// NewAgentService tạo mới AgentService
 func NewAgentService(c *config.Configuration, db *mongo.Client) *AgentService {
-	newService := new(AgentService)
-	newService.crudAgent = *NewRepository(c, db, global.MongoDB_ColNames.Agents)
-	return newService
+	agentCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.Agents)).Collection(global.MongoDB_ColNames.Agents)
+	return &AgentService{
+		BaseServiceImpl: NewBaseService[models.Agent](agentCollection),
+	}
 }
 
-// Tìm một Agent theo ID
-func (h *AgentService) FindOneById(ctx *fasthttp.RequestCtx, id string) (FindResult interface{}, err error) {
-	return h.crudAgent.FindOneById(ctx, utility.String2ObjectID(id), nil)
+// IsNameExist kiểm tra tên trợ lý có tồn tại hay không
+func (s *AgentService) IsNameExist(ctx context.Context, name string) (bool, error) {
+	filter := bson.M{"name": name}
+	var agent models.Agent
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&agent)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
-// Tìm tất cả các Agent với phân trang
-func (h *AgentService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64) (FindResult interface{}, err error) {
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", 1}})
-
-	return h.crudAgent.FindAllWithPaginate(ctx, bson.D{}, opts)
-}
-
-// Tạo mới một Agent
-func (h *AgentService) Create(ctx *fasthttp.RequestCtx, credential *models.AgentCreateInput) (CreateResult interface{}, err error) {
-	// Kiểm tra tên của Agent đã tồn tại chưa
-	filter := bson.M{"name": credential.Name}
-	checkResult, _ := h.crudAgent.FindOne(ctx, filter, nil)
-	if checkResult != nil {
+// Create tạo mới một trợ lý
+func (s *AgentService) Create(ctx context.Context, input *models.AgentCreateInput) (*models.Agent, error) {
+	// Kiểm tra tên tồn tại
+	exists, err := s.IsNameExist(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
 		return nil, errors.New("Agent already exists")
 	}
 
-	// Chuyển credential.AssignedUsers từ dạng []string sang dạng []primitive.ObjectID
+	// Chuyển input.AssignedUsers từ dạng []string sang dạng []primitive.ObjectID
 	assignedUsers := make([]primitive.ObjectID, 0)
-	for _, userID := range credential.AssignedUsers {
+	for _, userID := range input.AssignedUsers {
 		assignedUsers = append(assignedUsers, utility.String2ObjectID(userID))
 	}
 
-	newAgent := new(models.Agent)
-	newAgent.Name = credential.Name
-	newAgent.Describe = credential.Describe
-	newAgent.Status = 0
-	newAgent.Command = 0
-	newAgent.AssignedUsers = assignedUsers
-
-	// Thêm Agent vào cơ sở dữ liệu
-	return h.crudAgent.InsertOne(ctx, newAgent)
-}
-
-// Cập nhật một Agent theo ID
-func (h *AgentService) Update(ctx *fasthttp.RequestCtx, id string, credential *models.AgentUpdateInput) (UpdateResult interface{}, err error) {
-	// Kiểm tra Agent đã tồn tại chưa
-	filter := bson.M{"_id": utility.String2ObjectID(id)}
-	checkResult, _ := h.crudAgent.FindOne(ctx, filter, nil)
-	if checkResult == nil {
-		return nil, errors.New("Agent not found")
+	// Tạo agent mới
+	agent := &models.Agent{
+		ID:            primitive.NewObjectID(),
+		Name:          input.Name,
+		Describe:      input.Describe,
+		Status:        0,
+		Command:       0,
+		AssignedUsers: assignedUsers,
+		ConfigData:    input.ConfigData,
+		CreatedAt:     time.Now().Unix(),
+		UpdatedAt:     time.Now().Unix(),
 	}
 
-	var agent models.Agent
-	bsonBytes, err := bson.Marshal(checkResult)
+	// Lưu agent
+	createdAgent, err := s.BaseServiceImpl.Create(ctx, *agent)
 	if err != nil {
 		return nil, err
 	}
 
-	err = bson.Unmarshal(bsonBytes, &agent)
+	return &createdAgent, nil
+}
+
+// Update cập nhật thông tin trợ lý
+func (s *AgentService) Update(ctx context.Context, id string, input *models.AgentUpdateInput) (*models.Agent, error) {
+	// Kiểm tra agent tồn tại
+	agent, err := s.BaseServiceImpl.FindOne(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Chuyển credential.AssignedUsers từ dạng []string sang dạng []primitive.ObjectID
-	assignedUsers := make([]primitive.ObjectID, 0)
-	for _, userID := range credential.AssignedUsers {
-		assignedUsers = append(assignedUsers, utility.String2ObjectID(userID))
+	// Nếu có thay đổi tên, kiểm tra tên mới
+	if input.Name != "" && input.Name != agent.Name {
+		exists, err := s.IsNameExist(ctx, input.Name)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return nil, errors.New("Agent name already exists")
+		}
+		agent.Name = input.Name
 	}
 
-	agent.Name = credential.Name
-	agent.Describe = credential.Describe
-	agent.Status = credential.Status
-	agent.Command = credential.Command
-	agent.AssignedUsers = assignedUsers
+	// Cập nhật thông tin khác
+	if input.Describe != "" {
+		agent.Describe = input.Describe
+	}
+	if input.Status != 0 {
+		agent.Status = input.Status
+	}
+	if input.Command != 0 {
+		agent.Command = input.Command
+	}
+	if len(input.AssignedUsers) > 0 {
+		assignedUsers := make([]primitive.ObjectID, 0)
+		for _, userID := range input.AssignedUsers {
+			assignedUsers = append(assignedUsers, utility.String2ObjectID(userID))
+		}
+		agent.AssignedUsers = assignedUsers
+	}
+	if input.ConfigData != nil {
+		agent.ConfigData = input.ConfigData
+	}
+	agent.UpdatedAt = time.Now().Unix()
 
-	CustomBson := &utility.CustomBson{}
-	change, err := CustomBson.Set(agent)
+	// Cập nhật agent
+	updatedAgent, err := s.BaseServiceImpl.Update(ctx, id, agent)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.crudAgent.UpdateOneById(ctx, utility.String2ObjectID(id), change)
+	return &updatedAgent, nil
 }
 
-// Xóa một Agent theo ID
-func (h *AgentService) Delete(ctx *fasthttp.RequestCtx, id string) (DeleteResult interface{}, err error) {
-	return h.crudAgent.DeleteOneById(ctx, utility.String2ObjectID(id))
+// Delete xóa trợ lý
+func (s *AgentService) Delete(ctx context.Context, id string) error {
+	return s.BaseServiceImpl.Delete(ctx, id)
 }
 
-// Hàm kiểm tra tình trạng Online của tất cả các Agent
-// Duyệt qua tất cả các Agent, nếu Status = 1 và UpdateAt > 5 phút thì trả về Status = 0
-func (h *AgentService) CheckOnlineStatus(ctx *fasthttp.RequestCtx) {
-	// Lấy tất cả các Agent
-	agents, _ := h.crudAgent.FindAll(ctx, nil, nil)
+// CheckOnlineStatus kiểm tra tình trạng Online của tất cả các trợ lý
+func (s *AgentService) CheckOnlineStatus(ctx context.Context) error {
+	// Lấy tất cả các agent
+	opts := options.Find()
+	agents, err := s.BaseServiceImpl.FindAll(ctx, bson.M{}, opts)
+	if err != nil {
+		return err
+	}
 
-	// Duyệt qua tất cả các Agent
+	// Duyệt qua tất cả các agent
 	for _, agent := range agents {
-		// Chuyển đổi agent từ interface{} sang models.Agent
-		var agentData models.Agent
-		bsonBytes, err := bson.Marshal(agent)
-		if err != nil {
-			continue
-		}
-
-		err = bson.Unmarshal(bsonBytes, &agentData)
-		if err != nil {
-			continue
-		}
-
 		// Kiểm tra tình trạng Online của Agent
-		if agentData.Status == 1 && ((utility.CurrentTimeInMilli() - agentData.UpdatedAt) > 300) {
+		if agent.Status == 1 && ((utility.CurrentTimeInMilli() - agent.UpdatedAt) > 300) {
 			// Cập nhật tình trạng Online của Agent
-			agentData.Status = 0
-			CustomBson := &utility.CustomBson{}
-			change, err := CustomBson.Set(agentData)
-			if err != nil {
-				continue
-			}
+			agent.Status = 0
+			agent.UpdatedAt = time.Now().Unix()
 
-			h.crudAgent.UpdateOneById(ctx, agentData.ID, change)
+			_, err := s.BaseServiceImpl.Update(ctx, agent.ID.Hex(), agent)
+			if err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
 }
 
-// Hàm checkin cho một agent, khi gọi hàm này chuyển status thành 1 - online
-func (h *AgentService) CheckIn(ctx *fasthttp.RequestCtx, id string) (UpdateResult interface{}, err error) {
-	// Kiểm tra Agent đã tồn tại chưa
-	filter := bson.M{"_id": utility.String2ObjectID(id)}
-	checkResult, _ := h.crudAgent.FindOne(ctx, filter, nil)
-	if checkResult == nil {
-		return nil, errors.New("Agent not found")
-	}
-
-	var agent models.Agent
-	bsonBytes, err := bson.Marshal(checkResult)
-	if err != nil {
-		return nil, err
-	}
-
-	err = bson.Unmarshal(bsonBytes, &agent)
+// CheckIn điểm danh cho một trợ lý
+func (s *AgentService) CheckIn(ctx context.Context, id string) (*models.Agent, error) {
+	// Kiểm tra agent tồn tại
+	agent, err := s.BaseServiceImpl.FindOne(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	// Cập nhật tình trạng Online của Agent
 	agent.Status = 1
+	agent.UpdatedAt = time.Now().Unix()
 
-	CustomBson := &utility.CustomBson{}
-	change, err := CustomBson.Set(agent)
+	// Cập nhật agent
+	updatedAgent, err := s.BaseServiceImpl.Update(ctx, id, agent)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.crudAgent.UpdateOneById(ctx, utility.String2ObjectID(id), change)
+	return &updatedAgent, nil
 }

@@ -2,7 +2,6 @@ package services
 
 import (
 	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
 	"context"
@@ -10,27 +9,36 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // InitService định nghĩa các CRUD repository cho User, Permission và Role
 type InitService struct {
-	UserCRUD           RepositoryService
-	PermissionCRUD     RepositoryService
-	RoleCRUD           RepositoryService
-	RolePermissionCRUD RepositoryService
-	UserRoleCRUD       RepositoryService
+	UserCRUD           BaseService[models.User]
+	PermissionCRUD     BaseService[models.Permission]
+	RoleCRUD           BaseService[models.Role]
+	RolePermissionCRUD BaseService[models.RolePermission]
+	UserRoleCRUD       BaseService[models.UserRole]
 }
 
 // NewInitService khởi tạo các repository và trả về một đối tượng InitService
 func NewInitService(c *config.Configuration, db *mongo.Client) *InitService {
 	newService := new(InitService)
-	newService.UserCRUD = *NewRepository(c, db, global.MongoDB_ColNames.Users)
-	newService.PermissionCRUD = *NewRepository(c, db, global.MongoDB_ColNames.Permissions)
-	newService.RoleCRUD = *NewRepository(c, db, global.MongoDB_ColNames.Roles)
-	newService.RolePermissionCRUD = *NewRepository(c, db, global.MongoDB_ColNames.RolePermissions)
-	newService.UserRoleCRUD = *NewRepository(c, db, global.MongoDB_ColNames.UserRoles)
+
+	// Khởi tạo các collection
+	userCol := db.Database(GetDBName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
+	permissionCol := db.Database(GetDBName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
+	roleCol := db.Database(GetDBName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
+	rolePermissionCol := db.Database(GetDBName(c, global.MongoDB_ColNames.RolePermissions)).Collection(global.MongoDB_ColNames.RolePermissions)
+	userRoleCol := db.Database(GetDBName(c, global.MongoDB_ColNames.UserRoles)).Collection(global.MongoDB_ColNames.UserRoles)
+
+	// Khởi tạo các service với BaseService
+	newService.UserCRUD = NewBaseService[models.User](userCol)
+	newService.PermissionCRUD = NewBaseService[models.Permission](permissionCol)
+	newService.RoleCRUD = NewBaseService[models.Role](roleCol)
+	newService.RolePermissionCRUD = NewBaseService[models.RolePermission](rolePermissionCol)
+	newService.UserRoleCRUD = NewBaseService[models.UserRole](userRoleCol)
+
 	return newService
 }
 
@@ -88,13 +96,17 @@ var InitialPermissions = []models.Permission{
 // Nếu chưa tồn tại thì thêm quyền đó vào collection Permissions
 func (h *InitService) InitPermission() {
 	for _, permission := range InitialPermissions {
-		// Tạo filter để tìm kiếm quyền theo tên
-		filter := map[string]interface{}{"name": permission.Name}
 		// Tìm quyền theo filter
-		result, _ := h.PermissionCRUD.FindOne(context.TODO(), filter, nil)
+
+		filter := bson.M{"name": permission.Name}
+		_, err := h.PermissionCRUD.FindOneByFilter(context.TODO(), filter, nil)
+		if err != nil && err != mongo.ErrNoDocuments {
+			continue
+		}
+
 		// Nếu quyền chưa tồn tại thì thêm quyền vào collection
-		if result == nil {
-			h.PermissionCRUD.InsertOne(context.TODO(), permission)
+		if err == mongo.ErrNoDocuments {
+			h.PermissionCRUD.Create(context.TODO(), permission)
 		}
 	}
 }
@@ -103,53 +115,42 @@ func (h *InitService) InitPermission() {
 // Kiểm tra vai trò Administrator đã tồn tại chưa
 // Nếu chưa tồn tại thì thêm vai trò Administrator vào collection Roles
 // Sau đó, gán tất cả các quyền cho vai trò Administrator
-func (h *InitService) InitRole() (err error) {
-
+func (h *InitService) InitRole() error {
 	// Kiểm tra vai trò Administrator đã tồn tại chưa
-	filter := map[string]interface{}{"name": "Administrator"}
-	findResult, err := h.RoleCRUD.FindOne(context.TODO(), filter, nil)
-
-	if findResult != nil {
+	adminRole, err := h.RoleCRUD.FindOneByFilter(context.TODO(), bson.M{"name": "Administrator"}, nil)
+	if err != nil && err != mongo.ErrNoDocuments {
+		return err
+	}
+	if err == nil {
 		return errors.New("Role Administrator is already existed")
 	}
 
-	// Nếu vai trò chưa tồn tại thì thêm vai trò vào collection
-	adminRole := models.Role{
+	// Tạo vai trò Administrator
+	newAdminRole := models.Role{
 		Name:     "Administrator",
 		Describe: "Vai trò quản trị hệ thống",
 	}
 
 	// Thêm vai trò vào collection
-	resultInsertRole, err := h.RoleCRUD.InsertOne(nil, adminRole)
+	adminRole, err = h.RoleCRUD.Create(context.TODO(), newAdminRole)
 	if err != nil {
 		return errors.New("Failed to insert role Administrator")
 	}
-	insertedRoleID := resultInsertRole.InsertedID.(primitive.ObjectID)
 
 	// Lấy tất cả quyền
-	permissions, err := h.PermissionCRUD.FindAll(nil, nil, nil)
+	permissions, err := h.PermissionCRUD.FindAll(context.TODO(), bson.M{}, nil)
 	if err != nil {
 		return errors.New("Failed to get all permissions")
 	}
 
 	// Gán tất cả quyền cho vai trò Administrator
-	for _, permissionData := range permissions {
-		// decode permission từ bson.M về models.Permission
-		var modelPermission models.Permission
-		bsonBytes, _ := bson.Marshal(permissionData)
-		err := bson.Unmarshal(bsonBytes, &modelPermission)
-		if err != nil {
-			fmt.Errorf("Failed to decode permission")
-			continue
-		}
-
+	for _, permission := range permissions {
 		rolePermission := models.RolePermission{
-			RoleID:       insertedRoleID,
-			PermissionID: modelPermission.ID,
+			RoleID:       adminRole.ID,
+			PermissionID: permission.ID,
 		}
-		_, err = h.RolePermissionCRUD.InsertOne(context.TODO(), rolePermission)
+		_, err = h.RolePermissionCRUD.Create(context.TODO(), rolePermission)
 		if err != nil {
-			fmt.Errorf("Failed to insert role permission: %v", err)
 			continue
 		}
 	}
@@ -159,9 +160,11 @@ func (h *InitService) InitRole() (err error) {
 // Viết hàm kiểm tra các quyền của role Administrator, nếu thiếu quyền nào thì thêm vào
 func (h *InitService) CheckPermissionForAdministrator() (err error) {
 	// Tìm role theo tên
-	filter := map[string]interface{}{"name": "Administrator"}
-	role, err := h.RoleCRUD.FindOne(context.TODO(), filter, nil)
-	if role == nil {
+	role, err := h.RoleCRUD.FindOneByFilter(context.TODO(), bson.M{"name": "Administrator"}, nil)
+	if err != nil && err != mongo.ErrNoDocuments {
+		return err
+	}
+	if err == mongo.ErrNoDocuments {
 		return h.InitRole()
 	}
 
@@ -191,20 +194,24 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 		}
 
 		// Tìm quyền của role Administrator
-		filter := bson.D{
-			{Key: "roleId", Value: modelRole.ID},
-			{Key: "permissionId", Value: modelPermission.ID},
-			{Key: "scope", Value: 0},
+		filter := bson.M{
+			"roleId":       modelRole.ID,
+			"permissionId": modelPermission.ID,
+			"scope":        0,
 		}
 
-		rolePermission, err := h.RolePermissionCRUD.FindOne(context.TODO(), filter, nil)
-		if rolePermission == nil {
+		// Tìm quyền của role Administrator
+		_, err = h.RolePermissionCRUD.FindOneByFilter(context.TODO(), filter, nil)
+		if err != nil && err != mongo.ErrNoDocuments {
+			continue
+		}
+		if err == mongo.ErrNoDocuments {
 			rolePermission := models.RolePermission{
 				RoleID:       modelRole.ID,
 				PermissionID: modelPermission.ID,
 				Scope:        0,
 			}
-			_, err = h.RolePermissionCRUD.InsertOne(context.TODO(), rolePermission)
+			_, err = h.RolePermissionCRUD.Create(context.TODO(), rolePermission)
 
 			if err != nil {
 				fmt.Errorf("Failed to insert role permission: %v", err)
@@ -219,33 +226,29 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 // Viết hàm set administator để gán quyền admin cho user
 func (h *InitService) SetAdministrator(userID string) (result interface{}, err error) {
 	// Tìm user theo ID
-	user, err := h.UserCRUD.FindOneById(context.TODO(), utility.String2ObjectID(userID), nil)
+	user, err := h.UserCRUD.FindOne(context.TODO(), userID)
 	if err != nil {
 		return nil, err
-	}
-	if user == nil {
-		return nil, errors.New("User not found")
 	}
 
 	// Tìm role theo tên
-	role, err := h.RoleCRUD.FindOne(context.TODO(), map[string]interface{}{"name": "Administrator"}, nil)
-	if err != nil {
+	role, err := h.RoleCRUD.FindOneByFilter(context.TODO(), bson.M{"name": "Administrator"}, nil)
+	if err != nil && err != mongo.ErrNoDocuments {
 		return nil, err
 	}
-	if role == nil {
+	if err == mongo.ErrNoDocuments {
 		return nil, errors.New("Role not found")
 	}
 
 	// Gán role cho user
-	roleID := role["_id"].(primitive.ObjectID)
 	userRole := models.UserRole{
-		UserID: utility.String2ObjectID(userID),
-		RoleID: roleID,
+		UserID: user.ID,
+		RoleID: role.ID,
 	}
-	insertResult, err := h.UserRoleCRUD.InsertOne(context.TODO(), userRole)
+	result, err = h.UserRoleCRUD.Create(context.TODO(), userRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return insertResult, nil
+	return result, nil
 }

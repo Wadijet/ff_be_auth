@@ -21,3 +21,9 @@ type FbPost struct {
 type FbPostCreateInput struct {
 	PanCakeData map[string]interface{} `json:"panCakeData" bson:"panCakeData" validate:"required"` // Dữ liệu API
 }
+
+// FbPostUpdateTokenInput dữ liệu đầu vào khi cập nhật token
+type FbPostUpdateTokenInput struct {
+	PostId      string                 `json:"postId" bson:"postId" validate:"required"`           // ID của bài viết
+	PanCakeData map[string]interface{} `json:"panCakeData" bson:"panCakeData" validate:"required"` // Dữ liệu API
+}

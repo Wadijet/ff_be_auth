@@ -1,11 +1,7 @@
 package models
 
-import (
-	"go.mongodb.org/mongo-driver/bson"
-)
-
 // PaginateResult đại diện cho kết quả phân trang
-type PaginateResult struct {
+type PaginateResult[T any] struct {
 	// Trang hiện tại
 	Page int64 `json:"page" bson:"page"`
 	// Số lượng mục trên mỗi trang
@@ -13,7 +9,11 @@ type PaginateResult struct {
 	// Số lượng mục trong trang hiện tại
 	ItemCount int64 `json:"itemCount" bson:"itemCount"`
 	// Danh sách các mục
-	Items []bson.M `json:"items" bson:"items"`
+	Items []T `json:"items" bson:"items"`
+	// Tổng số mục
+	Total int64 `json:"total" bson:"total"`
+	// Tổng số trang
+	TotalPage int64 `json:"totalPage" bson:"totalPage"`
 }
 
 // CountResult đại diện cho kết quả đếm

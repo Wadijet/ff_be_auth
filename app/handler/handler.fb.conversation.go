@@ -4,9 +4,12 @@ import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
 	"atk-go-server/config"
+	"context"
+	"time"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -14,13 +17,13 @@ import (
 // Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
 type FbConversationHandler struct {
 	BaseHandler
-	FbConversationService services.FbConversationService
+	FbConversationService *services.FbConversationService
 }
 
 // NewFbConversationHandler khởi tạo một FbConversationHandler mới
 func NewFbConversationHandler(c *config.Configuration, db *mongo.Client) *FbConversationHandler {
 	newHandler := new(FbConversationHandler)
-	newHandler.FbConversationService = *services.NewFbConversationService(c, db)
+	newHandler.FbConversationService = services.NewFbConversationService(c, db)
 	return newHandler
 }
 
@@ -29,21 +32,28 @@ func NewFbConversationHandler(c *config.Configuration, db *mongo.Client) *FbConv
 // Create tạo mới một FbConversation
 func (h *FbConversationHandler) Create(ctx *fasthttp.RequestCtx) {
 	input := new(models.FbConversationCreateInput)
-	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
-		return h.FbConversationService.ReviceData(ctx, input.(*models.FbConversationCreateInput))
-	})
+	if response := h.ParseRequestBody(ctx, input); response != nil {
+		h.HandleError(ctx, nil)
+		return
+	}
+
+	context := context.Background()
+	data, err := h.FbConversationService.ReviceData(context, input)
+	h.HandleResponse(ctx, data, err)
 }
 
-// FindOneById tìm một FbConversation theo ID
-func (h *FbConversationHandler) FindOneById(ctx *fasthttp.RequestCtx) {
+// FindOne tìm một FbConversation theo ID
+func (h *FbConversationHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
-	data, err := h.FbConversationService.FindOneById(ctx, id)
+	context := context.Background()
+	data, err := h.FbConversationService.FindOne(context, id)
 	h.HandleResponse(ctx, data, err)
 }
 
 // FindAll tìm tất cả các FbConversation với phân trang
 func (h *FbConversationHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	page, limit := h.ParsePagination(ctx)
+	context := context.Background()
 	filter := bson.M{}
 
 	pageId := string(ctx.FormValue("pageId"))
@@ -51,13 +61,14 @@ func (h *FbConversationHandler) FindAll(ctx *fasthttp.RequestCtx) {
 		filter = bson.M{"pageId": pageId}
 	}
 
-	data, err := h.FbConversationService.FindAll(ctx, page, limit, filter)
+	data, err := h.FbConversationService.FindAll(context, page, limit, filter)
 	h.HandleResponse(ctx, data, err)
 }
 
 // FindAllSortByApiUpdate tìm tất cả các FbConversation với phân trang sắp xếp theo thời gian cập nhật của dữ liệu API
 func (h *FbConversationHandler) FindAllSortByApiUpdate(ctx *fasthttp.RequestCtx) {
 	page, limit := h.ParsePagination(ctx)
+	context := context.Background()
 	filter := bson.M{}
 
 	pageId := string(ctx.FormValue("pageId"))
@@ -65,6 +76,42 @@ func (h *FbConversationHandler) FindAllSortByApiUpdate(ctx *fasthttp.RequestCtx)
 		filter = bson.M{"pageId": pageId}
 	}
 
-	data, err := h.FbConversationService.FindAllSortByApiUpdate(ctx, page, limit, filter)
+	data, err := h.FbConversationService.FindAllSortByApiUpdate(context, page, limit, filter)
 	h.HandleResponse(ctx, data, err)
+}
+
+// Update cập nhật một FbConversation
+func (h *FbConversationHandler) Update(ctx *fasthttp.RequestCtx) {
+	id := h.GetIDFromContext(ctx)
+	input := new(models.FbConversationCreateInput)
+	if response := h.ParseRequestBody(ctx, input); response != nil {
+		h.HandleError(ctx, nil)
+		return
+	}
+
+	context := context.Background()
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		h.HandleError(ctx, err)
+		return
+	}
+
+	fbConversation := models.FbConversation{
+		ID:               objectID,
+		PageId:           input.PageId,
+		PageUsername:     input.PageUsername,
+		PanCakeData:      input.PanCakeData,
+		PanCakeUpdatedAt: time.Now().Unix(),
+		UpdatedAt:        time.Now().Unix(),
+	}
+	data, err := h.FbConversationService.Update(context, id, fbConversation)
+	h.HandleResponse(ctx, data, err)
+}
+
+// Delete xóa một FbConversation
+func (h *FbConversationHandler) Delete(ctx *fasthttp.RequestCtx) {
+	id := h.GetIDFromContext(ctx)
+	context := context.Background()
+	err := h.FbConversationService.Delete(context, id)
+	h.HandleResponse(ctx, nil, err)
 }

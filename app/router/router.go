@@ -95,17 +95,17 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	// ====================================  ACCESSTOKEN API ========================================
 	// Các API liên quan đến token
 	AccessTokenHandler := handler.NewAccessTokenHandler(c, db)
-	r.POST(preV1+"/access_tokens", middle.CheckUserAuth("AccessToken.Create", AccessTokenHandler.Create))               // Tạo token
-	r.GET(preV1+"/access_tokens/{id}", middle.CheckUserAuth("AccessToken.Read", AccessTokenHandler.FindOneById))        // Lấy token theo ID
-	r.GET(preV1+"/access_tokens", middle.CheckUserAuth("AccessToken.Read", AccessTokenHandler.FindAll))                 // Lấy tất cả token
-	r.PUT(preV1+"/access_tokens/{id}", middle.CheckUserAuth("AccessToken.Update", AccessTokenHandler.UpdateOneById))    // Cập nhật token theo ID
-	r.DELETE(preV1+"/access_tokens/{id}", middle.CheckUserAuth("AccessToken.Delete", AccessTokenHandler.DeleteOneById)) // Xóa token theo ID
+	r.POST(preV1+"/access_tokens", middle.CheckUserAuth("AccessToken.Create", AccessTokenHandler.Create))        // Tạo token
+	r.GET(preV1+"/access_tokens/{id}", middle.CheckUserAuth("AccessToken.Read", AccessTokenHandler.FindOne))     // Lấy token theo ID
+	r.GET(preV1+"/access_tokens", middle.CheckUserAuth("AccessToken.Read", AccessTokenHandler.FindAll))          // Lấy tất cả token
+	r.PUT(preV1+"/access_tokens/{id}", middle.CheckUserAuth("AccessToken.Update", AccessTokenHandler.Update))    // Cập nhật token theo ID
+	r.DELETE(preV1+"/access_tokens/{id}", middle.CheckUserAuth("AccessToken.Delete", AccessTokenHandler.Delete)) // Xóa token theo ID
 
 	// ====================================  FBPAGE API =============================================
 	// Các API liên quan đến trang Facebook
 	FbPageHandler := handler.NewFbPageHandler(c, db)
 	r.POST(preV1+"/fb_pages", middle.CheckUserAuth("FbPage.Create", FbPageHandler.Create))                   // Tạo trang Facebook
-	r.GET(preV1+"/fb_pages/{id}", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindOneById))            // Lấy trang Facebook theo ID
+	r.GET(preV1+"/fb_pages/{id}", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindOne))                // Lấy trang Facebook theo ID
 	r.GET(preV1+"/fb_pages", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindAll))                     // Lấy tất cả trang Facebook
 	r.POST(preV1+"/fb_pages/update_token", middle.CheckUserAuth("FbPage.Update", FbPageHandler.UpdateToken)) // Cập nhật token trang Facebook
 	r.GET(preV1+"/fb_pages/pageId/{id}", middle.CheckUserAuth("FbPage.Read", FbPageHandler.FindOneByPageID)) // Lấy trang Facebook theo ID
@@ -114,29 +114,29 @@ func InitRounters(r *router.Router, c *config.Configuration, db *mongo.Client) {
 	// Các API liên quan đến cuộc trò chuyện trên Facebook
 	FbConversationHandler := handler.NewFbConversationHandler(c, db)
 	r.POST(preV1+"/fb_conversations", middle.CheckUserAuth("FbConversation.Create", FbConversationHandler.Create))                     // Tạo cuộc trò chuyện
-	r.GET(preV1+"/fb_conversations/{id}", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindOneById))              // Lấy cuộc trò chuyện theo ID
+	r.GET(preV1+"/fb_conversations/{id}", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindOne))                  // Lấy cuộc trò chuyện theo ID
 	r.GET(preV1+"/fb_conversations", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindAll))                       // Lấy tất cả cuộc trò chuyện
 	r.GET(preV1+"/fb_conversations/newest", middle.CheckUserAuth("FbConversation.Read", FbConversationHandler.FindAllSortByApiUpdate)) // Lấy tất cả cuộc trò chuyện
 
 	// ====================================  FBMESSAGE API ==========================================
 	// Các API liên quan đến tin nhắn trên Facebook
 	FbMessageHandler := handler.NewFbMessageHandler(c, db)
-	r.POST(preV1+"/fb_messages", middle.CheckUserAuth("FbMessage.Create", FbMessageHandler.Create))        // Tạo tin nhắn
-	r.GET(preV1+"/fb_messages/{id}", middle.CheckUserAuth("FbMessage.Read", FbMessageHandler.FindOneById)) // Lấy tin nhắn theo ID
-	r.GET(preV1+"/fb_messages", middle.CheckUserAuth("FbMessage.Read", FbMessageHandler.FindAll))          // Lấy tất cả tin nhắn
+	r.POST(preV1+"/fb_messages", middle.CheckUserAuth("FbMessage.Create", FbMessageHandler.Create))    // Tạo tin nhắn
+	r.GET(preV1+"/fb_messages/{id}", middle.CheckUserAuth("FbMessage.Read", FbMessageHandler.FindOne)) // Lấy tin nhắn theo ID
+	r.GET(preV1+"/fb_messages", middle.CheckUserAuth("FbMessage.Read", FbMessageHandler.FindAll))      // Lấy tất cả tin nhắn
 
 	// ====================================  FBPOST API =============================================
 	// Các API liên quan đến bài viết trên Facebook
 	FbPostHandler := handler.NewFbPostHandler(c, db)
-	r.POST(preV1+"/fb_posts", middle.CheckUserAuth("FbPost.Create", FbPostHandler.Create))        // Tạo bài viết
-	r.GET(preV1+"/fb_posts/{id}", middle.CheckUserAuth("FbPost.Read", FbPostHandler.FindOneById)) // Lấy bài viết theo ID
-	r.GET(preV1+"/fb_posts", middle.CheckUserAuth("FbPost.Read", FbPostHandler.FindAll))          // Lấy tất cả bài viết
+	r.POST(preV1+"/fb_posts", middle.CheckUserAuth("FbPost.Create", FbPostHandler.Create))    // Tạo bài viết
+	r.GET(preV1+"/fb_posts/{id}", middle.CheckUserAuth("FbPost.Read", FbPostHandler.FindOne)) // Lấy bài viết theo ID
+	r.GET(preV1+"/fb_posts", middle.CheckUserAuth("FbPost.Read", FbPostHandler.FindAll))      // Lấy tất cả bài viết
 
 	// ====================================  PCORDER API ============================================
 	// Các API liên quan đến đơn hàng trên Pancake
 	PcOrderHandler := handler.NewPcOrderHandler(c, db)
-	r.POST(preV1+"/pc_orders", middle.CheckUserAuth("PcOrder.Create", PcOrderHandler.Create))        // Tạo đơn hàng
-	r.GET(preV1+"/pc_orders/{id}", middle.CheckUserAuth("PcOrder.Read", PcOrderHandler.FindOneById)) // Lấy đơn hàng theo ID
-	r.GET(preV1+"/pc_orders", middle.CheckUserAuth("PcOrder.Read", PcOrderHandler.FindAll))          // Lấy tất cả đơn hàng
+	r.POST(preV1+"/pc_orders", middle.CheckUserAuth("PcOrder.Create", PcOrderHandler.Create))    // Tạo đơn hàng
+	r.GET(preV1+"/pc_orders/{id}", middle.CheckUserAuth("PcOrder.Read", PcOrderHandler.FindOne)) // Lấy đơn hàng theo ID
+	r.GET(preV1+"/pc_orders", middle.CheckUserAuth("PcOrder.Read", PcOrderHandler.FindAll))      // Lấy tất cả đơn hàng
 
 }

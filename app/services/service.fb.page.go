@@ -1,136 +1,164 @@
 package services
 
 import (
+	"context"
+	"errors"
+	"time"
+
 	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
-	"errors"
 
-	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// AccessTokenService là cấu trúc chứa các phương thức liên quan đến người dùng
+// FbPageService là cấu trúc chứa các phương thức liên quan đến trang Facebook
 type FbPageService struct {
-	crudFbPage RepositoryService
+	*BaseServiceImpl[models.FbPage]
 }
 
-// Khởi tạo AccessTokenService với cấu hình và kết nối cơ sở dữ liệu
+// NewFbPageService tạo mới FbPageService
 func NewFbPageService(c *config.Configuration, db *mongo.Client) *FbPageService {
-	newService := new(FbPageService)
-	newService.crudFbPage = *NewRepository(c, db, global.MongoDB_ColNames.FbPages)
-	return newService
+	fbPageCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.FbPages)).Collection(global.MongoDB_ColNames.FbPages)
+	return &FbPageService{
+		BaseServiceImpl: NewBaseService[models.FbPage](fbPageCollection),
+	}
 }
 
-// Nhận data từ Facebook và lưu vào cơ sở dữ liệu
-func (h *FbPageService) ReviceData(ctx *fasthttp.RequestCtx, credential *models.FbPageCreateInput) (CreateResult interface{}, err error) {
+// IsPageExist kiểm tra trang Facebook có tồn tại hay không
+func (s *FbPageService) IsPageExist(ctx context.Context, pageId string) (bool, error) {
+	filter := bson.M{"pageId": pageId}
+	var page models.FbPage
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&page)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
 
-	if credential.PanCakeData == nil {
+// ReviceData nhận data từ Facebook và lưu vào cơ sở dữ liệu
+func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCreateInput) (*models.FbPage, error) {
+	if input.PanCakeData == nil {
 		return nil, errors.New("ApiData is required")
 	}
 
-	// Lấy thông tin PageID từ ApiData đưa vào biếna
-	pageId := credential.PanCakeData["id"].(string)
+	// Lấy thông tin PageID từ ApiData đưa vào biến
+	pageId := input.PanCakeData["id"].(string)
 
 	// Kiểm tra FbPage đã tồn tại chưa
-	filter := bson.M{"pageId": pageId}
-	checkResult, _ := h.crudFbPage.FindOne(ctx, filter, nil)
-	if checkResult == nil { // Nếu FbPage chưa tồn tại thì tạo mới
-		// Tạo một FbPage mới
-		newFbPage := models.FbPage{}
-		newFbPage.AccessToken = credential.AccessToken
-		newFbPage.PanCakeData = credential.PanCakeData
-		newFbPage.PageName = credential.PanCakeData["name"].(string)
-		newFbPage.PageUsername = credential.PanCakeData["username"].(string)
-		newFbPage.PageId = credential.PanCakeData["id"].(string)
-		newFbPage.IsSync = false
-
-		// Thêm FbPage vào cơ sở dữ liệu
-		return h.crudFbPage.InsertOne(ctx, newFbPage)
-	} else { // Nếu FbPage đã tồn tại thì cập nhật thông tin mới
-		// chuyển đổi checkResult từ interface{} sang models.FbPage
-		var oldFbPage models.FbPage
-		bsonBytes, err := bson.Marshal(checkResult)
-		if err != nil {
-			return nil, err
-		}
-
-		err = bson.Unmarshal(bsonBytes, &oldFbPage)
-		if err != nil {
-			return nil, err
-		}
-
-		oldFbPage.PanCakeData = credential.PanCakeData
-		oldFbPage.AccessToken = credential.AccessToken
-		oldFbPage.PageName = credential.PanCakeData["name"].(string)
-		oldFbPage.PageUsername = credential.PanCakeData["username"].(string)
-
-		CustomBson := &utility.CustomBson{}
-		change, err := CustomBson.Set(oldFbPage)
-		if err != nil {
-			return nil, err
-		}
-
-		// Cập nhật thông tin FbPage
-		return h.crudFbPage.UpdateOneById(ctx, oldFbPage.ID, change)
-	}
-
-}
-
-// Tìm một FbPage theo ID
-func (h *FbPageService) FindOneById(ctx *fasthttp.RequestCtx, id string) (FindResult interface{}, err error) {
-	return h.crudFbPage.FindOneById(ctx, utility.String2ObjectID(id), nil)
-}
-
-// Tìm một FbPage theo PageID
-func (h *FbPageService) FindOneByPageID(ctx *fasthttp.RequestCtx, pageID string) (FindResult interface{}, err error) {
-	// Tạo điều kiện tìm kiếm
-	filter := bson.M{"pageId": pageID}
-	return h.crudFbPage.FindOne(ctx, filter, nil)
-}
-
-// Tìm tất cả các FbPage với phân trang
-func (h *FbPageService) FindAll(ctx *fasthttp.RequestCtx, page int64, limit int64) (FindResult interface{}, err error) {
-	// Cài đặt tùy chọn tìm kiếm
-	opts := new(options.FindOptions)
-	opts.SetLimit(limit)
-	opts.SetSkip(page * limit)
-	opts.SetSort(bson.D{{"updatedAt", 1}})
-	return h.crudFbPage.FindAllWithPaginate(ctx, nil, opts)
-}
-
-// Cập nhật access token của một FbPage theo ID
-func (h *FbPageService) UpdateToken(ctx *fasthttp.RequestCtx, credential *models.FbPageUpdateTokenInput) (UpdateResult interface{}, err error) {
-	// Tìm FbPage theo page
-	filter := bson.M{"pageId": credential.PageId}
-	checkResult, _ := h.crudFbPage.FindOne(ctx, filter, nil)
-	if checkResult == nil {
-		return nil, errors.New("FbPage not found")
-	}
-
-	// chuyển đổi checkResult từ interface{} sang models.FbPage
-	var oldFbPage models.FbPage
-	bsonBytes, err := bson.Marshal(checkResult)
+	exists, err := s.IsPageExist(ctx, pageId)
 	if err != nil {
 		return nil, err
 	}
 
-	err = bson.Unmarshal(bsonBytes, &oldFbPage)
+	if !exists {
+		// Tạo một FbPage mới
+		page := &models.FbPage{
+			ID:           primitive.NewObjectID(),
+			AccessToken:  input.AccessToken,
+			PanCakeData:  input.PanCakeData,
+			PageName:     input.PanCakeData["name"].(string),
+			PageUsername: input.PanCakeData["username"].(string),
+			PageId:       input.PanCakeData["id"].(string),
+			IsSync:       false,
+			CreatedAt:    time.Now().Unix(),
+			UpdatedAt:    time.Now().Unix(),
+		}
+
+		// Lưu FbPage
+		createdPage, err := s.BaseServiceImpl.Create(ctx, *page)
+		if err != nil {
+			return nil, err
+		}
+
+		return &createdPage, nil
+	} else {
+		// Lấy FbPage hiện tại
+		page, err := s.BaseServiceImpl.FindOne(ctx, pageId)
+		if err != nil {
+			return nil, err
+		}
+
+		// Cập nhật thông tin mới
+		page.PanCakeData = input.PanCakeData
+		page.AccessToken = input.AccessToken
+		page.PageName = input.PanCakeData["name"].(string)
+		page.PageUsername = input.PanCakeData["username"].(string)
+		page.UpdatedAt = time.Now().Unix()
+
+		// Cập nhật FbPage
+		updatedPage, err := s.BaseServiceImpl.Update(ctx, page.ID.Hex(), page)
+		if err != nil {
+			return nil, err
+		}
+
+		return &updatedPage, nil
+	}
+}
+
+// FindOneById tìm một FbPage theo ID
+func (s *FbPageService) FindOneById(ctx context.Context, id string) (models.FbPage, error) {
+	return s.BaseServiceImpl.FindOne(ctx, id)
+}
+
+// FindOneByPageID tìm một FbPage theo PageID
+func (s *FbPageService) FindOneByPageID(ctx context.Context, pageID string) (models.FbPage, error) {
+	filter := bson.M{"pageId": pageID}
+	var page models.FbPage
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&page)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return page, errors.New("page not found")
+		}
+		return page, err
+	}
+	return page, nil
+}
+
+// FindAll tìm tất cả các FbPage với phân trang
+func (s *FbPageService) FindAll(ctx context.Context, page int64, limit int64) ([]models.FbPage, error) {
+	opts := options.Find().
+		SetSkip((page - 1) * limit).
+		SetLimit(limit).
+		SetSort(bson.D{{"updatedAt", 1}})
+
+	cursor, err := s.BaseServiceImpl.collection.Find(ctx, nil, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []models.FbPage
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// UpdateToken cập nhật access token của một FbPage theo ID
+func (s *FbPageService) UpdateToken(ctx context.Context, input *models.FbPageUpdateTokenInput) (*models.FbPage, error) {
+	// Tìm FbPage theo page
+	page, err := s.FindOneByPageID(ctx, input.PageId)
 	if err != nil {
 		return nil, err
 	}
 
 	// Cập nhật thông tin FbPage
-	oldFbPage.PageAccessToken = credential.PageAccessToken
+	page.PageAccessToken = input.PageAccessToken
+	page.UpdatedAt = time.Now().Unix()
 
-	CustomBson := &utility.CustomBson{}
-	change, err := CustomBson.Set(oldFbPage)
+	// Cập nhật FbPage
+	updatedPage, err := s.BaseServiceImpl.Update(ctx, page.ID.Hex(), page)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.crudFbPage.UpdateOneById(ctx, oldFbPage.ID, change)
+	return &updatedPage, nil
 }

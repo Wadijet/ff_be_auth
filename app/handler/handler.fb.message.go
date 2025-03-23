@@ -4,8 +4,11 @@ import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
 	"atk-go-server/config"
+	"context"
+	"time"
 
 	"github.com/valyala/fasthttp"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -13,13 +16,13 @@ import (
 // Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
 type FbMessageHandler struct {
 	BaseHandler
-	FbMessageService services.FbMessageService
+	FbMessageService *services.FbMessageService
 }
 
 // NewFbMessageHandler khởi tạo một FbMessageHandler mới
 func NewFbMessageHandler(c *config.Configuration, db *mongo.Client) *FbMessageHandler {
 	newHandler := new(FbMessageHandler)
-	newHandler.FbMessageService = *services.NewFbMessageService(c, db)
+	newHandler.FbMessageService = services.NewFbMessageService(c, db)
 	return newHandler
 }
 
@@ -27,26 +30,63 @@ func NewFbMessageHandler(c *config.Configuration, db *mongo.Client) *FbMessageHa
 
 // Create xử lý tạo mới FbMessage
 func (h *FbMessageHandler) Create(ctx *fasthttp.RequestCtx) {
-	inputStruct := new(models.FbMessageCreateInput)
-	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
+	input := new(models.FbMessageCreateInput)
+	if response := h.ParseRequestBody(ctx, input); response != nil {
 		h.HandleError(ctx, nil)
 		return
 	}
 
-	data, err := h.FbMessageService.ReviceData(ctx, inputStruct)
+	context := context.Background()
+	data, err := h.FbMessageService.ReviceData(context, input)
 	h.HandleResponse(ctx, data, err)
 }
 
-// FindOneById tìm một FbMessage theo ID
-func (h *FbMessageHandler) FindOneById(ctx *fasthttp.RequestCtx) {
+// FindOne tìm một FbMessage theo ID
+func (h *FbMessageHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
-	data, err := h.FbMessageService.FindOneById(ctx, id)
+	context := context.Background()
+	data, err := h.FbMessageService.FindOne(context, id)
 	h.HandleResponse(ctx, data, err)
 }
 
 // FindAll tìm tất cả các FbMessage với phân trang
 func (h *FbMessageHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	page, limit := h.ParsePagination(ctx)
-	data, err := h.FbMessageService.FindAll(ctx, page, limit)
+	context := context.Background()
+
+	data, err := h.FbMessageService.FindAll(context, page, limit)
 	h.HandleResponse(ctx, data, err)
+}
+
+// Update cập nhật một FbMessage
+func (h *FbMessageHandler) Update(ctx *fasthttp.RequestCtx) {
+	id := h.GetIDFromContext(ctx)
+	input := new(models.FbMessageCreateInput)
+	if response := h.ParseRequestBody(ctx, input); response != nil {
+		h.HandleError(ctx, nil)
+		return
+	}
+
+	context := context.Background()
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		h.HandleError(ctx, err)
+		return
+	}
+
+	fbMessage := models.FbMessage{
+		ID:          objectID,
+		PanCakeData: input.PanCakeData,
+		UpdatedAt:   time.Now().Unix(),
+	}
+	data, err := h.FbMessageService.Update(context, id, fbMessage)
+	h.HandleResponse(ctx, data, err)
+}
+
+// Delete xóa một FbMessage
+func (h *FbMessageHandler) Delete(ctx *fasthttp.RequestCtx) {
+	id := h.GetIDFromContext(ctx)
+	context := context.Background()
+	err := h.FbMessageService.Delete(context, id)
+	h.HandleResponse(ctx, nil, err)
 }

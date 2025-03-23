@@ -16,7 +16,6 @@ import (
 	"atk-go-server/config"
 	"atk-go-server/database"
 	"atk-go-server/global"
-	"atk-go-server/metadata"
 )
 
 // Hàm khởi tạo các biến toàn cục
@@ -96,28 +95,6 @@ func initDatabase_MongoDB() {
 	InitService.InitPermission()
 	InitService.CheckPermissionForAdministrator()
 
-}
-
-// Hàm khởi tạo metadata
-func readFileMetadata() {
-	metadataFilePath := global.MongoDB_ServerConfig.Metadata_Path
-	result, err := metadata.ReadMetadata(metadataFilePath)
-	if err != nil {
-		logrus.Fatalf("Failed to read metadata: %v", err)
-	}
-	global.Metadata = result
-	logrus.Info("Initialized metadata")
-}
-
-// Hàm khởi tạo kết nối database
-func initDatabase_MySql() {
-	var err error
-
-	global.MySQL_Session, err = database.GetMySQLInstance(global.MongoDB_ServerConfig)
-	if err != nil {
-		logrus.Fatalf("Failed to get MySQL instance: %v", err)
-	}
-	logrus.Info("Connected to MySQL")
 }
 
 // Hàm xử lý panic
