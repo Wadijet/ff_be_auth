@@ -2,10 +2,8 @@ package handler
 
 import (
 	"atk-go-server/app/services"
-	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
-	"net/http"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -13,7 +11,9 @@ import (
 )
 
 // AdminHandler là cấu trúc chứa các dịch vụ cần thiết để xử lý các yêu cầu liên quan đến quản trị viên
+// Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
 type AdminHandler struct {
+	BaseHandler
 	UserCRUD       services.RepositoryService
 	PermissionCRUD services.RepositoryService
 	RoleCRUD       services.RepositoryService
@@ -42,7 +42,8 @@ type SetRoleStruct struct {
 
 // SetRole xử lý yêu cầu thiết lập vai trò cho người dùng
 func (h *AdminHandler) SetRole(ctx *fasthttp.RequestCtx) {
-	utility.GenericHandler[SetRoleStruct](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+	input := new(SetRoleStruct)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
 		inputStruct := input.(*SetRoleStruct)
 		return h.AdminService.SetRole(ctx, inputStruct.Email, inputStruct.RoleID)
 	})
@@ -58,7 +59,8 @@ type BlockUserInput struct {
 
 // BlockUser xử lý yêu cầu khóa người dùng
 func (h *AdminHandler) BlockUser(ctx *fasthttp.RequestCtx) {
-	utility.GenericHandler[BlockUserInput](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+	input := new(BlockUserInput)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
 		inputStruct := input.(*BlockUserInput)
 		return h.AdminService.BlockUser(ctx, inputStruct.Email, true, inputStruct.Note)
 	})
@@ -66,23 +68,9 @@ func (h *AdminHandler) BlockUser(ctx *fasthttp.RequestCtx) {
 
 // UnBlockUser xử lý yêu cầu mở khóa người dùng
 func (h *AdminHandler) UnBlockUser(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
-	inputStruct := new(BlockUserInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.AdminService.BlockUser(ctx, inputStruct.Email, false, inputStruct.Note))
-			ctx.SetStatusCode(http.StatusOK)
-		} else {
-			ctx.SetStatusCode(http.StatusBadRequest)
-		}
-	} else {
-		ctx.SetStatusCode(http.StatusBadRequest)
-	}
-
-	utility.JSON(ctx, response)
+	input := new(BlockUserInput)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		inputStruct := input.(*BlockUserInput)
+		return h.AdminService.BlockUser(ctx, inputStruct.Email, false, inputStruct.Note)
+	})
 }

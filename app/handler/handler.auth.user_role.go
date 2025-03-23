@@ -3,15 +3,16 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
-	"atk-go-server/app/utility"
 	"atk-go-server/config"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// UserRoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
+// UserRoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò của người dùng
+// Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
 type UserRoleHandler struct {
+	BaseHandler
 	UserRoleService *services.UserRoleService
 }
 
@@ -26,23 +27,15 @@ func NewUserRoleHandler(c *config.Configuration, db *mongo.Client) *UserRoleHand
 
 // Create xử lý tạo mới UserRole
 func (h *UserRoleHandler) Create(ctx *fasthttp.RequestCtx) {
-	utility.GenericHandler[models.UserRoleCreateInput](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
-		inputStruct := input.(*models.UserRoleCreateInput)
-		return h.UserRoleService.Create(ctx, inputStruct)
+	input := new(models.UserRoleCreateInput)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		return h.UserRoleService.Create(ctx, input.(*models.UserRoleCreateInput))
 	})
 }
 
-// Xóa một UserRole
+// Delete xóa một UserRole
 func (h *UserRoleHandler) Delete(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy ID từ yêu cầu
-	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.UserRoleService.Delete(ctx, id))
-	if response["error"] != nil {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest) // Set status code to 400 Bad Request if there's an error
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusOK) // Set status code to 200 OK
-	}
-	utility.JSON(ctx, response)
+	id := h.GetIDFromContext(ctx)
+	data, err := h.UserRoleService.Delete(ctx, id)
+	h.HandleResponse(ctx, data, err)
 }

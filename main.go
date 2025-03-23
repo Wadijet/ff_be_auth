@@ -98,12 +98,6 @@ func initDatabase_MongoDB() {
 
 }
 
-func initMetadata() {
-
-	readFileMetadata()       // Khởi tạo metadata
-	database.InitDatabases() // Khởi tạo các cơ sở dữ liệu dựa trên metadata
-}
-
 // Hàm khởi tạo metadata
 func readFileMetadata() {
 	metadataFilePath := global.MongoDB_ServerConfig.Metadata_Path
@@ -153,7 +147,6 @@ func main_thread() {
 
 // Hàm main
 func main() {
-	initGlobal()   // Khởi tạo các biến toàn cục
-	initMetadata() // Khởi tạo metadata
-	main_thread()  // Chạy server
+	initGlobal()  // Khởi tạo các biến toàn cục
+	main_thread() // Chạy server
 }

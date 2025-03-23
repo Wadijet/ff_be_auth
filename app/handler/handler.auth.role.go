@@ -3,16 +3,16 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
-	"atk-go-server/app/utility"
 	"atk-go-server/config"
-	"strconv"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // RoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
+// Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
 type RoleHandler struct {
+	BaseHandler
 	RoleService *services.RoleService
 }
 
@@ -27,90 +27,48 @@ func NewRoleHandler(c *config.Configuration, db *mongo.Client) *RoleHandler {
 
 // Create xử lý tạo mới vai trò
 func (h *RoleHandler) Create(ctx *fasthttp.RequestCtx) {
-	utility.GenericHandler[models.RoleCreateInput](ctx, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
-		inputStruct := input.(*models.RoleCreateInput)
-		return h.RoleService.Create(ctx, inputStruct)
-	})
+	inputStruct := new(models.RoleCreateInput)
+	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
+		h.HandleError(ctx, nil)
+		return
+	}
+
+	data, err := h.RoleService.Create(ctx, inputStruct)
+	h.HandleResponse(ctx, data, err)
 }
 
 // FindOneById tìm vai trò theo ID
 func (h *RoleHandler) FindOneById(ctx *fasthttp.RequestCtx) {
-	id := ctx.UserValue("id").(string)
-	result, err := h.RoleService.FindOneById(ctx, id)
-	response := utility.FinalResponse(result, err)
-
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusOK)
-	}
-	utility.JSON(ctx, response)
+	id := h.GetIDFromContext(ctx)
+	data, err := h.RoleService.FindOneById(ctx, id)
+	h.HandleResponse(ctx, data, err)
 }
 
-// Tìm tất cả các vai trò với phân trang
+// FindAll tìm tất cả các vai trò với phân trang
 func (h *RoleHandler) FindAll(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	buf := string(ctx.FormValue("limit"))
-	limit, err := strconv.ParseInt(buf, 10, 64)
-	if err != nil {
-		limit = 10
-	}
-
-	buf = string(ctx.FormValue("page"))
-	page, err := strconv.ParseInt(buf, 10, 64)
-	if err != nil {
-		page = 0
-	}
-
-	response = utility.FinalResponse(h.RoleService.FindAll(ctx, page, limit))
-	ctx.SetStatusCode(fasthttp.StatusOK)
-
-	utility.JSON(ctx, response)
+	page, limit := h.ParsePagination(ctx)
+	data, err := h.RoleService.FindAll(ctx, page, limit)
+	h.HandleResponse(ctx, data, err)
 }
 
-// Cập nhật một vai trò theo ID
+// UpdateOneById cập nhật một vai trò theo ID
 func (h *RoleHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy ID từ yêu cầu
-	id := ctx.UserValue("id").(string)
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
+	id := h.GetIDFromContext(ctx)
 	inputStruct := new(models.RoleUpdateInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.RoleService.Update(ctx, id, inputStruct))
-			ctx.SetStatusCode(fasthttp.StatusOK)
-		} else {
-			ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		}
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
+		h.HandleError(ctx, nil)
+		return
 	}
 
-	utility.JSON(ctx, response)
+	data, err := h.RoleService.Update(ctx, id, inputStruct)
+	h.HandleResponse(ctx, data, err)
 }
 
-// Xóa một vai trò theo ID
+// DeleteOneById xóa một vai trò theo ID
 func (h *RoleHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy ID từ yêu cầu
-	id := ctx.UserValue("id").(string)
-
-	response = utility.FinalResponse(h.RoleService.Delete(ctx, id))
-	if response["error"] != nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusOK)
-	}
-
-	utility.JSON(ctx, response)
+	id := h.GetIDFromContext(ctx)
+	data, err := h.RoleService.Delete(ctx, id)
+	h.HandleResponse(ctx, data, err)
 }
 
 // Other functions =========================================================================

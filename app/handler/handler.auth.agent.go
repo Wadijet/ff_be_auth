@@ -3,20 +3,20 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
-	"atk-go-server/app/utility"
 	"atk-go-server/config"
-	"strconv"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// RoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
+// AgentHandler là cấu trúc xử lý các yêu cầu liên quan đến đại lý
+// Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
 type AgentHandler struct {
+	BaseHandler
 	AgentService services.AgentService
 }
 
-// NewRoleHandler khởi tạo một RoleHandler mới
+// NewAgentHandler khởi tạo một AgentHandler mới
 func NewAgentHandler(c *config.Configuration, db *mongo.Client) *AgentHandler {
 	newHandler := new(AgentHandler)
 	newHandler.AgentService = *services.NewAgentService(c, db)
@@ -25,127 +25,60 @@ func NewAgentHandler(c *config.Configuration, db *mongo.Client) *AgentHandler {
 
 // CRUD functions ==========================================================================
 
-// Tạo mới một Agent
+// Create tạo mới một Agent
 func (h *AgentHandler) Create(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
 	inputStruct := new(models.AgentCreateInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.AgentService.Create(ctx, inputStruct))
-			ctx.SetStatusCode(fasthttp.StatusCreated)
-		} else {
-			ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		}
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
+		h.HandleError(ctx, nil)
+		return
 	}
 
-	utility.JSON(ctx, response)
+	data, err := h.AgentService.Create(ctx, inputStruct)
+	h.HandleResponse(ctx, data, err)
 }
 
-// Tìm một Agent theo ID
+// FindOneById tìm một Agent theo ID
 func (h *AgentHandler) FindOneById(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy ID từ yêu cầu
-	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.AgentService.FindOneById(ctx, id))
-
-	if response["error"] != nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusOK)
-	}
-
-	utility.JSON(ctx, response)
+	id := h.GetIDFromContext(ctx)
+	data, err := h.AgentService.FindOneById(ctx, id)
+	h.HandleResponse(ctx, data, err)
 }
 
-// Tìm tất cả các Agent với phân trang
+// FindAll tìm tất cả các Agent với phân trang
 func (h *AgentHandler) FindAll(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy dữ liệu từ yêu cầu
-	buf := string(ctx.FormValue("limit"))
-	limit, err := strconv.ParseInt(buf, 10, 64)
-	if err != nil {
-		limit = 10
-	}
-
-	buf = string(ctx.FormValue("page"))
-	page, err := strconv.ParseInt(buf, 10, 64)
-	if err != nil {
-		page = 0
-	}
-
-	response = utility.FinalResponse(h.AgentService.FindAll(ctx, page, limit))
-
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	utility.JSON(ctx, response)
+	page, limit := h.ParsePagination(ctx)
+	data, err := h.AgentService.FindAll(ctx, page, limit)
+	h.HandleResponse(ctx, data, err)
 }
 
-// Cập nhật một Agent theo ID
+// UpdateOneById cập nhật một Agent theo ID
 func (h *AgentHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy ID từ yêu cầu
-	id := ctx.UserValue("id").(string)
-
-	// Lấy dữ liệu từ yêu cầu
-	postValues := ctx.PostBody()
+	id := h.GetIDFromContext(ctx)
 	inputStruct := new(models.AgentUpdateInput)
-	response = utility.Convert2Struct(postValues, inputStruct)
-	if response == nil { // Kiểm tra dữ liệu đầu vào
-		response = utility.ValidateStruct(inputStruct)
-		if response == nil { // Gọi hàm xử lý logic
-			response = utility.FinalResponse(h.AgentService.Update(ctx, id, inputStruct))
-			ctx.SetStatusCode(fasthttp.StatusOK)
-		} else {
-			ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		}
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
+		h.HandleError(ctx, nil)
+		return
 	}
 
-	utility.JSON(ctx, response)
+	data, err := h.AgentService.Update(ctx, id, inputStruct)
+	h.HandleResponse(ctx, data, err)
 }
 
-// Xóa một Agent theo ID
+// DeleteOneById xóa một Agent theo ID
 func (h *AgentHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy ID từ yêu cầu
-	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.AgentService.Delete(ctx, id))
-
-	if response["error"] != nil {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusOK)
-	}
-
-	utility.JSON(ctx, response)
+	id := h.GetIDFromContext(ctx)
+	data, err := h.AgentService.Delete(ctx, id)
+	h.HandleResponse(ctx, data, err)
 }
 
-// Custom functions ==========================================================================
-
-// CheckIn một Agent
+// CheckIn xử lý check-in cho Agent
 func (h *AgentHandler) CheckIn(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	// Lấy ID từ yêu cầu
-	id := ctx.UserValue("id").(string)
-	response = utility.FinalResponse(h.AgentService.CheckIn(ctx, id))
-
-	if response["error"] != nil {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusOK)
+	if ctx.UserValue("userId") == nil {
+		h.HandleError(ctx, nil)
+		return
 	}
 
-	utility.JSON(ctx, response)
+	strMyID := ctx.UserValue("userId").(string)
+	data, err := h.AgentService.CheckIn(ctx, strMyID)
+	h.HandleResponse(ctx, data, err)
 }
