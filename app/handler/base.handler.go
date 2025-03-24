@@ -26,11 +26,21 @@ type HandlerFunc func(ctx *fasthttp.RequestCtx, input interface{}) (interface{},
 // - Nếu thành công: trả về response với status success và data
 func (h *BaseHandler) HandleResponse(ctx *fasthttp.RequestCtx, data interface{}, err error) {
 	var response map[string]interface{}
+	var statusCode int = utility.StatusOK
+
 	if err != nil {
-		response = utility.Payload(false, nil, err.Error())
+		if customErr, ok := err.(*utility.Error); ok {
+			statusCode = customErr.StatusCode
+			response = utility.Payload(false, nil, customErr.Message, statusCode)
+		} else {
+			statusCode = utility.StatusInternalServerError
+			response = utility.Payload(false, nil, utility.MsgInternalError, statusCode)
+		}
 	} else {
-		response = utility.FinalResponse(data, nil)
+		response = utility.Payload(true, data, utility.MsgSuccess, statusCode)
 	}
+
+	ctx.SetStatusCode(statusCode)
 	utility.JSON(ctx, response)
 }
 
@@ -43,8 +53,14 @@ func (h *BaseHandler) HandleResponse(ctx *fasthttp.RequestCtx, data interface{},
 // 2. Chuyển đổi JSON thành struct
 // 3. Validate dữ liệu của struct
 func (h *BaseHandler) ParseRequestBody(ctx *fasthttp.RequestCtx, input interface{}) map[string]interface{} {
-	postValues := ctx.PostBody()
-	response := utility.Convert2Struct(postValues, input)
+	var body []byte
+	contentType := string(ctx.Request.Header.ContentType())
+	if contentType == "application/json" {
+		body = ctx.Request.Body()
+	} else {
+		body = ctx.PostBody()
+	}
+	response := utility.Convert2Struct(body, input)
 	if response == nil {
 		response = utility.ValidateStruct(input)
 	}
@@ -89,7 +105,21 @@ func (h *BaseHandler) GetIDFromContext(ctx *fasthttp.RequestCtx) string {
 // 2. Thêm message lỗi vào response
 // 3. Gửi response về client
 func (h *BaseHandler) HandleError(ctx *fasthttp.RequestCtx, err error) {
-	response := utility.Payload(false, nil, err.Error())
+	var message string
+	var statusCode int = utility.StatusInternalServerError
+
+	if err != nil {
+		message = err.Error()
+		if customErr, ok := err.(*utility.Error); ok {
+			statusCode = customErr.StatusCode
+		}
+	} else {
+		message = utility.MsgBadRequest
+		statusCode = utility.StatusBadRequest
+	}
+
+	ctx.SetStatusCode(statusCode)
+	response := utility.Payload(false, nil, message, statusCode)
 	utility.JSON(ctx, response)
 }
 

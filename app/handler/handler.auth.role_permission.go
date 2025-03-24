@@ -3,6 +3,7 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"context"
 	"time"
@@ -47,7 +48,7 @@ func (h *RolePermissionHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *RolePermissionHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.RolePermissionService.FindOne(context, id)
+	data, err := h.RolePermissionService.FindOne(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -126,6 +127,6 @@ func (h *RolePermissionHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *RolePermissionHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.RolePermissionService.Delete(context, id)
+	err := h.RolePermissionService.Delete(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }

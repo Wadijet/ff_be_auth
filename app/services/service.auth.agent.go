@@ -83,7 +83,7 @@ func (s *AgentService) Create(ctx context.Context, input *models.AgentCreateInpu
 }
 
 // Update cập nhật thông tin trợ lý
-func (s *AgentService) Update(ctx context.Context, id string, input *models.AgentUpdateInput) (*models.Agent, error) {
+func (s *AgentService) Update(ctx context.Context, id primitive.ObjectID, input *models.AgentUpdateInput) (*models.Agent, error) {
 	// Kiểm tra agent tồn tại
 	agent, err := s.BaseServiceImpl.FindOne(ctx, id)
 	if err != nil {
@@ -134,7 +134,7 @@ func (s *AgentService) Update(ctx context.Context, id string, input *models.Agen
 }
 
 // Delete xóa trợ lý
-func (s *AgentService) Delete(ctx context.Context, id string) error {
+func (s *AgentService) Delete(ctx context.Context, id primitive.ObjectID) error {
 	return s.BaseServiceImpl.Delete(ctx, id)
 }
 
@@ -155,7 +155,7 @@ func (s *AgentService) CheckOnlineStatus(ctx context.Context) error {
 			agent.Status = 0
 			agent.UpdatedAt = time.Now().Unix()
 
-			_, err := s.BaseServiceImpl.Update(ctx, agent.ID.Hex(), agent)
+			_, err := s.BaseServiceImpl.Update(ctx, agent.ID, agent)
 			if err != nil {
 				return err
 			}
@@ -166,7 +166,7 @@ func (s *AgentService) CheckOnlineStatus(ctx context.Context) error {
 }
 
 // CheckIn điểm danh cho một trợ lý
-func (s *AgentService) CheckIn(ctx context.Context, id string) (*models.Agent, error) {
+func (s *AgentService) CheckIn(ctx context.Context, id primitive.ObjectID) (*models.Agent, error) {
 	// Kiểm tra agent tồn tại
 	agent, err := s.BaseServiceImpl.FindOne(ctx, id)
 	if err != nil {

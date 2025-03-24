@@ -3,6 +3,7 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"context"
 
@@ -45,7 +46,7 @@ func (h *AgentHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *AgentHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.AgentService.FindOne(context, id)
+	data, err := h.AgentService.FindOne(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -73,7 +74,7 @@ func (h *AgentHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.AgentService.Update(context, id, inputStruct)
+	data, err := h.AgentService.Update(context, utility.String2ObjectID(id), inputStruct)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -81,7 +82,7 @@ func (h *AgentHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 func (h *AgentHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.AgentService.Delete(context, id)
+	err := h.AgentService.Delete(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }
 
@@ -94,6 +95,6 @@ func (h *AgentHandler) CheckIn(ctx *fasthttp.RequestCtx) {
 
 	strMyID := ctx.UserValue("userId").(string)
 	context := context.Background()
-	data, err := h.AgentService.CheckIn(context, strMyID)
+	data, err := h.AgentService.CheckIn(context, utility.String2ObjectID(strMyID))
 	h.HandleResponse(ctx, data, err)
 }

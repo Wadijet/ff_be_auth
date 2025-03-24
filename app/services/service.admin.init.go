@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -224,7 +225,7 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 }
 
 // Viết hàm set administator để gán quyền admin cho user
-func (h *InitService) SetAdministrator(userID string) (result interface{}, err error) {
+func (h *InitService) SetAdministrator(userID primitive.ObjectID) (result interface{}, err error) {
 	// Tìm user theo ID
 	user, err := h.UserCRUD.FindOne(context.TODO(), userID)
 	if err != nil {

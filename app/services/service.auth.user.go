@@ -3,9 +3,12 @@ package services
 import (
 	"context"
 	"errors"
+	"math/rand"
+	"strconv"
 	"time"
 
 	models "atk-go-server/app/models/mongodb"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"atk-go-server/global"
 
@@ -78,14 +81,11 @@ func (s *UserService) Create(ctx context.Context, input *models.UserCreateInput)
 
 	// Tạo user mới
 	user := &models.User{
-		ID:        primitive.NewObjectID(),
-		Name:      input.Name,
-		Email:     input.Email,
-		Password:  string(hashedPassword),
-		Salt:      salt,
-		IsBlock:   false,
-		CreatedAt: time.Now().Unix(),
-		UpdatedAt: time.Now().Unix(),
+		Name:     input.Name,
+		Email:    input.Email,
+		Password: string(hashedPassword),
+		Salt:     salt,
+		IsBlock:  false,
 	}
 
 	// Lưu user
@@ -98,7 +98,7 @@ func (s *UserService) Create(ctx context.Context, input *models.UserCreateInput)
 }
 
 // Update cập nhật thông tin người dùng
-func (s *UserService) Update(ctx context.Context, id string, input *models.UserChangeInfoInput) (*models.User, error) {
+func (s *UserService) Update(ctx context.Context, id primitive.ObjectID, input *models.UserChangeInfoInput) (*models.User, error) {
 	// Kiểm tra user tồn tại
 	user, err := s.BaseServiceImpl.FindOne(ctx, id)
 	if err != nil {
@@ -119,7 +119,7 @@ func (s *UserService) Update(ctx context.Context, id string, input *models.UserC
 }
 
 // Delete xóa người dùng
-func (s *UserService) Delete(ctx context.Context, id string) error {
+func (s *UserService) Delete(ctx context.Context, id primitive.ObjectID) error {
 	// Xóa user roles trước
 	filter := bson.M{"user_id": id}
 	_, err := s.userRoleService.DeleteMany(ctx, filter)
@@ -134,7 +134,8 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 // Login đăng nhập người dùng
 func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (*models.User, error) {
 	// Tìm user theo email
-	user, err := s.BaseServiceImpl.FindOne(ctx, input.Email)
+	filter := bson.M{"email": input.Email}
+	user, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
 	if err != nil {
 		if err == ErrNotFound {
 			return nil, errors.New("Invalid email or password")
@@ -147,29 +148,35 @@ func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (
 		return nil, errors.New("Invalid email or password")
 	}
 
-	// Tạo token mới
-	token := uuid.New().String()
-	user.Token = token
+	// Tạo chuỗi random và curentTime để tạo token mới
+	rdNumber := rand.Intn(100)
+	currentTime := time.Now().Unix()
 
-	// Cập nhật hoặc thêm token mới cho hwid
-	found := false
-	for i, t := range user.Tokens {
-		if t.Hwid == input.Hwid {
-			user.Tokens[i].JwtToken = token
-			found = true
+	tokenMap, err := utility.CreateToken(global.MongoDB_ServerConfig.JwtSecret, user.ID.Hex(), strconv.FormatInt(currentTime, 16), strconv.Itoa(rdNumber))
+	if err != nil {
+		return nil, err
+	}
+
+	// Cập nhật token mới
+	user.Token = tokenMap["token"]
+
+	var idTokenExist int = -1
+	// duyệt qua tất cả các token, kiểm tra hwid đó đã có token chưa, nếu có thì idTokenExist = i
+	for i, _token := range user.Tokens {
+		if _token.Hwid == input.Hwid {
+			idTokenExist = i
 			break
 		}
 	}
-	if !found {
+	if idTokenExist == -1 {
 		user.Tokens = append(user.Tokens, models.Token{
 			Hwid:     input.Hwid,
-			JwtToken: token,
+			JwtToken: tokenMap["token"],
 		})
 	}
 
 	// Cập nhật user
-	user.UpdatedAt = time.Now().Unix()
-	updatedUser, err := s.BaseServiceImpl.Update(ctx, user.ID.Hex(), user)
+	updatedUser, err := s.BaseServiceImpl.Update(ctx, user.ID, user)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +185,7 @@ func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (
 }
 
 // Logout đăng xuất người dùng
-func (s *UserService) Logout(ctx context.Context, userID string, input *models.UserLogoutInput) error {
+func (s *UserService) Logout(ctx context.Context, userID primitive.ObjectID, input *models.UserLogoutInput) error {
 	// Tìm user
 	user, err := s.BaseServiceImpl.FindOne(ctx, userID)
 	if err != nil {
@@ -202,7 +209,7 @@ func (s *UserService) Logout(ctx context.Context, userID string, input *models.U
 }
 
 // ChangePassword thay đổi mật khẩu
-func (s *UserService) ChangePassword(ctx context.Context, userID string, input *models.UserChangePasswordInput) error {
+func (s *UserService) ChangePassword(ctx context.Context, userID primitive.ObjectID, input *models.UserChangePasswordInput) error {
 	// Tìm user
 	user, err := s.BaseServiceImpl.FindOne(ctx, userID)
 	if err != nil {

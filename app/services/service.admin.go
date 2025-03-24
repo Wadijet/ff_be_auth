@@ -38,7 +38,7 @@ func NewAdminService(c *config.Configuration, db *mongo.Client) *AdminService {
 // SetRole gán Role cho User dựa trên Email và RoleID
 func (s *AdminService) SetRole(ctx context.Context, email string, roleID primitive.ObjectID) (*models.User, error) {
 	// Kiểm tra Role có tồn tại không
-	_, err := s.RoleService.FindOne(ctx, roleID.Hex())
+	_, err := s.RoleService.FindOne(ctx, roleID)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (s *AdminService) SetRole(ctx context.Context, email string, roleID primiti
 	user.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật User
-	updatedUser, err := s.UserService.Update(ctx, user.ID.Hex(), user)
+	updatedUser, err := s.UserService.Update(ctx, user.ID, user)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (s *AdminService) BlockUser(ctx context.Context, email string, block bool, 
 	user.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật User
-	updatedUser, err := s.UserService.Update(ctx, user.ID.Hex(), user)
+	updatedUser, err := s.UserService.Update(ctx, user.ID, user)
 	if err != nil {
 		return nil, err
 	}

@@ -8,10 +8,10 @@ import (
 
 // ApiInfo chứa thông tin về một API request
 type ApiInfo struct {
-	Time   int64  `json:"time" bson"time"`     // Thời gian request
-	Method string `json:"method" bson"method"` // Phương thức HTTP (GET, POST, ...)
-	Url    string `json:"url" bson"url"`       // URL của request
-	Result bool   `json:"result" bson"result"` // Kết quả của request
+	Time   int64  `json:"time" bson:"time"`     // Thời gian request
+	Method string `json:"method" bson:"method"` // Phương thức HTTP (GET, POST, ...)
+	Url    string `json:"url" bson:"url"`       // URL của request
+	Result bool   `json:"result" bson:"result"` // Kết quả của request
 }
 
 // StackApiInfo là một stack chứa các ApiInfo

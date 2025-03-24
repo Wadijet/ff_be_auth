@@ -82,7 +82,7 @@ func (s *AccessTokenService) Create(ctx context.Context, input *models.AccessTok
 }
 
 // Update cập nhật thông tin access token
-func (s *AccessTokenService) Update(ctx context.Context, id string, input *models.AccessTokenUpdateInput) (*models.AccessToken, error) {
+func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, input *models.AccessTokenUpdateInput) (*models.AccessToken, error) {
 	// Kiểm tra access token tồn tại
 	accessToken, err := s.BaseServiceImpl.FindOne(ctx, id)
 	if err != nil {
@@ -130,6 +130,6 @@ func (s *AccessTokenService) Update(ctx context.Context, id string, input *model
 }
 
 // Delete xóa access token
-func (s *AccessTokenService) Delete(ctx context.Context, id string) error {
+func (s *AccessTokenService) Delete(ctx context.Context, id primitive.ObjectID) error {
 	return s.BaseServiceImpl.Delete(ctx, id)
 }

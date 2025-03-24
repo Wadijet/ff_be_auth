@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/fasthttp/router"
 	"github.com/sirupsen/logrus"
@@ -106,19 +107,39 @@ func panicHandler(ctx *fasthttp.RequestCtx, data interface{}) {
 
 // Hàm chính để chạy server
 func main_thread() {
-
 	// Khởi tạo router
-	r := router.New()
-	api.InitRounters(r, global.MongoDB_ServerConfig, global.MongoDB_Session) // Khởi tạo các route cho API
-	r.PanicHandler = panicHandler                                            // Đặt hàm xử lý panic
+	r := router.New()                                                        // Khởi tạo router mới
+	api.InitRounters(r, global.MongoDB_ServerConfig, global.MongoDB_Session) // Khởi tạo các route cho router
+	r.PanicHandler = panicHandler                                            // Xử lý panic
 
-	// Sử dụng middleware Measure và COSR cho tất cả các route
-	measuredHandler := middleware.CORS(middleware.Measure(r.Handler))
+	// Sử dụng các middleware theo thứ tự
+	handler := r.Handler
+	handler = middleware.Recovery(handler)                                   // Recovery middleware để bắt panic
+	handler = middleware.Timeout(time.Second * 30)(handler)                  // Timeout middleware
+	handler = middleware.RateLimit(100, time.Second)(handler)                // Rate limiting
+	handler = middleware.Measure(middleware.DefaultMeasureConfig())(handler) // Measure middleware với cấu hình mặc định
+	handler = middleware.CORS(middleware.DefaultCorsConfig())(handler)       // CORS middleware với cấu hình mặc định
 
-	// Chạy server
-	logrus.Info("Starting server...") // Ghi log thông báo bắt đầu chạy server
-	if err := fasthttp.ListenAndServe(":8080", measuredHandler); err != nil {
-		logrus.Fatalf("Error in ListenAndServe: %v", err) // Ghi log lỗi nếu server không thể chạy
+	// Cấu hình server với các timeout
+	server := &fasthttp.Server{
+		Handler:               handler,          // Thêm handler vào server
+		ReadTimeout:           time.Second * 10, // Thời gian đọc request tối đa là 10 giây
+		WriteTimeout:          time.Second * 10, // Thời gian ghi response tối đa là 10 giây
+		MaxRequestsPerConn:    1000,             // Số lượng request tối đa trên mỗi connection là 1000
+		MaxConnsPerIP:         100,              // Số lượng connection tối đa trên mỗi IP là 100
+		MaxKeepaliveDuration:  time.Second * 5,  // Thời gian keepalive tối đa là 5 giây
+		IdleTimeout:           time.Second * 5,  // Thời gian idle tối đa là 5 giây
+		ReadBufferSize:        4096,             // Kích thước buffer đọc là 4096 bytes
+		WriteBufferSize:       4096,             // Kích thước buffer ghi là 4096 bytes
+		MaxRequestBodySize:    10 * 1024 * 1024, // Kích thước body request tối đa là 10MB
+		NoDefaultServerHeader: true,             // Không thêm header server mặc định
+		DisableKeepalive:      false,            // Không tắt keepalive
+	}
+
+	// Chạy server với cấu hình đã thiết lập
+	logrus.Info("Starting server...")
+	if err := server.ListenAndServe(":8080"); err != nil {
+		logrus.Fatalf("Error in ListenAndServe: %v", err)
 	}
 }
 

@@ -3,6 +3,7 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"context"
 
@@ -45,7 +46,7 @@ func (h *AccessTokenHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *AccessTokenHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.AccessTokenService.FindOne(context, id)
+	data, err := h.AccessTokenService.FindOne(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -71,7 +72,7 @@ func (h *AccessTokenHandler) Update(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.AccessTokenService.Update(context, id, input)
+	data, err := h.AccessTokenService.Update(context, utility.String2ObjectID(id), input)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -79,6 +80,6 @@ func (h *AccessTokenHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *AccessTokenHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.AccessTokenService.Delete(context, id)
+	err := h.AccessTokenService.Delete(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }

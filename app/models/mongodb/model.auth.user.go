@@ -16,8 +16,8 @@ type User struct {
 	Salt      string             `json:"-" bson:"salt"`                     // Muối để mã hóa mật khẩu
 	Token     string             `json:"token" bson:"token"`                // Token xác thực mới nhất của người dùng
 	Tokens    []Token            `json:"-" bson:"tokens"`                   // Danh sách các token đang hiệụ lực (mỗi hwid sẽ có một token)
-	IsBlock   bool               `json:"isBlock" bson:"isBlock"`            // Trạng thái bị khóa
-	BlockNote string             `json:"blockNote" bson:"blockNote"`        // Ghi chú về việc bị khóa
+	IsBlock   bool               `json:"-" bson:"isBlock"`                  // Trạng thái bị khóa
+	BlockNote string             `json:"-" bson:"blockNote"`                // Ghi chú về việc bị khóa
 	CreatedAt int64              `json:"createdAt" bson:"createdAt"`        // Thời gian tạo
 	UpdatedAt int64              `json:"updatedAt" bson:"updatedAt"`        // Thời gian cập nhật
 }

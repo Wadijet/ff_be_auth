@@ -3,6 +3,7 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"context"
 	"time"
@@ -46,7 +47,7 @@ func (h *FbConversationHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *FbConversationHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.FbConversationService.FindOne(context, id)
+	data, err := h.FbConversationService.FindOne(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -83,6 +84,13 @@ func (h *FbConversationHandler) FindAllSortByApiUpdate(ctx *fasthttp.RequestCtx)
 // Update cập nhật một FbConversation
 func (h *FbConversationHandler) Update(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		h.HandleError(ctx, err)
+		return
+	}
+
 	input := new(models.FbConversationCreateInput)
 	if response := h.ParseRequestBody(ctx, input); response != nil {
 		h.HandleError(ctx, nil)
@@ -90,13 +98,7 @@ func (h *FbConversationHandler) Update(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		h.HandleError(ctx, err)
-		return
-	}
-
-	fbConversation := models.FbConversation{
+	conversation := models.FbConversation{
 		ID:               objectID,
 		PageId:           input.PageId,
 		PageUsername:     input.PageUsername,
@@ -104,7 +106,8 @@ func (h *FbConversationHandler) Update(ctx *fasthttp.RequestCtx) {
 		PanCakeUpdatedAt: time.Now().Unix(),
 		UpdatedAt:        time.Now().Unix(),
 	}
-	data, err := h.FbConversationService.Update(context, id, fbConversation)
+
+	data, err := h.FbConversationService.Update(context, objectID, conversation)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -112,6 +115,6 @@ func (h *FbConversationHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *FbConversationHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.FbConversationService.Delete(context, id)
+	err := h.FbConversationService.Delete(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }

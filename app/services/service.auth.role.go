@@ -70,7 +70,7 @@ func (s *RoleService) Create(ctx context.Context, input *models.RoleCreateInput)
 }
 
 // Update cập nhật thông tin vai trò
-func (s *RoleService) Update(ctx context.Context, id string, input *models.RoleUpdateInput) (*models.Role, error) {
+func (s *RoleService) Update(ctx context.Context, id primitive.ObjectID, input *models.RoleUpdateInput) (*models.Role, error) {
 	// Kiểm tra role tồn tại
 	role, err := s.BaseServiceImpl.FindOne(ctx, id)
 	if err != nil {
@@ -105,6 +105,6 @@ func (s *RoleService) Update(ctx context.Context, id string, input *models.RoleU
 }
 
 // Delete xóa vai trò
-func (s *RoleService) Delete(ctx context.Context, id string) error {
+func (s *RoleService) Delete(ctx context.Context, id primitive.ObjectID) error {
 	return s.BaseServiceImpl.Delete(ctx, id)
 }

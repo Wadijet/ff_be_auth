@@ -3,6 +3,7 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"context"
 
@@ -45,7 +46,7 @@ func (h *PermissionHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *PermissionHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.PermissionService.FindOne(context, id)
+	data, err := h.PermissionService.FindOne(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -73,7 +74,7 @@ func (h *PermissionHandler) Update(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.PermissionService.Update(context, id, inputStruct)
+	data, err := h.PermissionService.Update(context, utility.String2ObjectID(id), inputStruct)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -81,7 +82,7 @@ func (h *PermissionHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *PermissionHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.PermissionService.Delete(context, id)
+	err := h.PermissionService.Delete(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }
 

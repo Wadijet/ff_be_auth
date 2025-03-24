@@ -43,6 +43,37 @@ func (s *PcOrderService) IsPancakeOrderIdExist(ctx context.Context, pancakeOrder
 	return true, nil
 }
 
+// FindOne tìm một document theo ObjectId
+func (s *PcOrderService) FindOne(ctx context.Context, id primitive.ObjectID) (models.PcOrder, error) {
+	filter := bson.M{"_id": id}
+	var result models.PcOrder
+	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		return models.PcOrder{}, err
+	}
+	return result, nil
+}
+
+// Delete xóa một document theo ObjectId
+func (s *PcOrderService) Delete(ctx context.Context, id primitive.ObjectID) error {
+	filter := bson.M{"_id": id}
+	_, err := s.BaseServiceImpl.collection.DeleteOne(ctx, filter)
+	return err
+}
+
+// Update cập nhật một document theo ObjectId
+func (s *PcOrderService) Update(ctx context.Context, id primitive.ObjectID, pcOrder models.PcOrder) (models.PcOrder, error) {
+	filter := bson.M{"_id": id}
+	update := bson.M{"$set": pcOrder}
+
+	_, err := s.BaseServiceImpl.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return models.PcOrder{}, err
+	}
+
+	return s.FindOne(ctx, id)
+}
+
 // ReviceData nhận data từ Pancake và lưu vào cơ sở dữ liệu
 func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCreateInput) (*models.PcOrder, error) {
 	if input.PanCakeData == nil {
@@ -80,7 +111,8 @@ func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCr
 		return &createdPcOrder, nil
 	} else {
 		// Lấy PcOrder hiện tại
-		pcOrder, err := s.BaseServiceImpl.FindOne(ctx, pancakeOrderIdStr)
+		filter := bson.M{"pancakeOrderId": pancakeOrderIdStr}
+		pcOrder, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +122,7 @@ func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCr
 		pcOrder.UpdatedAt = time.Now().Unix()
 
 		// Cập nhật PcOrder
-		updatedPcOrder, err := s.BaseServiceImpl.Update(ctx, pcOrder.ID.Hex(), pcOrder)
+		updatedPcOrder, err := s.BaseServiceImpl.Update(ctx, pcOrder.ID, pcOrder)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +132,7 @@ func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCr
 }
 
 // FindOneById tìm một PcOrder theo ID
-func (s *PcOrderService) FindOneById(ctx context.Context, id string) (models.PcOrder, error) {
+func (s *PcOrderService) FindOneById(ctx context.Context, id primitive.ObjectID) (models.PcOrder, error) {
 	return s.BaseServiceImpl.FindOne(ctx, id)
 }
 

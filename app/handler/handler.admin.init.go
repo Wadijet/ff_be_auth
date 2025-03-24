@@ -45,7 +45,7 @@ func (h *InitHandler) SetAdministrator(ctx *fasthttp.RequestCtx) {
 	// GET ID
 	id := ctx.UserValue("id").(string)
 
-	result, err := h.InitService.SetAdministrator(id)
+	result, err := h.InitService.SetAdministrator(utility.String2ObjectID(id))
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		response = utility.FinalResponse(nil, err)

@@ -3,6 +3,7 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"context"
 
@@ -35,7 +36,7 @@ func NewUserHandler(c *config.Configuration, db *mongo.Client) *UserHandler {
 func (h *UserHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.UserService.FindOne(context, id)
+	data, err := h.UserService.FindOne(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -70,7 +71,7 @@ func (h *UserHandler) Registry(ctx *fasthttp.RequestCtx) {
 func (h *UserHandler) Login(ctx *fasthttp.RequestCtx) {
 	inputStruct := new(models.UserLoginInput)
 	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
-		h.HandleError(ctx, nil)
+		h.HandleError(ctx, utility.NewError(400, "Invalid request body"))
 		return
 	}
 
@@ -94,7 +95,7 @@ func (h *UserHandler) Logout(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	err := h.UserService.Logout(context, strMyID, inputStruct)
+	err := h.UserService.Logout(context, utility.String2ObjectID(strMyID), inputStruct)
 	h.HandleResponse(ctx, nil, err)
 }
 
@@ -107,7 +108,7 @@ func (h *UserHandler) GetMyInfo(ctx *fasthttp.RequestCtx) {
 
 	strMyID := ctx.UserValue("userId").(string)
 	context := context.Background()
-	data, err := h.UserService.FindOne(context, strMyID)
+	data, err := h.UserService.FindOne(context, utility.String2ObjectID(strMyID))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -122,7 +123,7 @@ func (h *UserHandler) GetMyRoles(ctx *fasthttp.RequestCtx) {
 	context := context.Background()
 
 	// Lấy thông tin user
-	user, err := h.UserService.FindOne(context, strMyID)
+	user, err := h.UserService.FindOne(context, utility.String2ObjectID(strMyID))
 	if err != nil {
 		h.HandleError(ctx, err)
 		return
@@ -134,7 +135,7 @@ func (h *UserHandler) GetMyRoles(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	role, err := h.RoleService.FindOne(context, user.Token)
+	role, err := h.RoleService.FindOne(context, utility.String2ObjectID(user.Token))
 	if err != nil {
 		h.HandleError(ctx, err)
 		return
@@ -158,7 +159,7 @@ func (h *UserHandler) ChangePassword(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	err := h.UserService.ChangePassword(context, strMyID, inputStruct)
+	err := h.UserService.ChangePassword(context, utility.String2ObjectID(strMyID), inputStruct)
 	h.HandleResponse(ctx, nil, err)
 }
 
@@ -177,7 +178,7 @@ func (h *UserHandler) ChangeInfo(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.UserService.Update(context, strMyID, inputStruct)
+	data, err := h.UserService.Update(context, utility.String2ObjectID(strMyID), inputStruct)
 	h.HandleResponse(ctx, data, err)
 }
 

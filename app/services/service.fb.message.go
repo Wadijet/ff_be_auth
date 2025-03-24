@@ -79,7 +79,8 @@ func (s *FbMessageService) ReviceData(ctx context.Context, input *models.FbMessa
 		return &createdMessage, nil
 	} else {
 		// Lấy FbMessage hiện tại
-		message, err := s.BaseServiceImpl.FindOne(ctx, conversationId)
+		filter := bson.M{"conversationId": conversationId}
+		message, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +94,7 @@ func (s *FbMessageService) ReviceData(ctx context.Context, input *models.FbMessa
 		message.UpdatedAt = time.Now().Unix()
 
 		// Cập nhật FbMessage
-		updatedMessage, err := s.BaseServiceImpl.Update(ctx, message.ID.Hex(), message)
+		updatedMessage, err := s.BaseServiceImpl.Update(ctx, message.ID, message)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +104,7 @@ func (s *FbMessageService) ReviceData(ctx context.Context, input *models.FbMessa
 }
 
 // FindOneById tìm một FbMessage theo ID
-func (s *FbMessageService) FindOneById(ctx context.Context, id string) (models.FbMessage, error) {
+func (s *FbMessageService) FindOneById(ctx context.Context, id primitive.ObjectID) (models.FbMessage, error) {
 	return s.BaseServiceImpl.FindOne(ctx, id)
 }
 

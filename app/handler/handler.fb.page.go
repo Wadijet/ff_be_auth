@@ -3,6 +3,7 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"context"
 	"time"
@@ -45,7 +46,7 @@ func (h *FbPageHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *FbPageHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.FbPageService.FindOne(context, id)
+	data, err := h.FbPageService.FindOne(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -87,7 +88,7 @@ func (h *FbPageHandler) Update(ctx *fasthttp.RequestCtx) {
 		PanCakeData: input.PanCakeData,
 		UpdatedAt:   time.Now().Unix(),
 	}
-	data, err := h.FbPageService.Update(context, id, fbPage)
+	data, err := h.FbPageService.Update(context, utility.String2ObjectID(id), fbPage)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -95,7 +96,7 @@ func (h *FbPageHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *FbPageHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.FbPageService.Delete(context, id)
+	err := h.FbPageService.Delete(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }
 

@@ -2,11 +2,10 @@ package utility
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"encoding/json"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // GoProtect là một hàm bao bọc (wrapper) giúp bảo vệ một hàm khác khỏi bị panic.
@@ -51,21 +50,14 @@ func CurrentTimeInMilli() int64 {
 	return UnixMilli(time.Now())
 }
 
-// String2ObjectID chuyển đổi chuỗi thành ObjectID
-// @params - chuỗi cần chuyển đổi
-// @returns - ObjectID
-func String2ObjectID(id string) primitive.ObjectID {
-	objectId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return primitive.NilObjectID
+// LogWarning ghi log cảnh báo với các thông tin bổ sung
+func LogWarning(msg string, args ...interface{}) {
+	// Tạo chuỗi thông tin bổ sung
+	details := ""
+	for i := 0; i < len(args); i += 2 {
+		if i+1 < len(args) {
+			details += fmt.Sprintf(" %s=%v", args[i], args[i+1])
+		}
 	}
-	return objectId
-}
-
-// ObjectID2String chuyển đổi ObjectID thành chuỗi
-// @params - ObjectID cần chuyển đổi
-// @returns - chuỗi ObjectID
-func ObjectID2String(id primitive.ObjectID) string {
-	stringObjectID := id.Hex()
-	return stringObjectID
+	log.Printf("WARNING: %s%s", msg, details)
 }

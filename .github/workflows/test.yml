@@ -1,0 +1,42 @@
+name: API Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 5
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+        
+    - name: Install dependencies
+      run: go mod download
+      
+    - name: Run Unit Tests
+      run: go test ./... -v
+      
+    - name: Install Newman
+      run: npm install -g newman
+      
+    - name: Run Postman Tests
+      run: newman run doc/SS_key_server.postman_collection.json 

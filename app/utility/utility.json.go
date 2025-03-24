@@ -32,25 +32,38 @@ func JSON(ctx *fasthttp.RequestCtx, data map[string]interface{}) {
 	//ctx.SetStatusCode(statusCode)
 }
 
+// ResponseType định nghĩa kiểu response
+type ResponseType struct {
+	Status  string      `json:"status"`
+	Data    interface{} `json:"data"`
+	Message string      `json:"message"`
+	Code    int         `json:"code"`
+}
+
 // Payload tạo payload với trạng thái, dữ liệu và thông điệp
-func Payload(isSuccess bool, data interface{}, message string, args ...int) map[string]interface{} {
-	result := make(map[string]interface{})
-	if isSuccess {
-		result["status"] = "success"
-	} else {
-		result["status"] = "error"
+func Payload(isSuccess bool, data interface{}, message string, statusCode ...int) map[string]interface{} {
+	response := ResponseType{
+		Status:  "error",
+		Data:    data,
+		Message: message,
+		Code:    StatusInternalServerError,
 	}
-	result["data"] = data
-	result["message"] = message
-	// if len(args) == 0 {
-	// 	if isSuccess {
-	// 		result["code"] = 200
-	// 	} else {
-	// 		result["code"] = 400
-	// 	}
-	// } else {
-	// 	result["code"] = args[0]
-	// }
+
+	if isSuccess {
+		response.Status = "success"
+		response.Code = StatusOK
+	}
+
+	if len(statusCode) > 0 {
+		response.Code = statusCode[0]
+	}
+
+	result := make(map[string]interface{})
+	result["status"] = response.Status
+	result["data"] = response.Data
+	result["message"] = response.Message
+	result["code"] = response.Code
+
 	return result
 }
 
@@ -61,7 +74,7 @@ func Convert2Struct(data []byte, myStruct interface{}) map[string]interface{} {
 	decoder.UseNumber()
 	err := decoder.Decode(&myStruct)
 	if err != nil {
-		return Payload(false, err.Error(), "Unable to decode input data!")
+		return Payload(false, NewError(400, "Unable to decode input data"), "Invalid input data!")
 	}
 
 	return nil
@@ -92,11 +105,10 @@ func CreateChangeMap(myStruct interface{}, myChange *map[string]interface{}) map
 
 // FinalResponse tạo phản hồi cuối cùng dựa trên kết quả và lỗi
 func FinalResponse(result interface{}, err error) map[string]interface{} {
-
 	if err != nil {
-		return Payload(false, err.Error(), "Database interaction error!")
+		return Payload(false, nil, MsgDatabaseError, StatusInternalServerError)
 	} else {
-		return Payload(true, result, "Successful manipulation!")
+		return Payload(true, result, MsgSuccess, StatusOK)
 	}
 }
 

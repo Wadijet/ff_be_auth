@@ -72,7 +72,7 @@ func (s *PermissionService) Create(ctx context.Context, input *models.Permission
 }
 
 // Update cập nhật thông tin quyền
-func (s *PermissionService) Update(ctx context.Context, id string, input *models.PermissionUpdateInput) (*models.Permission, error) {
+func (s *PermissionService) Update(ctx context.Context, id primitive.ObjectID, input *models.PermissionUpdateInput) (*models.Permission, error) {
 	// Kiểm tra permission tồn tại
 	permission, err := s.BaseServiceImpl.FindOne(ctx, id)
 	if err != nil {
@@ -113,6 +113,6 @@ func (s *PermissionService) Update(ctx context.Context, id string, input *models
 }
 
 // Delete xóa quyền
-func (s *PermissionService) Delete(ctx context.Context, id string) error {
+func (s *PermissionService) Delete(ctx context.Context, id primitive.ObjectID) error {
 	return s.BaseServiceImpl.Delete(ctx, id)
 }

@@ -1,31 +1,60 @@
 package middleware
 
 import (
+	"strings"
+
 	"github.com/valyala/fasthttp"
 )
 
-// Các biến cấu hình cho CORS
-var (
-	corsAllowHeaders     = "*"                                // Cho phép tất cả các header
-	corsAllowMethods     = "HEAD,GET,POST,PUT,DELETE,OPTIONS" // Các phương thức HTTP được phép
-	corsAllowOrigin      = "*"                                // Cho phép tất cả các nguồn gốc
-	corsAllowCredentials = "true"                             // Cho phép gửi thông tin xác thực
-)
+// CorsConfig chứa cấu hình cho CORS middleware
+type CorsConfig struct {
+	AllowHeaders     []string
+	AllowMethods     []string
+	AllowOrigins     []string
+	AllowCredentials bool
+}
 
-// Hàm CORS là một middleware để xử lý CORS cho các yêu cầu HTTP
-// Hàm này sẽ thiết lập các header CORS cho phản hồi
-// và cho phép các phương thức HTTP được chỉ định
-// và các header được chỉ định
-// và nguồn gốc được chỉ định
-func CORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
-	return func(ctx *fasthttp.RequestCtx) {
-		// Thiết lập các header CORS cho phản hồi
-		ctx.Response.Header.Set("Access-Control-Allow-Credentials", corsAllowCredentials)
-		ctx.Response.Header.Set("Access-Control-Allow-Headers", corsAllowHeaders)
-		ctx.Response.Header.Set("Access-Control-Allow-Methods", corsAllowMethods)
-		ctx.Response.Header.Set("Access-Control-Allow-Origin", corsAllowOrigin)
+// DefaultCorsConfig trả về cấu hình CORS mặc định
+func DefaultCorsConfig() *CorsConfig {
+	return &CorsConfig{
+		AllowHeaders:     []string{"*"},
+		AllowMethods:     []string{"HEAD", "GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowOrigins:     []string{"*"},
+		AllowCredentials: true,
+	}
+}
 
-		// Gọi handler tiếp theo trong chuỗi middleware
-		next(ctx)
+// CORS là middleware để xử lý CORS cho các yêu cầu HTTP
+func CORS(config *CorsConfig) func(fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+		return func(ctx *fasthttp.RequestCtx) {
+			// Xử lý preflight request
+			if string(ctx.Method()) == "OPTIONS" {
+				ctx.SetStatusCode(fasthttp.StatusOK)
+				return
+			}
+
+			// Lấy origin từ request
+			origin := string(ctx.Request.Header.Peek("Origin"))
+
+			// Kiểm tra origin có được phép không
+			allowed := false
+			for _, allowedOrigin := range config.AllowOrigins {
+				if allowedOrigin == "*" || allowedOrigin == origin {
+					allowed = true
+					break
+				}
+			}
+
+			if allowed {
+				// Thiết lập các header CORS
+				ctx.Response.Header.Set("Access-Control-Allow-Origin", origin)
+				ctx.Response.Header.Set("Access-Control-Allow-Credentials", "true")
+				ctx.Response.Header.Set("Access-Control-Allow-Headers", strings.Join(config.AllowHeaders, ","))
+				ctx.Response.Header.Set("Access-Control-Allow-Methods", strings.Join(config.AllowMethods, ","))
+			}
+
+			next(ctx)
+		}
 	}
 }

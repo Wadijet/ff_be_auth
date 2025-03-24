@@ -41,11 +41,19 @@ func (h *PcOrderHandler) Create(ctx *fasthttp.RequestCtx) {
 	h.HandleResponse(ctx, data, err)
 }
 
-// FindOne tìm PcOrder theo ID
+// FindOne tìm một PcOrder theo ID
 func (h *PcOrderHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
+
+	// Chuyển đổi string ID thành ObjectID
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		h.HandleError(ctx, err)
+		return
+	}
+
 	context := context.Background()
-	data, err := h.PcOrderService.FindOne(context, id)
+	data, err := h.PcOrderService.FindOne(context, objectID)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -60,6 +68,14 @@ func (h *PcOrderHandler) FindAll(ctx *fasthttp.RequestCtx) {
 // Update cập nhật một PcOrder
 func (h *PcOrderHandler) Update(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
+
+	// Chuyển đổi string ID thành ObjectID
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		h.HandleError(ctx, err)
+		return
+	}
+
 	input := new(models.PcOrderCreateInput)
 	if response := h.ParseRequestBody(ctx, input); response != nil {
 		h.HandleError(ctx, nil)
@@ -67,25 +83,28 @@ func (h *PcOrderHandler) Update(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		h.HandleError(ctx, err)
-		return
-	}
-
 	pcOrder := models.PcOrder{
 		ID:          objectID,
 		PanCakeData: input.PanCakeData,
 		UpdatedAt:   time.Now().Unix(),
 	}
-	data, err := h.PcOrderService.Update(context, id, pcOrder)
+
+	data, err := h.PcOrderService.Update(context, objectID, pcOrder)
 	h.HandleResponse(ctx, data, err)
 }
 
 // Delete xóa một PcOrder
 func (h *PcOrderHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
+
+	// Chuyển đổi string ID thành ObjectID
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		h.HandleError(ctx, err)
+		return
+	}
+
 	context := context.Background()
-	err := h.PcOrderService.Delete(context, id)
+	err = h.PcOrderService.Delete(context, objectID)
 	h.HandleResponse(ctx, nil, err)
 }

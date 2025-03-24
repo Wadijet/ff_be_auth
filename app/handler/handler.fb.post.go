@@ -3,6 +3,7 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"context"
 	"time"
@@ -44,8 +45,15 @@ func (h *FbPostHandler) Create(ctx *fasthttp.RequestCtx) {
 // FindOne tìm một FbPost theo ID
 func (h *FbPostHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		h.HandleError(ctx, err)
+		return
+	}
+
 	context := context.Background()
-	data, err := h.FbPostService.FindOne(context, id)
+	data, err := h.FbPostService.FindOne(context, objectID)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -69,6 +77,13 @@ func (h *FbPostHandler) FindAll(ctx *fasthttp.RequestCtx) {
 // Update cập nhật một FbPost
 func (h *FbPostHandler) Update(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		h.HandleError(ctx, err)
+		return
+	}
+
 	input := new(models.FbPostCreateInput)
 	if response := h.ParseRequestBody(ctx, input); response != nil {
 		h.HandleError(ctx, nil)
@@ -76,18 +91,13 @@ func (h *FbPostHandler) Update(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		h.HandleError(ctx, err)
-		return
-	}
-
-	fbPost := models.FbPost{
+	post := models.FbPost{
 		ID:          objectID,
 		PanCakeData: input.PanCakeData,
 		UpdatedAt:   time.Now().Unix(),
 	}
-	data, err := h.FbPostService.Update(context, id, fbPost)
+
+	data, err := h.FbPostService.Update(context, objectID, post)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -95,7 +105,7 @@ func (h *FbPostHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *FbPostHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.FbPostService.Delete(context, id)
+	err := h.FbPostService.Delete(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }
 

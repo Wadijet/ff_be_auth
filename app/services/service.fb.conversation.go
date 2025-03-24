@@ -72,7 +72,6 @@ func (s *FbConversationService) ReviceData(ctx context.Context, input *models.Fb
 	if !exists {
 		// Tạo một FbConversation mới
 		conversation := &models.FbConversation{
-			ID:               primitive.NewObjectID(),
 			PageId:           input.PageId,
 			PageUsername:     input.PageUsername,
 			PanCakeData:      input.PanCakeData,
@@ -92,7 +91,8 @@ func (s *FbConversationService) ReviceData(ctx context.Context, input *models.Fb
 		return &createdConversation, nil
 	} else {
 		// Lấy FbConversation hiện tại
-		conversation, err := s.BaseServiceImpl.FindOne(ctx, conversationId)
+		filter := bson.M{"conversationId": conversationId}
+		conversation, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +107,7 @@ func (s *FbConversationService) ReviceData(ctx context.Context, input *models.Fb
 		conversation.UpdatedAt = time.Now().Unix()
 
 		// Cập nhật FbConversation
-		updatedConversation, err := s.BaseServiceImpl.Update(ctx, conversation.ID.Hex(), conversation)
+		updatedConversation, err := s.BaseServiceImpl.Update(ctx, conversation.ID, conversation)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ func (s *FbConversationService) ReviceData(ctx context.Context, input *models.Fb
 }
 
 // FindOneById tìm một FbConversation theo ID
-func (s *FbConversationService) FindOneById(ctx context.Context, id string) (models.FbConversation, error) {
+func (s *FbConversationService) FindOneById(ctx context.Context, id primitive.ObjectID) (models.FbConversation, error) {
 	return s.BaseServiceImpl.FindOne(ctx, id)
 }
 

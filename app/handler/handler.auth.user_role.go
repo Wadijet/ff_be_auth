@@ -3,6 +3,7 @@ package handler
 import (
 	models "atk-go-server/app/models/mongodb"
 	"atk-go-server/app/services"
+	"atk-go-server/app/utility"
 	"atk-go-server/config"
 	"context"
 
@@ -46,7 +47,7 @@ func (h *UserRoleHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *UserRoleHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.UserRoleService.FindOne(context, id)
+	data, err := h.UserRoleService.FindOne(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -83,7 +84,7 @@ func (h *UserRoleHandler) Update(ctx *fasthttp.RequestCtx) {
 		UserID: input.UserID,
 		RoleID: input.RoleID,
 	}
-	data, err := h.UserRoleService.Update(context, id, userRole)
+	data, err := h.UserRoleService.Update(context, objectID, userRole)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -91,6 +92,6 @@ func (h *UserRoleHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *UserRoleHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.UserRoleService.Delete(context, id)
+	err := h.UserRoleService.Delete(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }
