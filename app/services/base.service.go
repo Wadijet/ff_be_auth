@@ -1,3 +1,4 @@
+// Package services cung cấp các service cơ bản cho việc tương tác với MongoDB
 package services
 
 import (
@@ -16,45 +17,221 @@ import (
 )
 
 // GetDBName lấy tên database từ cấu hình
+// Parameters:
+//   - c: Cấu hình hệ thống
+//   - collectionName: Tên collection
+//
+// Returns:
+//   - string: Tên database
 func GetDBName(c *config.Configuration, collectionName string) string {
 	return c.MongoDB_DBNameAuth
 }
 
-// BaseService định nghĩa các phương thức cơ bản mà tất cả service cần có
+// BaseService định nghĩa interface chứa các phương thức cơ bản cho việc tương tác với MongoDB
+// Type Parameters:
+//   - T: Kiểu dữ liệu của model
 type BaseService[T any] interface {
-	Create(ctx context.Context, data T) (T, error)                                                                                  // Tạo mới một bản ghi
-	CreateMany(ctx context.Context, data []T) ([]T, error)                                                                          // Tạo nhiều bản ghi
-	FindOne(ctx context.Context, id primitive.ObjectID) (T, error)                                                                  // Tìm một document theo ObjectId
-	FindOneByFilter(ctx context.Context, filter interface{}, opts *options.FindOneOptions) (T, error)                               // Tìm một bản ghi theo filter
-	FindAll(ctx context.Context, filter interface{}, opts *options.FindOptions) ([]T, error)                                        // Tìm tất cả bản ghi theo filter
-	FindAllWithPaginate(ctx context.Context, filter interface{}, page, limit int64) (*models.PaginateResult[T], error)              // Tìm tất cả bản ghi với phân trang
-	Update(ctx context.Context, id primitive.ObjectID, data T) (T, error)                                                           // Cập nhật một document theo ObjectId
-	UpdateMany(ctx context.Context, filter interface{}, update interface{}) (int64, error)                                          // Cập nhật nhiều bản ghi
-	Delete(ctx context.Context, id primitive.ObjectID) error                                                                        // Xóa một document theo ObjectId
-	DeleteMany(ctx context.Context, filter interface{}) (int64, error)                                                              // Xóa nhiều bản ghi theo điều kiện
-	CountAll(ctx context.Context, filter interface{}) (int64, error)                                                                // Đếm số lượng bản ghi theo filter
-	Upsert(ctx context.Context, filter interface{}, data T) (T, error)                                                              // Upsert thực hiện thao tác update nếu tồn tại, insert nếu chưa tồn tại
-	UpsertMany(ctx context.Context, filter interface{}, data []T) ([]T, error)                                                      // UpsertMany thực hiện thao tác upsert cho nhiều document
-	FindByIds(ctx context.Context, ids []primitive.ObjectID) ([]T, error)                                                           // Tìm nhiều document theo danh sách ID
-	Exists(ctx context.Context, filter interface{}) (bool, error)                                                                   // Kiểm tra xem một document có tồn tại không
-	FindOneAndUpdate(ctx context.Context, filter interface{}, update interface{}, opts *options.FindOneAndUpdateOptions) (T, error) // Tìm và cập nhật một document
-	FindOneAndDelete(ctx context.Context, filter interface{}, opts *options.FindOneAndDeleteOptions) (T, error)                     // Tìm và xóa một document
-	Distinct(ctx context.Context, fieldName string, filter interface{}) ([]interface{}, error)                                      // Lấy danh sách các giá trị duy nhất của một trường
+	// Create tạo mới một bản ghi trong database
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - data: Dữ liệu cần tạo mới
+	// Returns:
+	//   - T: Bản ghi đã được tạo
+	//   - error: Lỗi nếu có
+	Create(ctx context.Context, data T) (T, error)
+
+	// CreateMany tạo nhiều bản ghi trong database
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - data: Danh sách dữ liệu cần tạo mới
+	// Returns:
+	//   - []T: Danh sách bản ghi đã được tạo
+	//   - error: Lỗi nếu có
+	CreateMany(ctx context.Context, data []T) ([]T, error)
+
+	// FindOne tìm một document theo ObjectId
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - id: ObjectId của document cần tìm
+	// Returns:
+	//   - T: Document tìm được
+	//   - error: Lỗi nếu có
+	FindOne(ctx context.Context, id primitive.ObjectID) (T, error)
+
+	// FindOneByFilter tìm một bản ghi theo điều kiện lọc
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	//   - opts: Các tùy chọn cho việc tìm kiếm
+	// Returns:
+	//   - T: Bản ghi tìm được
+	//   - error: Lỗi nếu có
+	FindOneByFilter(ctx context.Context, filter interface{}, opts *options.FindOneOptions) (T, error)
+
+	// FindAll tìm tất cả bản ghi theo điều kiện lọc
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	//   - opts: Các tùy chọn cho việc tìm kiếm
+	// Returns:
+	//   - []T: Danh sách bản ghi tìm được
+	//   - error: Lỗi nếu có
+	FindAll(ctx context.Context, filter interface{}, opts *options.FindOptions) ([]T, error)
+
+	// FindAllWithPaginate tìm tất cả bản ghi với phân trang
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	//   - page: Số trang
+	//   - limit: Số lượng bản ghi mỗi trang
+	// Returns:
+	//   - *models.PaginateResult[T]: Kết quả phân trang
+	//   - error: Lỗi nếu có
+	FindAllWithPaginate(ctx context.Context, filter interface{}, page, limit int64) (*models.PaginateResult[T], error)
+
+	// Update cập nhật một document theo ObjectId
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - id: ObjectId của document cần cập nhật
+	//   - data: Dữ liệu cần cập nhật
+	// Returns:
+	//   - T: Document đã được cập nhật
+	//   - error: Lỗi nếu có
+	Update(ctx context.Context, id primitive.ObjectID, data T) (T, error)
+
+	// UpdateMany cập nhật nhiều bản ghi theo điều kiện
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	//   - update: Dữ liệu cần cập nhật
+	// Returns:
+	//   - int64: Số lượng bản ghi đã được cập nhật
+	//   - error: Lỗi nếu có
+	UpdateMany(ctx context.Context, filter interface{}, update interface{}) (int64, error)
+
+	// Delete xóa một document theo ObjectId
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - id: ObjectId của document cần xóa
+	// Returns:
+	//   - error: Lỗi nếu có
+	Delete(ctx context.Context, id primitive.ObjectID) error
+
+	// DeleteMany xóa nhiều bản ghi theo điều kiện
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	// Returns:
+	//   - int64: Số lượng bản ghi đã được xóa
+	//   - error: Lỗi nếu có
+	DeleteMany(ctx context.Context, filter interface{}) (int64, error)
+
+	// CountAll đếm số lượng bản ghi theo điều kiện
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	// Returns:
+	//   - int64: Số lượng bản ghi
+	//   - error: Lỗi nếu có
+	CountAll(ctx context.Context, filter interface{}) (int64, error)
+
+	// Upsert thực hiện thao tác update nếu tồn tại, insert nếu chưa tồn tại
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	//   - data: Dữ liệu cần upsert
+	// Returns:
+	//   - T: Document sau khi upsert
+	//   - error: Lỗi nếu có
+	Upsert(ctx context.Context, filter interface{}, data T) (T, error)
+
+	// UpsertMany thực hiện thao tác upsert cho nhiều document
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	//   - data: Danh sách dữ liệu cần upsert
+	// Returns:
+	//   - []T: Danh sách document sau khi upsert
+	//   - error: Lỗi nếu có
+	UpsertMany(ctx context.Context, filter interface{}, data []T) ([]T, error)
+
+	// FindByIds tìm nhiều document theo danh sách ID
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - ids: Danh sách ObjectId cần tìm
+	// Returns:
+	//   - []T: Danh sách document tìm được
+	//   - error: Lỗi nếu có
+	FindByIds(ctx context.Context, ids []primitive.ObjectID) ([]T, error)
+
+	// Exists kiểm tra xem một document có tồn tại không
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	// Returns:
+	//   - bool: true nếu tồn tại, false nếu không
+	//   - error: Lỗi nếu có
+	Exists(ctx context.Context, filter interface{}) (bool, error)
+
+	// FindOneAndUpdate tìm và cập nhật một document
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	//   - update: Dữ liệu cần cập nhật
+	//   - opts: Các tùy chọn cho việc tìm và cập nhật
+	// Returns:
+	//   - T: Document sau khi cập nhật
+	//   - error: Lỗi nếu có
+	FindOneAndUpdate(ctx context.Context, filter interface{}, update interface{}, opts *options.FindOneAndUpdateOptions) (T, error)
+
+	// FindOneAndDelete tìm và xóa một document
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	//   - opts: Các tùy chọn cho việc tìm và xóa
+	// Returns:
+	//   - T: Document đã bị xóa
+	//   - error: Lỗi nếu có
+	FindOneAndDelete(ctx context.Context, filter interface{}, opts *options.FindOneAndDeleteOptions) (T, error)
+
+	// Distinct lấy danh sách các giá trị duy nhất của một trường
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - fieldName: Tên trường cần lấy giá trị duy nhất
+	//   - filter: Điều kiện lọc
+	// Returns:
+	//   - []interface{}: Danh sách các giá trị duy nhất
+	//   - error: Lỗi nếu có
+	Distinct(ctx context.Context, fieldName string, filter interface{}) ([]interface{}, error)
 }
 
-// BaseServiceImpl định nghĩa các phương thức cơ bản cho service
+// BaseServiceImpl định nghĩa struct triển khai các phương thức cơ bản cho service
+// Type Parameters:
+//   - T: Kiểu dữ liệu của model
 type BaseServiceImpl[T any] struct {
-	collection *mongo.Collection
+	collection *mongo.Collection // Collection MongoDB
 }
 
 // NewBaseService tạo mới một BaseServiceImpl
+// Parameters:
+//   - collection: Collection MongoDB
+//
+// Returns:
+//   - *BaseServiceImpl[T]: Instance mới của BaseServiceImpl
 func NewBaseService[T any](collection *mongo.Collection) *BaseServiceImpl[T] {
 	return &BaseServiceImpl[T]{
 		collection: collection,
 	}
 }
 
-// Create tạo mới một bản ghi
+// Create tạo mới một bản ghi trong database
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - data: Dữ liệu cần tạo mới
+//
+// Returns:
+//   - T: Bản ghi đã được tạo
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) Create(ctx context.Context, data T) (T, error) {
 	var zero T
 
@@ -84,7 +261,14 @@ func (s *BaseServiceImpl[T]) Create(ctx context.Context, data T) (T, error) {
 	return created, nil
 }
 
-// CreateMany tạo nhiều bản ghi
+// CreateMany tạo nhiều bản ghi trong database
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - data: Danh sách dữ liệu cần tạo mới
+//
+// Returns:
+//   - []T: Danh sách bản ghi đã được tạo
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) CreateMany(ctx context.Context, data []T) ([]T, error) {
 	var documents []interface{}
 	now := time.Now().UnixMilli()
@@ -121,6 +305,13 @@ func (s *BaseServiceImpl[T]) CreateMany(ctx context.Context, data []T) ([]T, err
 }
 
 // FindOne tìm một document theo ObjectId
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - id: ObjectId của document cần tìm
+//
+// Returns:
+//   - T: Document tìm được
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) FindOne(ctx context.Context, id primitive.ObjectID) (T, error) {
 	var result T
 	filter := bson.M{"_id": id}
@@ -131,7 +322,15 @@ func (s *BaseServiceImpl[T]) FindOne(ctx context.Context, id primitive.ObjectID)
 	return result, nil
 }
 
-// FindOneByFilter tìm một bản ghi theo filter
+// FindOneByFilter tìm một bản ghi theo điều kiện lọc
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//   - opts: Các tùy chọn cho việc tìm kiếm
+//
+// Returns:
+//   - T: Bản ghi tìm được
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) FindOneByFilter(ctx context.Context, filter interface{}, opts *options.FindOneOptions) (T, error) {
 	var zero T
 	var result T
@@ -164,7 +363,15 @@ func (s *BaseServiceImpl[T]) FindOneByFilter(ctx context.Context, filter interfa
 	return result, nil
 }
 
-// FindAll tìm tất cả bản ghi theo filter
+// FindAll tìm tất cả bản ghi theo điều kiện lọc
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//   - opts: Các tùy chọn cho việc tìm kiếm
+//
+// Returns:
+//   - []T: Danh sách bản ghi tìm được
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) FindAll(ctx context.Context, filter interface{}, opts *options.FindOptions) ([]T, error) {
 	if filter == nil {
 		filter = bson.D{}
@@ -190,6 +397,15 @@ func (s *BaseServiceImpl[T]) FindAll(ctx context.Context, filter interface{}, op
 }
 
 // FindAllWithPaginate tìm tất cả bản ghi với phân trang
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//   - page: Số trang
+//   - limit: Số lượng bản ghi mỗi trang
+//
+// Returns:
+//   - *models.PaginateResult[T]: Kết quả phân trang
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) FindAllWithPaginate(ctx context.Context, filter interface{}, page, limit int64) (*models.PaginateResult[T], error) {
 	if filter == nil {
 		filter = bson.D{}
@@ -229,6 +445,14 @@ func (s *BaseServiceImpl[T]) FindAllWithPaginate(ctx context.Context, filter int
 }
 
 // Update cập nhật một document theo ObjectId
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - id: ObjectId của document cần cập nhật
+//   - data: Dữ liệu cần cập nhật
+//
+// Returns:
+//   - T: Document đã được cập nhật
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) Update(ctx context.Context, id primitive.ObjectID, data T) (T, error) {
 	filter := bson.M{"_id": id}
 	update := bson.M{"$set": data}
@@ -241,7 +465,15 @@ func (s *BaseServiceImpl[T]) Update(ctx context.Context, id primitive.ObjectID, 
 	return s.FindOne(ctx, id)
 }
 
-// UpdateMany cập nhật nhiều bản ghi
+// UpdateMany cập nhật nhiều bản ghi theo điều kiện
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//   - update: Dữ liệu cần cập nhật
+//
+// Returns:
+//   - int64: Số lượng bản ghi đã được cập nhật
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) UpdateMany(ctx context.Context, filter interface{}, update interface{}) (int64, error) {
 	// Thêm updatedAt vào update
 	updateMap, err := utility.ToMap(update)
@@ -265,6 +497,12 @@ func (s *BaseServiceImpl[T]) UpdateMany(ctx context.Context, filter interface{},
 }
 
 // Delete xóa một document theo ObjectId
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - id: ObjectId của document cần xóa
+//
+// Returns:
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) Delete(ctx context.Context, id primitive.ObjectID) error {
 	filter := bson.M{"_id": id}
 	_, err := s.collection.DeleteOne(ctx, filter)
@@ -272,6 +510,13 @@ func (s *BaseServiceImpl[T]) Delete(ctx context.Context, id primitive.ObjectID) 
 }
 
 // DeleteMany xóa nhiều bản ghi theo điều kiện
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//
+// Returns:
+//   - int64: Số lượng bản ghi đã được xóa
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) DeleteMany(ctx context.Context, filter interface{}) (int64, error) {
 	result, err := s.collection.DeleteMany(ctx, filter)
 	if err != nil {
@@ -281,12 +526,27 @@ func (s *BaseServiceImpl[T]) DeleteMany(ctx context.Context, filter interface{})
 	return result.DeletedCount, nil
 }
 
-// CountAll đếm số lượng bản ghi theo filter
+// CountAll đếm số lượng bản ghi theo điều kiện
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//
+// Returns:
+//   - int64: Số lượng bản ghi
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) CountAll(ctx context.Context, filter interface{}) (int64, error) {
 	return s.collection.CountDocuments(ctx, filter)
 }
 
 // Upsert thực hiện thao tác update nếu tồn tại, insert nếu chưa tồn tại
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//   - data: Dữ liệu cần upsert
+//
+// Returns:
+//   - T: Document sau khi upsert
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) Upsert(ctx context.Context, filter interface{}, data T) (T, error) {
 	var zero T
 
@@ -317,6 +577,14 @@ func (s *BaseServiceImpl[T]) Upsert(ctx context.Context, filter interface{}, dat
 }
 
 // UpsertMany thực hiện thao tác upsert cho nhiều document
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//   - data: Danh sách dữ liệu cần upsert
+//
+// Returns:
+//   - []T: Danh sách document sau khi upsert
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) UpsertMany(ctx context.Context, filter interface{}, data []T) ([]T, error) {
 	if len(data) == 0 {
 		return []T{}, nil
@@ -397,6 +665,13 @@ func (s *BaseServiceImpl[T]) UpsertMany(ctx context.Context, filter interface{},
 }
 
 // FindByIds tìm nhiều document theo danh sách ID
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - ids: Danh sách ObjectId cần tìm
+//
+// Returns:
+//   - []T: Danh sách document tìm được
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) FindByIds(ctx context.Context, ids []primitive.ObjectID) ([]T, error) {
 	filter := bson.M{"_id": bson.M{"$in": ids}}
 	cursor, err := s.collection.Find(ctx, filter)
@@ -414,6 +689,13 @@ func (s *BaseServiceImpl[T]) FindByIds(ctx context.Context, ids []primitive.Obje
 }
 
 // Exists kiểm tra xem một document có tồn tại không
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//
+// Returns:
+//   - bool: true nếu tồn tại, false nếu không
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) Exists(ctx context.Context, filter interface{}) (bool, error) {
 	if filter == nil {
 		filter = bson.D{}
@@ -428,6 +710,15 @@ func (s *BaseServiceImpl[T]) Exists(ctx context.Context, filter interface{}) (bo
 }
 
 // FindOneAndUpdate tìm và cập nhật một document
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//   - update: Dữ liệu cần cập nhật
+//   - opts: Các tùy chọn cho việc tìm và cập nhật
+//
+// Returns:
+//   - T: Document sau khi cập nhật
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) FindOneAndUpdate(ctx context.Context, filter interface{}, update interface{}, opts *options.FindOneAndUpdateOptions) (T, error) {
 	var zero T
 
@@ -462,6 +753,14 @@ func (s *BaseServiceImpl[T]) FindOneAndUpdate(ctx context.Context, filter interf
 }
 
 // FindOneAndDelete tìm và xóa một document
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//   - opts: Các tùy chọn cho việc tìm và xóa
+//
+// Returns:
+//   - T: Document đã bị xóa
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) FindOneAndDelete(ctx context.Context, filter interface{}, opts *options.FindOneAndDeleteOptions) (T, error) {
 	var zero T
 
@@ -483,6 +782,14 @@ func (s *BaseServiceImpl[T]) FindOneAndDelete(ctx context.Context, filter interf
 }
 
 // Distinct lấy danh sách các giá trị duy nhất của một trường
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - fieldName: Tên trường cần lấy giá trị duy nhất
+//   - filter: Điều kiện lọc
+//
+// Returns:
+//   - []interface{}: Danh sách các giá trị duy nhất
+//   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) Distinct(ctx context.Context, fieldName string, filter interface{}) ([]interface{}, error) {
 	if filter == nil {
 		filter = bson.D{}

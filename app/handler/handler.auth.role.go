@@ -39,7 +39,11 @@ func (h *RoleHandler) Create(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.RoleService.Create(context, inputStruct)
+	role := models.Role{
+		Name:     inputStruct.Name,
+		Describe: inputStruct.Describe,
+	}
+	data, err := h.RoleService.Create(context, role)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -89,8 +93,11 @@ func (h *RoleHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-
-	data, err := h.RoleService.Update(context, objectID, input)
+	role := models.Role{
+		Name:     input.Name,
+		Describe: input.Describe,
+	}
+	data, err := h.RoleService.Update(context, objectID, role)
 	h.HandleResponse(ctx, data, err)
 }
 

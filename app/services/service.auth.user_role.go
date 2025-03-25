@@ -31,23 +31,6 @@ func NewUserRoleService(c *config.Configuration, db *mongo.Client) *UserRoleServ
 	}
 }
 
-// IsExist kiểm tra vai trò người dùng có tồn tại hay không
-func (s *UserRoleService) IsExist(ctx context.Context, userID, roleID primitive.ObjectID) (bool, error) {
-	filter := bson.M{
-		"userId": userID,
-		"roleId": roleID,
-	}
-	var userRole models.UserRole
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&userRole)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
 // Create tạo mới một vai trò người dùng
 func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCreateInput) (*models.UserRole, error) {
 	// Kiểm tra User có tồn tại không
@@ -87,12 +70,15 @@ func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCrea
 	return &createdUserRole, nil
 }
 
-// Delete xóa vai trò người dùng
-func (s *UserRoleService) Delete(ctx context.Context, id primitive.ObjectID) error {
-	// Kiểm tra UserRole có tồn tại không
-	if _, err := s.BaseServiceImpl.FindOne(ctx, id); err != nil {
-		return errors.New("UserRole not found")
+// IsExist kiểm tra xem một UserRole đã tồn tại chưa
+func (s *UserRoleService) IsExist(ctx context.Context, userID, roleID primitive.ObjectID) (bool, error) {
+	filter := bson.M{
+		"userId": userID,
+		"roleId": roleID,
 	}
-
-	return s.BaseServiceImpl.Delete(ctx, id)
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

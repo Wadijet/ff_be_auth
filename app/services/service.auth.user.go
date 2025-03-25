@@ -58,16 +58,16 @@ func (s *UserService) Create(ctx context.Context, input *models.UserCreateInput)
 		return nil, err
 	}
 	if exists {
-		return nil, ErrDuplicate
+		return nil, utility.ErrDuplicate
 	}
 
 	// Validate email
-	if err := ValidateEmail(input.Email); err != nil {
+	if err := utility.ValidateEmail(input.Email); err != nil {
 		return nil, err
 	}
 
 	// Validate password
-	if err := ValidatePassword(input.Password); err != nil {
+	if err := utility.ValidatePassword(input.Password); err != nil {
 		return nil, err
 	}
 
@@ -97,55 +97,21 @@ func (s *UserService) Create(ctx context.Context, input *models.UserCreateInput)
 	return &createdUser, nil
 }
 
-// Update cập nhật thông tin người dùng
-func (s *UserService) Update(ctx context.Context, id primitive.ObjectID, input *models.UserChangeInfoInput) (*models.User, error) {
-	// Kiểm tra user tồn tại
-	user, err := s.BaseServiceImpl.FindOne(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	// Cập nhật thông tin
-	user.Name = input.Name
-	user.UpdatedAt = time.Now().Unix()
-
-	// Cập nhật user
-	updatedUser, err := s.BaseServiceImpl.Update(ctx, id, user)
-	if err != nil {
-		return nil, err
-	}
-
-	return &updatedUser, nil
-}
-
-// Delete xóa người dùng
-func (s *UserService) Delete(ctx context.Context, id primitive.ObjectID) error {
-	// Xóa user roles trước
-	filter := bson.M{"user_id": id}
-	_, err := s.userRoleService.DeleteMany(ctx, filter)
-	if err != nil {
-		return err
-	}
-
-	// Xóa user
-	return s.BaseServiceImpl.Delete(ctx, id)
-}
-
 // Login đăng nhập người dùng
 func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (*models.User, error) {
 	// Tìm user theo email
 	filter := bson.M{"email": input.Email}
 	user, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
 	if err != nil {
-		if err == ErrNotFound {
-			return nil, errors.New("Invalid email or password")
+		if err == utility.ErrNotFound {
+			return nil, utility.ErrInvalidCredentials
 		}
 		return nil, err
 	}
 
 	// Kiểm tra mật khẩu
 	if err := user.ComparePassword(input.Password); err != nil {
-		return nil, errors.New("Invalid email or password")
+		return nil, utility.ErrInvalidCredentials
 	}
 
 	// Tạo chuỗi random và curentTime để tạo token mới
@@ -168,11 +134,16 @@ func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (
 			break
 		}
 	}
+
+	// Nếu không có token, thêm token mới
 	if idTokenExist == -1 {
 		user.Tokens = append(user.Tokens, models.Token{
 			Hwid:     input.Hwid,
 			JwtToken: tokenMap["token"],
 		})
+	} else {
+		// Nếu có token, cập nhật token mới cho hwid đó
+		user.Tokens[idTokenExist].JwtToken = tokenMap["token"]
 	}
 
 	// Cập nhật user
@@ -222,7 +193,7 @@ func (s *UserService) ChangePassword(ctx context.Context, userID primitive.Objec
 	}
 
 	// Validate mật khẩu mới
-	if err := ValidatePassword(input.NewPassword); err != nil {
+	if err := utility.ValidatePassword(input.NewPassword); err != nil {
 		return err
 	}
 

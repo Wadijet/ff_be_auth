@@ -71,7 +71,7 @@ func (h *UserHandler) Registry(ctx *fasthttp.RequestCtx) {
 func (h *UserHandler) Login(ctx *fasthttp.RequestCtx) {
 	inputStruct := new(models.UserLoginInput)
 	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
-		h.HandleError(ctx, utility.NewError(400, "Invalid request body"))
+		h.HandleError(ctx, utility.NewError(utility.ErrCodeValidationFormat, "Invalid request body", utility.StatusBadRequest, nil))
 		return
 	}
 
@@ -178,7 +178,10 @@ func (h *UserHandler) ChangeInfo(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.UserService.Update(context, utility.String2ObjectID(strMyID), inputStruct)
+	user := models.User{
+		Name: inputStruct.Name,
+	}
+	data, err := h.UserService.Update(context, utility.String2ObjectID(strMyID), user)
 	h.HandleResponse(ctx, data, err)
 }
 

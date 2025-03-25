@@ -11,7 +11,6 @@ import (
 	"atk-go-server/global"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -114,19 +113,6 @@ func (s *FbConversationService) ReviceData(ctx context.Context, input *models.Fb
 
 		return &updatedConversation, nil
 	}
-}
-
-// FindOneById tìm một FbConversation theo ID
-func (s *FbConversationService) FindOneById(ctx context.Context, id primitive.ObjectID) (models.FbConversation, error) {
-	return s.BaseServiceImpl.FindOne(ctx, id)
-}
-
-// FindAll tìm tất cả các FbConversation với phân trang
-func (s *FbConversationService) FindAll(ctx context.Context, page int64, limit int64, filter bson.M) ([]models.FbConversation, error) {
-	opts := options.Find().
-		SetSkip((page - 1) * limit).
-		SetLimit(limit)
-	return s.BaseServiceImpl.FindAll(ctx, filter, opts)
 }
 
 // FindAllSortByApiUpdate tìm tất cả các FbConversation với phân trang sắp xếp theo thời gian cập nhật của dữ liệu API

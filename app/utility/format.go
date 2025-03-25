@@ -39,3 +39,14 @@ func ObjectID2String(id primitive.ObjectID) string {
 	stringObjectID := id.Hex()
 	return stringObjectID
 }
+
+// StringArray2ObjectIDArray chuyển đổi mảng chuỗi thành mảng ObjectID
+// @params - mảng chuỗi cần chuyển đổi
+// @returns - mảng ObjectID
+func StringArray2ObjectIDArray(ids []string) []primitive.ObjectID {
+	var objectIDs []primitive.ObjectID
+	for _, id := range ids {
+		objectIDs = append(objectIDs, String2ObjectID(id))
+	}
+	return objectIDs
+}

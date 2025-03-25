@@ -62,7 +62,7 @@ func (h *FbConversationHandler) FindAll(ctx *fasthttp.RequestCtx) {
 		filter = bson.M{"pageId": pageId}
 	}
 
-	data, err := h.FbConversationService.FindAll(context, page, limit, filter)
+	data, err := h.FbConversationService.FindAllWithPaginate(context, filter, page, limit)
 	h.HandleResponse(ctx, data, err)
 }
 

@@ -3,6 +3,7 @@ package utility
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"time"
 
 	"encoding/json"
@@ -60,4 +61,21 @@ func LogWarning(msg string, args ...interface{}) {
 		}
 	}
 	log.Printf("WARNING: %s%s", msg, details)
+}
+
+// ValidateEmail kiểm tra định dạng email
+func ValidateEmail(email string) error {
+	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	if !emailRegex.MatchString(email) {
+		return ErrInvalidEmail
+	}
+	return nil
+}
+
+// ValidatePassword kiểm tra độ mạnh của mật khẩu
+func ValidatePassword(password string) error {
+	if len(password) < 8 {
+		return ErrWeakPassword
+	}
+	return nil
 }

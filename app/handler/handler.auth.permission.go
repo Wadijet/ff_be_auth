@@ -38,7 +38,13 @@ func (h *PermissionHandler) Create(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.PermissionService.Create(context, inputStruct)
+	permission := models.Permission{
+		Name:     inputStruct.Name,
+		Describe: inputStruct.Describe,
+		Category: inputStruct.Category,
+		Group:    inputStruct.Group,
+	}
+	data, err := h.PermissionService.Create(context, permission)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -74,7 +80,13 @@ func (h *PermissionHandler) Update(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.PermissionService.Update(context, utility.String2ObjectID(id), inputStruct)
+	permission := models.Permission{
+		Name:     inputStruct.Name,
+		Describe: inputStruct.Describe,
+		Category: inputStruct.Category,
+		Group:    inputStruct.Group,
+	}
+	data, err := h.PermissionService.Update(context, utility.String2ObjectID(id), permission)
 	h.HandleResponse(ctx, data, err)
 }
 

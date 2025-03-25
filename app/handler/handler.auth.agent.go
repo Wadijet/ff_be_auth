@@ -38,7 +38,13 @@ func (h *AgentHandler) Create(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.AgentService.Create(context, inputStruct)
+	agent := models.Agent{
+		Name:          inputStruct.Name,
+		Describe:      inputStruct.Describe,
+		AssignedUsers: utility.StringArray2ObjectIDArray(inputStruct.AssignedUsers),
+		ConfigData:    inputStruct.ConfigData,
+	}
+	data, err := h.AgentService.Create(context, agent)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -74,7 +80,15 @@ func (h *AgentHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.AgentService.Update(context, utility.String2ObjectID(id), inputStruct)
+	agent := models.Agent{
+		Name:          inputStruct.Name,
+		Describe:      inputStruct.Describe,
+		Status:        inputStruct.Status,
+		Command:       inputStruct.Command,
+		AssignedUsers: utility.StringArray2ObjectIDArray(inputStruct.AssignedUsers),
+		ConfigData:    inputStruct.ConfigData,
+	}
+	data, err := h.AgentService.Update(context, utility.String2ObjectID(id), agent)
 	h.HandleResponse(ctx, data, err)
 }
 

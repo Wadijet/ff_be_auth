@@ -2,7 +2,6 @@ package handler
 
 import (
 	"atk-go-server/app/utility"
-	"net/http"
 	"strconv"
 
 	"github.com/valyala/fasthttp"
@@ -17,6 +16,19 @@ type BaseHandler struct {
 // HandlerFunc định nghĩa kiểu hàm xử lý logic chính
 type HandlerFunc func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error)
 
+// ResponseError là cấu trúc dữ liệu cho response lỗi
+type ResponseError struct {
+	Status    string            `json:"status"`
+	ErrorCode utility.ErrorCode `json:"error_code"`
+	Message   string            `json:"message"`
+}
+
+// ResponseSuccess là cấu trúc dữ liệu cho response thành công
+type ResponseSuccess struct {
+	Status string      `json:"status"`
+	Data   interface{} `json:"data"`
+}
+
 // HandleResponse xử lý response chung cho tất cả các handler
 // @param ctx: Context của request
 // @param data: Dữ liệu cần trả về
@@ -25,23 +37,11 @@ type HandlerFunc func(ctx *fasthttp.RequestCtx, input interface{}) (interface{},
 // - Nếu có lỗi: trả về response với status error và message lỗi
 // - Nếu thành công: trả về response với status success và data
 func (h *BaseHandler) HandleResponse(ctx *fasthttp.RequestCtx, data interface{}, err error) {
-	var response map[string]interface{}
-	var statusCode int = utility.StatusOK
-
 	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			statusCode = customErr.StatusCode
-			response = utility.Payload(false, nil, customErr.Message, statusCode)
-		} else {
-			statusCode = utility.StatusInternalServerError
-			response = utility.Payload(false, nil, utility.MsgInternalError, statusCode)
-		}
+		h.HandleError(ctx, err)
 	} else {
-		response = utility.Payload(true, data, utility.MsgSuccess, statusCode)
+		h.HandleSuccess(ctx, data)
 	}
-
-	ctx.SetStatusCode(statusCode)
-	utility.JSON(ctx, response)
 }
 
 // ParseRequestBody xử lý việc parse request body thành struct
@@ -101,38 +101,56 @@ func (h *BaseHandler) GetIDFromContext(ctx *fasthttp.RequestCtx) string {
 // @param ctx: Context của request
 // @param err: Lỗi cần xử lý
 // Hàm này sẽ:
-// 1. Tạo response với status error
-// 2. Thêm message lỗi vào response
+// 1. Tạo response với status "error"
+// 2. Thêm error code và message lỗi vào response
 // 3. Gửi response về client
 func (h *BaseHandler) HandleError(ctx *fasthttp.RequestCtx, err error) {
-	var message string
 	var statusCode int = utility.StatusInternalServerError
+	var message string
+	var errorCode utility.ErrorCode = utility.ErrCodeDatabaseConnection
 
-	if err != nil {
-		message = err.Error()
-		if customErr, ok := err.(*utility.Error); ok {
-			statusCode = customErr.StatusCode
-		}
+	if customErr, ok := err.(*utility.Error); ok {
+		statusCode = customErr.StatusCode
+		message = customErr.Message
+		errorCode = customErr.Code
 	} else {
-		message = utility.MsgBadRequest
-		statusCode = utility.StatusBadRequest
+		message = err.Error()
 	}
 
 	ctx.SetStatusCode(statusCode)
-	response := utility.Payload(false, nil, message, statusCode)
-	utility.JSON(ctx, response)
+	response := ResponseError{
+		Status:    "error",
+		ErrorCode: errorCode,
+		Message:   message,
+	}
+	// Chuyển đổi response thành map
+	responseMap := map[string]interface{}{
+		"status":     response.Status,
+		"error_code": response.ErrorCode,
+		"message":    response.Message,
+	}
+	utility.JSON(ctx, responseMap)
 }
 
 // HandleSuccess xử lý response thành công
 // @param ctx: Context của request
 // @param data: Dữ liệu cần trả về
 // Hàm này sẽ:
-// 1. Tạo response với status success
+// 1. Tạo response với status "success"
 // 2. Thêm data vào response
 // 3. Gửi response về client
 func (h *BaseHandler) HandleSuccess(ctx *fasthttp.RequestCtx, data interface{}) {
-	response := utility.FinalResponse(data, nil)
-	utility.JSON(ctx, response)
+	ctx.SetStatusCode(utility.StatusOK)
+	response := ResponseSuccess{
+		Status: "success",
+		Data:   data,
+	}
+	// Chuyển đổi response thành map
+	responseMap := map[string]interface{}{
+		"status": response.Status,
+		"data":   response.Data,
+	}
+	utility.JSON(ctx, responseMap)
 }
 
 // GenericHandler xử lý request theo một flow chung
@@ -148,15 +166,8 @@ func (h *BaseHandler) GenericHandler(ctx *fasthttp.RequestCtx, input interface{}
 	if response == nil {
 		// Thực thi logic chính
 		result, err := handler(ctx, input)
-		if err == nil {
-			ctx.SetStatusCode(http.StatusOK)
-			h.HandleSuccess(ctx, result)
-		} else {
-			ctx.SetStatusCode(http.StatusInternalServerError)
-			h.HandleError(ctx, err)
-		}
+		h.HandleResponse(ctx, result, err)
 	} else {
-		ctx.SetStatusCode(http.StatusBadRequest)
-		h.HandleError(ctx, nil)
+		h.HandleError(ctx, utility.NewError(utility.ErrCodeValidationInput, utility.MsgValidationError, utility.StatusBadRequest, nil))
 	}
 }

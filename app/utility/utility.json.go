@@ -74,7 +74,7 @@ func Convert2Struct(data []byte, myStruct interface{}) map[string]interface{} {
 	decoder.UseNumber()
 	err := decoder.Decode(&myStruct)
 	if err != nil {
-		return Payload(false, NewError(400, "Unable to decode input data"), "Invalid input data!")
+		return Payload(false, NewError(ErrCodeValidationFormat, MsgInvalidFormat, StatusBadRequest, err), MsgInvalidFormat)
 	}
 
 	return nil
@@ -84,7 +84,7 @@ func Convert2Struct(data []byte, myStruct interface{}) map[string]interface{} {
 func ValidateStruct(myStruct interface{}) map[string]interface{} {
 	err := global.Validate.Struct(myStruct)
 	if err != nil {
-		return Payload(false, err.Error(), "Input data is incorrect!")
+		return Payload(false, NewError(ErrCodeValidationInput, MsgValidationError, StatusBadRequest, err), MsgValidationError)
 	}
 
 	return nil
@@ -92,11 +92,10 @@ func ValidateStruct(myStruct interface{}) map[string]interface{} {
 
 // CreateChangeMap tạo bản đồ thay đổi từ struct
 func CreateChangeMap(myStruct interface{}, myChange *map[string]interface{}) map[string]interface{} {
-
 	CustomBson := &CustomBson{}
 	change, err := CustomBson.Set(myStruct)
 	if err != nil {
-		return Payload(false, err.Error(), "Input data is incorrect!")
+		return Payload(false, NewError(ErrCodeValidationInput, MsgValidationError, StatusBadRequest, err), MsgValidationError)
 	}
 
 	*myChange = change
@@ -106,7 +105,10 @@ func CreateChangeMap(myStruct interface{}, myChange *map[string]interface{}) map
 // FinalResponse tạo phản hồi cuối cùng dựa trên kết quả và lỗi
 func FinalResponse(result interface{}, err error) map[string]interface{} {
 	if err != nil {
-		return Payload(false, nil, MsgDatabaseError, StatusInternalServerError)
+		if customErr, ok := err.(*Error); ok {
+			return Payload(false, customErr, customErr.Message, customErr.StatusCode)
+		}
+		return Payload(false, NewError(ErrCodeDatabaseConnection, MsgDatabaseError, StatusInternalServerError, err), MsgDatabaseError)
 	} else {
 		return Payload(true, result, MsgSuccess, StatusOK)
 	}

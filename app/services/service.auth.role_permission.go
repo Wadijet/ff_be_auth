@@ -88,8 +88,3 @@ func (s *RolePermissionService) Create(ctx context.Context, input *models.RolePe
 
 	return &createdRolePermission, nil
 }
-
-// Delete xóa quyền vai trò
-func (s *RolePermissionService) Delete(ctx context.Context, id primitive.ObjectID) error {
-	return s.BaseServiceImpl.Delete(ctx, id)
-}
