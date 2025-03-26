@@ -7,7 +7,7 @@ import (
 
 	"github.com/valyala/fasthttp"
 
-	"atk-go-server/global"
+	"meta_commerce/global"
 )
 
 // JSON thiết lập header và trả về dữ liệu JSON

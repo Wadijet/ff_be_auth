@@ -1,7 +1,7 @@
 package utility
 
 import (
-	models "atk-go-server/app/models/mongodb"
+	models "meta_commerce/app/models/mongodb"
 
 	"github.com/dgrijalva/jwt-go"
 )

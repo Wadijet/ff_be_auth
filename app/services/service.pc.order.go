@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
-	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/config"
-	"atk-go-server/global"
+	models "meta_commerce/app/models/mongodb"
+	"meta_commerce/config"
+	"meta_commerce/global"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

@@ -1,10 +1,10 @@
 package handler
 
 import (
-	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/services"
-	"atk-go-server/config"
-	"atk-go-server/global"
+	models "meta_commerce/app/models/mongodb"
+	"meta_commerce/app/services"
+	"meta_commerce/config"
+	"meta_commerce/global"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson/primitive"

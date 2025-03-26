@@ -1,13 +1,13 @@
 package tests
 
 import (
-	"atk-go-server/app/handler"
-	"atk-go-server/app/middleware"
-	"atk-go-server/config"
-	"atk-go-server/database"
-	"atk-go-server/global"
 	"context"
 	"encoding/json"
+	"meta_commerce/app/handler"
+	"meta_commerce/app/middleware"
+	"meta_commerce/config"
+	"meta_commerce/database"
+	"meta_commerce/global"
 	"os"
 	"testing"
 

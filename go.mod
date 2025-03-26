@@ -1,6 +1,6 @@
-module atk-go-server
+module meta_commerce
 
-go 1.23.1
+go 1.22.0
 
 require (
 	github.com/caarlos0/env v3.5.0+incompatible

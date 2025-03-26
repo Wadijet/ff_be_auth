@@ -1,11 +1,11 @@
 package handler
 
 import (
-	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/services"
-	"atk-go-server/app/utility"
-	"atk-go-server/config"
-	"atk-go-server/global"
+	models "meta_commerce/app/models/mongodb"
+	"meta_commerce/app/services"
+	"meta_commerce/app/utility"
+	"meta_commerce/config"
+	"meta_commerce/global"
 	"net/http"
 
 	"github.com/valyala/fasthttp"

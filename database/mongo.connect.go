@@ -1,10 +1,10 @@
 package database
 
 import (
-	"atk-go-server/config"
 	"context"
 	"fmt"
 	"log"
+	"meta_commerce/config"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"

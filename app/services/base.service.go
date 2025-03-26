@@ -11,9 +11,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/utility"
-	"atk-go-server/config"
+	models "meta_commerce/app/models/mongodb"
+	"meta_commerce/app/utility"
+	"meta_commerce/config"
 )
 
 // GetDBName lấy tên database từ cấu hình
@@ -48,6 +48,26 @@ type BaseService[T any] interface {
 	//   - []T: Danh sách bản ghi đã được tạo
 	//   - error: Lỗi nếu có
 	CreateMany(ctx context.Context, data []T) ([]T, error)
+
+	// Upsert thực hiện thao tác update nếu tồn tại, insert nếu chưa tồn tại
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	//   - data: Dữ liệu cần upsert
+	// Returns:
+	//   - T: Document sau khi upsert
+	//   - error: Lỗi nếu có
+	Upsert(ctx context.Context, filter interface{}, data T) (T, error)
+
+	// UpsertMany thực hiện thao tác upsert cho nhiều document
+	// Parameters:
+	//   - ctx: Context cho việc hủy bỏ hoặc timeout
+	//   - filter: Điều kiện lọc
+	//   - data: Danh sách dữ liệu cần upsert
+	// Returns:
+	//   - []T: Danh sách document sau khi upsert
+	//   - error: Lỗi nếu có
+	UpsertMany(ctx context.Context, filter interface{}, data []T) ([]T, error)
 
 	// FindOne tìm một document theo ObjectId
 	// Parameters:
@@ -135,26 +155,6 @@ type BaseService[T any] interface {
 	//   - error: Lỗi nếu có
 	CountAll(ctx context.Context, filter interface{}) (int64, error)
 
-	// Upsert thực hiện thao tác update nếu tồn tại, insert nếu chưa tồn tại
-	// Parameters:
-	//   - ctx: Context cho việc hủy bỏ hoặc timeout
-	//   - filter: Điều kiện lọc
-	//   - data: Dữ liệu cần upsert
-	// Returns:
-	//   - T: Document sau khi upsert
-	//   - error: Lỗi nếu có
-	Upsert(ctx context.Context, filter interface{}, data T) (T, error)
-
-	// UpsertMany thực hiện thao tác upsert cho nhiều document
-	// Parameters:
-	//   - ctx: Context cho việc hủy bỏ hoặc timeout
-	//   - filter: Điều kiện lọc
-	//   - data: Danh sách dữ liệu cần upsert
-	// Returns:
-	//   - []T: Danh sách document sau khi upsert
-	//   - error: Lỗi nếu có
-	UpsertMany(ctx context.Context, filter interface{}, data []T) ([]T, error)
-
 	// FindByIds tìm nhiều document theo danh sách ID
 	// Parameters:
 	//   - ctx: Context cho việc hủy bỏ hoặc timeout
@@ -194,7 +194,7 @@ type BaseService[T any] interface {
 	//   - error: Lỗi nếu có
 	FindOneAndDelete(ctx context.Context, filter interface{}, opts *options.FindOneAndDeleteOptions) (T, error)
 
-	// Distinct lấy danh sách các giá trị duy nhất của một trường
+	// Distinct lấy danh sách các giá trị duy nhất của một trường. Ví dụ: lấy danh sách các tên khác nhau trong bảng users
 	// Parameters:
 	//   - ctx: Context cho việc hủy bỏ hoặc timeout
 	//   - fieldName: Tên trường cần lấy giá trị duy nhất
@@ -302,6 +302,132 @@ func (s *BaseServiceImpl[T]) CreateMany(ctx context.Context, data []T) ([]T, err
 	}
 
 	return created, nil
+}
+
+// Upsert thực hiện thao tác update nếu tồn tại, insert nếu chưa tồn tại
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//   - data: Dữ liệu cần upsert
+//
+// Returns:
+//   - T: Document sau khi upsert
+//   - error: Lỗi nếu có
+func (s *BaseServiceImpl[T]) Upsert(ctx context.Context, filter interface{}, data T) (T, error) {
+	var zero T
+
+	// Chuyển data thành map để thêm timestamps
+	dataMap, err := utility.ToMap(data)
+	if err != nil {
+		return zero, err
+	}
+
+	// Thêm timestamps
+	now := time.Now().UnixMilli()
+	dataMap["updatedAt"] = now
+
+	// Tạo options cho upsert với sort để đảm bảo chỉ update một document
+	opts := options.FindOneAndUpdate().
+		SetUpsert(true).
+		SetReturnDocument(options.After).
+		SetSort(bson.D{{Key: "_id", Value: 1}}) // Sắp xếp theo _id để đảm bảo tính nhất quán
+
+	// Thực hiện upsert và lấy document sau khi update
+	var upserted T
+	err = s.collection.FindOneAndUpdate(ctx, filter, bson.M{"$set": dataMap}, opts).Decode(&upserted)
+	if err != nil {
+		return zero, err
+	}
+
+	return upserted, nil
+}
+
+// UpsertMany thực hiện thao tác upsert cho nhiều document
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - filter: Điều kiện lọc
+//   - data: Danh sách dữ liệu cần upsert
+//
+// Returns:
+//   - []T: Danh sách document sau khi upsert
+//   - error: Lỗi nếu có
+func (s *BaseServiceImpl[T]) UpsertMany(ctx context.Context, filter interface{}, data []T) ([]T, error) {
+	if len(data) == 0 {
+		return []T{}, nil
+	}
+
+	// Tạo các models cho bulk write
+	var models []mongo.WriteModel
+	now := time.Now().UnixMilli()
+
+	for _, item := range data {
+		// Chuyển data thành map để thêm timestamps
+		dataMap, err := utility.ToMap(item)
+		if err != nil {
+			return nil, err
+		}
+
+		// Thêm timestamps
+		dataMap["updatedAt"] = now
+
+		// Tạo upsert model
+		upsertModel := mongo.NewUpdateOneModel().
+			SetFilter(filter).
+			SetUpdate(bson.M{"$set": dataMap}).
+			SetUpsert(true)
+
+		models = append(models, upsertModel)
+	}
+
+	// Thực hiện bulk write
+	opts := options.BulkWrite().SetOrdered(false) // SetOrdered(false) để thực hiện song song
+	result, err := s.collection.BulkWrite(ctx, models, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Lấy lại các documents sau khi upsert
+	var upserted []T
+	if result.UpsertedCount > 0 {
+		// Nếu có documents mới được tạo
+		var upsertedIDs []primitive.ObjectID
+		for _, id := range result.UpsertedIDs {
+			if objectID, ok := id.(primitive.ObjectID); ok {
+				upsertedIDs = append(upsertedIDs, objectID)
+			}
+		}
+
+		if len(upsertedIDs) > 0 {
+			cursor, err := s.collection.Find(ctx, bson.M{"_id": bson.M{"$in": upsertedIDs}})
+			if err != nil {
+				return nil, err
+			}
+			defer cursor.Close(ctx)
+
+			if err = cursor.All(ctx, &upserted); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// Lấy các documents đã được update
+	if result.ModifiedCount > 0 {
+		cursor, err := s.collection.Find(ctx, filter)
+		if err != nil {
+			return nil, err
+		}
+		defer cursor.Close(ctx)
+
+		var updated []T
+		if err = cursor.All(ctx, &updated); err != nil {
+			return nil, err
+		}
+
+		// Kết hợp cả documents mới và documents đã update
+		upserted = append(upserted, updated...)
+	}
+
+	return upserted, nil
 }
 
 // FindOne tìm một document theo ObjectId
@@ -536,132 +662,6 @@ func (s *BaseServiceImpl[T]) DeleteMany(ctx context.Context, filter interface{})
 //   - error: Lỗi nếu có
 func (s *BaseServiceImpl[T]) CountAll(ctx context.Context, filter interface{}) (int64, error) {
 	return s.collection.CountDocuments(ctx, filter)
-}
-
-// Upsert thực hiện thao tác update nếu tồn tại, insert nếu chưa tồn tại
-// Parameters:
-//   - ctx: Context cho việc hủy bỏ hoặc timeout
-//   - filter: Điều kiện lọc
-//   - data: Dữ liệu cần upsert
-//
-// Returns:
-//   - T: Document sau khi upsert
-//   - error: Lỗi nếu có
-func (s *BaseServiceImpl[T]) Upsert(ctx context.Context, filter interface{}, data T) (T, error) {
-	var zero T
-
-	// Chuyển data thành map để thêm timestamps
-	dataMap, err := utility.ToMap(data)
-	if err != nil {
-		return zero, err
-	}
-
-	// Thêm timestamps
-	now := time.Now().UnixMilli()
-	dataMap["updatedAt"] = now
-
-	// Tạo options cho upsert với sort để đảm bảo chỉ update một document
-	opts := options.FindOneAndUpdate().
-		SetUpsert(true).
-		SetReturnDocument(options.After).
-		SetSort(bson.D{{Key: "_id", Value: 1}}) // Sắp xếp theo _id để đảm bảo tính nhất quán
-
-	// Thực hiện upsert và lấy document sau khi update
-	var upserted T
-	err = s.collection.FindOneAndUpdate(ctx, filter, bson.M{"$set": dataMap}, opts).Decode(&upserted)
-	if err != nil {
-		return zero, err
-	}
-
-	return upserted, nil
-}
-
-// UpsertMany thực hiện thao tác upsert cho nhiều document
-// Parameters:
-//   - ctx: Context cho việc hủy bỏ hoặc timeout
-//   - filter: Điều kiện lọc
-//   - data: Danh sách dữ liệu cần upsert
-//
-// Returns:
-//   - []T: Danh sách document sau khi upsert
-//   - error: Lỗi nếu có
-func (s *BaseServiceImpl[T]) UpsertMany(ctx context.Context, filter interface{}, data []T) ([]T, error) {
-	if len(data) == 0 {
-		return []T{}, nil
-	}
-
-	// Tạo các models cho bulk write
-	var models []mongo.WriteModel
-	now := time.Now().UnixMilli()
-
-	for _, item := range data {
-		// Chuyển data thành map để thêm timestamps
-		dataMap, err := utility.ToMap(item)
-		if err != nil {
-			return nil, err
-		}
-
-		// Thêm timestamps
-		dataMap["updatedAt"] = now
-
-		// Tạo upsert model
-		upsertModel := mongo.NewUpdateOneModel().
-			SetFilter(filter).
-			SetUpdate(bson.M{"$set": dataMap}).
-			SetUpsert(true)
-
-		models = append(models, upsertModel)
-	}
-
-	// Thực hiện bulk write
-	opts := options.BulkWrite().SetOrdered(false) // SetOrdered(false) để thực hiện song song
-	result, err := s.collection.BulkWrite(ctx, models, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	// Lấy lại các documents sau khi upsert
-	var upserted []T
-	if result.UpsertedCount > 0 {
-		// Nếu có documents mới được tạo
-		var upsertedIDs []primitive.ObjectID
-		for _, id := range result.UpsertedIDs {
-			if objectID, ok := id.(primitive.ObjectID); ok {
-				upsertedIDs = append(upsertedIDs, objectID)
-			}
-		}
-
-		if len(upsertedIDs) > 0 {
-			cursor, err := s.collection.Find(ctx, bson.M{"_id": bson.M{"$in": upsertedIDs}})
-			if err != nil {
-				return nil, err
-			}
-			defer cursor.Close(ctx)
-
-			if err = cursor.All(ctx, &upserted); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	// Lấy các documents đã được update
-	if result.ModifiedCount > 0 {
-		cursor, err := s.collection.Find(ctx, filter)
-		if err != nil {
-			return nil, err
-		}
-		defer cursor.Close(ctx)
-
-		var updated []T
-		if err = cursor.All(ctx, &updated); err != nil {
-			return nil, err
-		}
-
-		// Kết hợp cả documents mới và documents đã update
-		upserted = append(upserted, updated...)
-	}
-
-	return upserted, nil
 }
 
 // FindByIds tìm nhiều document theo danh sách ID

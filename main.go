@@ -9,14 +9,14 @@ import (
 	"github.com/valyala/fasthttp"
 	validator "gopkg.in/go-playground/validator.v9"
 
-	"atk-go-server/app/middleware"
-	models "atk-go-server/app/models/mongodb"
-	api "atk-go-server/app/router"
-	"atk-go-server/app/services"
-	"atk-go-server/app/utility"
-	"atk-go-server/config"
-	"atk-go-server/database"
-	"atk-go-server/global"
+	"meta_commerce/app/middleware"
+	models "meta_commerce/app/models/mongodb"
+	api "meta_commerce/app/router"
+	"meta_commerce/app/services"
+	"meta_commerce/app/utility"
+	"meta_commerce/config"
+	"meta_commerce/database"
+	"meta_commerce/global"
 )
 
 // Hàm khởi tạo các biến toàn cục
