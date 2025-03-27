@@ -11,9 +11,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/utility"
-	"atk-go-server/config"
+	models "meta_commerce/app/models/mongodb"
+	"meta_commerce/app/utility"
+	"meta_commerce/config"
 )
 
 // ====================================

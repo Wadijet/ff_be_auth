@@ -2,15 +2,14 @@ package services
 
 import (
 	"context"
-	"errors"
 	"math/rand"
 	"strconv"
 	"time"
 
-	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/utility"
-	"atk-go-server/config"
-	"atk-go-server/global"
+	models "meta_commerce/app/models/mongodb"
+	"meta_commerce/app/utility"
+	"meta_commerce/config"
+	"meta_commerce/global"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -189,7 +188,7 @@ func (s *UserService) ChangePassword(ctx context.Context, userID primitive.Objec
 
 	// Kiểm tra mật khẩu cũ
 	if err := user.ComparePassword(input.OldPassword); err != nil {
-		return errors.New("Invalid old password")
+		return utility.ErrInvalidCredentials
 	}
 
 	// Validate mật khẩu mới

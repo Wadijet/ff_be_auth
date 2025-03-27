@@ -10,11 +10,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	models "atk-go-server/app/models/mongodb"
-	"atk-go-server/app/services"
-	"atk-go-server/app/utility"
-	"atk-go-server/config"
-	"atk-go-server/global"
+	models "meta_commerce/app/models/mongodb"
+	"meta_commerce/app/services"
+	"meta_commerce/app/utility"
+	"meta_commerce/config"
+	"meta_commerce/global"
 )
 
 // JwtToken là middleware xử lý xác thực và phân quyền người dùng thông qua JWT

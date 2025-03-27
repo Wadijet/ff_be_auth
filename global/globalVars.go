@@ -1,8 +1,8 @@
 package global
 
 import (
-	"atk-go-server/config"
 	"database/sql"
+	"meta_commerce/config"
 
 	_ "github.com/go-sql-driver/mysql"
 	"go.mongodb.org/mongo-driver/mongo"

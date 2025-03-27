@@ -1,9 +1,9 @@
 package router
 
 import (
-	"atk-go-server/app/handler"
-	"atk-go-server/app/middleware"
-	"atk-go-server/config"
+	"meta_commerce/app/handler"
+	"meta_commerce/app/middleware"
+	"meta_commerce/config"
 
 	"github.com/fasthttp/router"
 	"go.mongodb.org/mongo-driver/mongo"
