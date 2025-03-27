@@ -48,7 +48,7 @@ func (h *RolePermissionHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *RolePermissionHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.RolePermissionService.FindOne(context, utility.String2ObjectID(id))
+	data, err := h.RolePermissionService.FindOneById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -62,7 +62,7 @@ func (h *RolePermissionHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	skip := (page - 1) * limit
 	findOptions := options.Find().SetSkip(skip).SetLimit(limit)
 
-	data, err := h.RolePermissionService.FindAll(context, filter, findOptions)
+	data, err := h.RolePermissionService.Find(context, filter, findOptions)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -127,6 +127,6 @@ func (h *RolePermissionHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *RolePermissionHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.RolePermissionService.Delete(context, utility.String2ObjectID(id))
+	err := h.RolePermissionService.DeleteById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }

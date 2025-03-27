@@ -50,8 +50,8 @@ func (s *UserService) IsEmailExist(ctx context.Context, email string) (bool, err
 	return true, nil
 }
 
-// Create tạo mới một người dùng
-func (s *UserService) Create(ctx context.Context, input *models.UserCreateInput) (*models.User, error) {
+// Registry tạo mới một người dùng
+func (s *UserService) Registry(ctx context.Context, input *models.UserCreateInput) (*models.User, error) {
 	// Kiểm tra email tồn tại
 	exists, err := s.IsEmailExist(ctx, input.Email)
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *UserService) Create(ctx context.Context, input *models.UserCreateInput)
 	}
 
 	// Lưu user
-	createdUser, err := s.BaseServiceImpl.Create(ctx, *user)
+	createdUser, err := s.BaseServiceImpl.InsertOne(ctx, *user)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (s *UserService) Create(ctx context.Context, input *models.UserCreateInput)
 func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (*models.User, error) {
 	// Tìm user theo email
 	filter := bson.M{"email": input.Email}
-	user, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
+	user, err := s.BaseServiceImpl.FindOne(ctx, filter, nil)
 	if err != nil {
 		if err == utility.ErrNotFound {
 			return nil, utility.ErrInvalidCredentials
@@ -147,7 +147,7 @@ func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (
 	}
 
 	// Cập nhật user
-	updatedUser, err := s.BaseServiceImpl.Update(ctx, user.ID, user)
+	updatedUser, err := s.BaseServiceImpl.UpdateById(ctx, user.ID, user)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (
 // Logout đăng xuất người dùng
 func (s *UserService) Logout(ctx context.Context, userID primitive.ObjectID, input *models.UserLogoutInput) error {
 	// Tìm user
-	user, err := s.BaseServiceImpl.FindOne(ctx, userID)
+	user, err := s.BaseServiceImpl.FindOneById(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -175,14 +175,14 @@ func (s *UserService) Logout(ctx context.Context, userID primitive.ObjectID, inp
 	user.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật user
-	_, err = s.BaseServiceImpl.Update(ctx, userID, user)
+	_, err = s.BaseServiceImpl.UpdateById(ctx, userID, user)
 	return err
 }
 
 // ChangePassword thay đổi mật khẩu
 func (s *UserService) ChangePassword(ctx context.Context, userID primitive.ObjectID, input *models.UserChangePasswordInput) error {
 	// Tìm user
-	user, err := s.BaseServiceImpl.FindOne(ctx, userID)
+	user, err := s.BaseServiceImpl.FindOneById(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -212,6 +212,6 @@ func (s *UserService) ChangePassword(ctx context.Context, userID primitive.Objec
 	user.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật user
-	_, err = s.BaseServiceImpl.Update(ctx, userID, user)
+	_, err = s.BaseServiceImpl.UpdateById(ctx, userID, user)
 	return err
 }

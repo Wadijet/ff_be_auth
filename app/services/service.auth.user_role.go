@@ -34,12 +34,12 @@ func NewUserRoleService(c *config.Configuration, db *mongo.Client) *UserRoleServ
 // Create tạo mới một vai trò người dùng
 func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCreateInput) (*models.UserRole, error) {
 	// Kiểm tra User có tồn tại không
-	if _, err := s.userService.FindOne(ctx, input.UserID); err != nil {
+	if _, err := s.userService.FindOneById(ctx, input.UserID); err != nil {
 		return nil, errors.New("User not found")
 	}
 
 	// Kiểm tra Role có tồn tại không
-	if _, err := s.roleService.FindOne(ctx, input.RoleID); err != nil {
+	if _, err := s.roleService.FindOneById(ctx, input.RoleID); err != nil {
 		return nil, errors.New("Role not found")
 	}
 
@@ -62,7 +62,7 @@ func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCrea
 	}
 
 	// Lưu userRole
-	createdUserRole, err := s.BaseServiceImpl.Create(ctx, *userRole)
+	createdUserRole, err := s.BaseServiceImpl.InsertOne(ctx, *userRole)
 	if err != nil {
 		return nil, err
 	}

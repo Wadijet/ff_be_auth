@@ -32,14 +32,10 @@ func NewFbPostHandler(c *config.Configuration, db *mongo.Client) *FbPostHandler 
 // Create tạo mới một FbPost
 func (h *FbPostHandler) Create(ctx *fasthttp.RequestCtx) {
 	input := new(models.FbPostCreateInput)
-	if response := h.ParseRequestBody(ctx, input); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	data, err := h.FbPostService.ReviceData(context, input)
-	h.HandleResponse(ctx, data, err)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		fbPostInput := input.(*models.FbPostCreateInput)
+		return h.FbPostService.ReviceData(context.Background(), fbPostInput)
+	})
 }
 
 // FindOne tìm một FbPost theo ID
@@ -53,7 +49,7 @@ func (h *FbPostHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.FbPostService.FindOne(context, objectID)
+	data, err := h.FbPostService.FindOneById(context, objectID)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -77,7 +73,6 @@ func (h *FbPostHandler) FindAll(ctx *fasthttp.RequestCtx) {
 // Update cập nhật một FbPost
 func (h *FbPostHandler) Update(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
-
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		h.HandleError(ctx, err)
@@ -85,39 +80,30 @@ func (h *FbPostHandler) Update(ctx *fasthttp.RequestCtx) {
 	}
 
 	input := new(models.FbPostCreateInput)
-	if response := h.ParseRequestBody(ctx, input); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	post := models.FbPost{
-		ID:          objectID,
-		PanCakeData: input.PanCakeData,
-		UpdatedAt:   time.Now().Unix(),
-	}
-
-	data, err := h.FbPostService.Update(context, objectID, post)
-	h.HandleResponse(ctx, data, err)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		fbPostInput := input.(*models.FbPostCreateInput)
+		post := models.FbPost{
+			ID:          objectID,
+			PanCakeData: fbPostInput.PanCakeData,
+			UpdatedAt:   time.Now().Unix(),
+		}
+		return h.FbPostService.UpdateById(context.Background(), objectID, post)
+	})
 }
 
 // Delete xóa một FbPost
 func (h *FbPostHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.FbPostService.Delete(context, utility.String2ObjectID(id))
+	err := h.FbPostService.DeleteById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }
 
 // UpdateToken cập nhật access token của một FbPost
 func (h *FbPostHandler) UpdateToken(ctx *fasthttp.RequestCtx) {
 	input := new(models.FbPostUpdateTokenInput)
-	if response := h.ParseRequestBody(ctx, input); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	data, err := h.FbPostService.UpdateToken(context, input)
-	h.HandleResponse(ctx, data, err)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		fbPostInput := input.(*models.FbPostUpdateTokenInput)
+		return h.FbPostService.UpdateToken(context.Background(), fbPostInput)
+	})
 }

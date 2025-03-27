@@ -31,28 +31,24 @@ func NewPermissionHandler(c *config.Configuration, db *mongo.Client) *Permission
 
 // Create tạo mới một quyền
 func (h *PermissionHandler) Create(ctx *fasthttp.RequestCtx) {
-	inputStruct := new(models.PermissionCreateInput)
-	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	permission := models.Permission{
-		Name:     inputStruct.Name,
-		Describe: inputStruct.Describe,
-		Category: inputStruct.Category,
-		Group:    inputStruct.Group,
-	}
-	data, err := h.PermissionService.Create(context, permission)
-	h.HandleResponse(ctx, data, err)
+	input := new(models.PermissionCreateInput)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		permissionInput := input.(*models.PermissionCreateInput)
+		permission := models.Permission{
+			Name:     permissionInput.Name,
+			Describe: permissionInput.Describe,
+			Category: permissionInput.Category,
+			Group:    permissionInput.Group,
+		}
+		return h.PermissionService.InsertOne(context.Background(), permission)
+	})
 }
 
 // FindOneById tìm kiếm một quyền theo ID
 func (h *PermissionHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.PermissionService.FindOne(context, utility.String2ObjectID(id))
+	data, err := h.PermissionService.FindOneById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -66,35 +62,31 @@ func (h *PermissionHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	skip := (page - 1) * limit
 	findOptions := options.Find().SetSkip(skip).SetLimit(limit)
 
-	data, err := h.PermissionService.FindAll(context, filter, findOptions)
+	data, err := h.PermissionService.Find(context, filter, findOptions)
 	h.HandleResponse(ctx, data, err)
 }
 
 // Update cập nhật một quyền
 func (h *PermissionHandler) Update(ctx *fasthttp.RequestCtx) {
-	id := h.GetIDFromContext(ctx)
-	inputStruct := new(models.PermissionUpdateInput)
-	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	permission := models.Permission{
-		Name:     inputStruct.Name,
-		Describe: inputStruct.Describe,
-		Category: inputStruct.Category,
-		Group:    inputStruct.Group,
-	}
-	data, err := h.PermissionService.Update(context, utility.String2ObjectID(id), permission)
-	h.HandleResponse(ctx, data, err)
+	input := new(models.PermissionUpdateInput)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		permissionInput := input.(*models.PermissionUpdateInput)
+		id := h.GetIDFromContext(ctx)
+		permission := models.Permission{
+			Name:     permissionInput.Name,
+			Describe: permissionInput.Describe,
+			Category: permissionInput.Category,
+			Group:    permissionInput.Group,
+		}
+		return h.PermissionService.UpdateById(context.Background(), utility.String2ObjectID(id), permission)
+	})
 }
 
 // Delete xóa một quyền
 func (h *PermissionHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.PermissionService.Delete(context, utility.String2ObjectID(id))
+	err := h.PermissionService.DeleteById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }
 

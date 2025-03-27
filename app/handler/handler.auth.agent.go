@@ -31,28 +31,24 @@ func NewAgentHandler(c *config.Configuration, db *mongo.Client) *AgentHandler {
 
 // Create tạo mới một Agent
 func (h *AgentHandler) Create(ctx *fasthttp.RequestCtx) {
-	inputStruct := new(models.AgentCreateInput)
-	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	agent := models.Agent{
-		Name:          inputStruct.Name,
-		Describe:      inputStruct.Describe,
-		AssignedUsers: utility.StringArray2ObjectIDArray(inputStruct.AssignedUsers),
-		ConfigData:    inputStruct.ConfigData,
-	}
-	data, err := h.AgentService.Create(context, agent)
-	h.HandleResponse(ctx, data, err)
+	input := new(models.AgentCreateInput)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		agentInput := input.(*models.AgentCreateInput)
+		agent := models.Agent{
+			Name:          agentInput.Name,
+			Describe:      agentInput.Describe,
+			AssignedUsers: utility.StringArray2ObjectIDArray(agentInput.AssignedUsers),
+			ConfigData:    agentInput.ConfigData,
+		}
+		return h.AgentService.InsertOne(context.Background(), agent)
+	})
 }
 
 // FindOneById tìm một Agent theo ID
 func (h *AgentHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.AgentService.FindOne(context, utility.String2ObjectID(id))
+	data, err := h.AgentService.FindOneById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -66,37 +62,33 @@ func (h *AgentHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	skip := (page - 1) * limit
 	findOptions := options.Find().SetSkip(skip).SetLimit(limit)
 
-	data, err := h.AgentService.FindAll(context, filter, findOptions)
+	data, err := h.AgentService.Find(context, filter, findOptions)
 	h.HandleResponse(ctx, data, err)
 }
 
 // UpdateOneById cập nhật một Agent theo ID
 func (h *AgentHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
-	id := h.GetIDFromContext(ctx)
-	inputStruct := new(models.AgentUpdateInput)
-	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	agent := models.Agent{
-		Name:          inputStruct.Name,
-		Describe:      inputStruct.Describe,
-		Status:        inputStruct.Status,
-		Command:       inputStruct.Command,
-		AssignedUsers: utility.StringArray2ObjectIDArray(inputStruct.AssignedUsers),
-		ConfigData:    inputStruct.ConfigData,
-	}
-	data, err := h.AgentService.Update(context, utility.String2ObjectID(id), agent)
-	h.HandleResponse(ctx, data, err)
+	input := new(models.AgentUpdateInput)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		agentInput := input.(*models.AgentUpdateInput)
+		id := h.GetIDFromContext(ctx)
+		agent := models.Agent{
+			Name:          agentInput.Name,
+			Describe:      agentInput.Describe,
+			Status:        agentInput.Status,
+			Command:       agentInput.Command,
+			AssignedUsers: utility.StringArray2ObjectIDArray(agentInput.AssignedUsers),
+			ConfigData:    agentInput.ConfigData,
+		}
+		return h.AgentService.UpdateById(context.Background(), utility.String2ObjectID(id), agent)
+	})
 }
 
 // DeleteOneById xóa một Agent theo ID
 func (h *AgentHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.AgentService.Delete(context, utility.String2ObjectID(id))
+	err := h.AgentService.DeleteById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }
 

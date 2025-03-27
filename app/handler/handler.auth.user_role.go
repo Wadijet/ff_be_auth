@@ -47,7 +47,7 @@ func (h *UserRoleHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *UserRoleHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.UserRoleService.FindOne(context, utility.String2ObjectID(id))
+	data, err := h.UserRoleService.FindOneById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -59,7 +59,7 @@ func (h *UserRoleHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	opts := options.Find().
 		SetSkip((page - 1) * limit).
 		SetLimit(limit)
-	data, err := h.UserRoleService.FindAll(context, filter, opts)
+	data, err := h.UserRoleService.Find(context, filter, opts)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -84,7 +84,7 @@ func (h *UserRoleHandler) Update(ctx *fasthttp.RequestCtx) {
 		UserID: input.UserID,
 		RoleID: input.RoleID,
 	}
-	data, err := h.UserRoleService.Update(context, objectID, userRole)
+	data, err := h.UserRoleService.UpdateById(context, objectID, userRole)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -92,6 +92,6 @@ func (h *UserRoleHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *UserRoleHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.UserRoleService.Delete(context, utility.String2ObjectID(id))
+	err := h.UserRoleService.DeleteById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }

@@ -32,6 +32,10 @@ func NewFbPageHandler(c *config.Configuration, db *mongo.Client) *FbPageHandler 
 // Create tạo mới một FbPage
 func (h *FbPageHandler) Create(ctx *fasthttp.RequestCtx) {
 	input := new(models.FbPageCreateInput)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		fbPageInput := input.(*models.FbPageCreateInput)
+		return h.FbPageService.ReviceData(context.Background(), fbPageInput)
+	})
 	if response := h.ParseRequestBody(ctx, input); response != nil {
 		h.HandleError(ctx, nil)
 		return
@@ -46,7 +50,7 @@ func (h *FbPageHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *FbPageHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.FbPageService.FindOne(context, utility.String2ObjectID(id))
+	data, err := h.FbPageService.FindOneById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -88,7 +92,7 @@ func (h *FbPageHandler) Update(ctx *fasthttp.RequestCtx) {
 		PanCakeData: input.PanCakeData,
 		UpdatedAt:   time.Now().Unix(),
 	}
-	data, err := h.FbPageService.Update(context, utility.String2ObjectID(id), fbPage)
+	data, err := h.FbPageService.UpdateById(context, utility.String2ObjectID(id), fbPage)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -96,7 +100,7 @@ func (h *FbPageHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *FbPageHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.FbPageService.Delete(context, utility.String2ObjectID(id))
+	err := h.FbPageService.DeleteById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }
 

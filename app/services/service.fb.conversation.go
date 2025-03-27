@@ -42,8 +42,8 @@ func (s *FbConversationService) IsConversationIdExist(ctx context.Context, conve
 	return true, nil
 }
 
-// ReviceData nhận data từ Facebook và lưu vào cơ sở dữ liệu
-func (s *FbConversationService) ReviceData(ctx context.Context, input *models.FbConversationCreateInput) (*models.FbConversation, error) {
+// Upsert thực hiện thao tác upsert dữ liệu conversation từ Facebook vào cơ sở dữ liệu
+func (s *FbConversationService) Upsert(ctx context.Context, input *models.FbConversationCreateInput) (*models.FbConversation, error) {
 	if input.PanCakeData == nil {
 		return nil, errors.New("ApiData is required")
 	}
@@ -62,60 +62,30 @@ func (s *FbConversationService) ReviceData(ctx context.Context, input *models.Fb
 	// Chuyển sang kiểu float64 (Unix timestamp dạng float64)
 	pancakeUpdatedAt := int64(parsedTime.Unix())
 
-	// Kiểm tra FbConversation đã tồn tại chưa
-	exists, err := s.IsConversationIdExist(ctx, conversationId)
+	// Tạo filter để tìm conversation theo conversationId
+	filter := bson.M{"conversationId": conversationId}
+
+	// Tạo conversation mới với dữ liệu từ input
+	conversation := &models.FbConversation{
+		PageId:           input.PageId,
+		PageUsername:     input.PageUsername,
+		PanCakeData:      input.PanCakeData,
+		ConversationId:   conversationId,
+		CustomerId:       customerId,
+		PanCakeUpdatedAt: pancakeUpdatedAt,
+	}
+
+	// Sử dụng Upsert để tạo mới hoặc cập nhật conversation
+	upsertedConversation, err := s.BaseServiceImpl.Upsert(ctx, filter, *conversation)
 	if err != nil {
 		return nil, err
 	}
 
-	if !exists {
-		// Tạo một FbConversation mới
-		conversation := &models.FbConversation{
-			PageId:           input.PageId,
-			PageUsername:     input.PageUsername,
-			PanCakeData:      input.PanCakeData,
-			ConversationId:   conversationId,
-			CustomerId:       customerId,
-			PanCakeUpdatedAt: pancakeUpdatedAt,
-			CreatedAt:        time.Now().Unix(),
-			UpdatedAt:        time.Now().Unix(),
-		}
-
-		// Lưu FbConversation
-		createdConversation, err := s.BaseServiceImpl.Create(ctx, *conversation)
-		if err != nil {
-			return nil, err
-		}
-
-		return &createdConversation, nil
-	} else {
-		// Lấy FbConversation hiện tại
-		filter := bson.M{"conversationId": conversationId}
-		conversation, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		// Cập nhật thông tin mới
-		conversation.PanCakeData = input.PanCakeData
-		conversation.PageId = input.PageId
-		conversation.PageUsername = input.PageUsername
-		conversation.ConversationId = conversationId
-		conversation.CustomerId = customerId
-		conversation.PanCakeUpdatedAt = pancakeUpdatedAt
-		conversation.UpdatedAt = time.Now().Unix()
-
-		// Cập nhật FbConversation
-		updatedConversation, err := s.BaseServiceImpl.Update(ctx, conversation.ID, conversation)
-		if err != nil {
-			return nil, err
-		}
-
-		return &updatedConversation, nil
-	}
+	return &upsertedConversation, nil
 }
 
 // FindAllSortByApiUpdate tìm tất cả các FbConversation với phân trang sắp xếp theo thời gian cập nhật của dữ liệu API
+// Hàm này cần để lấy dữ liệu cũ nhất để đồng bộ lại conversation mới
 func (s *FbConversationService) FindAllSortByApiUpdate(ctx context.Context, page int64, limit int64, filter bson.M) ([]models.FbConversation, error) {
 	opts := options.Find().
 		SetSkip((page - 1) * limit).

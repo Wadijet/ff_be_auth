@@ -32,19 +32,15 @@ func NewRoleHandler(c *config.Configuration, db *mongo.Client) *RoleHandler {
 
 // Create xử lý tạo mới vai trò
 func (h *RoleHandler) Create(ctx *fasthttp.RequestCtx) {
-	inputStruct := new(models.RoleCreateInput)
-	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	role := models.Role{
-		Name:     inputStruct.Name,
-		Describe: inputStruct.Describe,
-	}
-	data, err := h.RoleService.Create(context, role)
-	h.HandleResponse(ctx, data, err)
+	input := new(models.RoleCreateInput)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		roleInput := input.(*models.RoleCreateInput)
+		role := models.Role{
+			Name:     roleInput.Name,
+			Describe: roleInput.Describe,
+		}
+		return h.RoleService.InsertOne(context.Background(), role)
+	})
 }
 
 // FindOneById tìm vai trò theo ID
@@ -58,7 +54,7 @@ func (h *RoleHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.RoleService.FindOne(context, objectID)
+	data, err := h.RoleService.FindOneById(context, objectID)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -70,42 +66,33 @@ func (h *RoleHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	opts := options.Find().
 		SetSkip((page - 1) * limit).
 		SetLimit(limit)
-	data, err := h.RoleService.FindAll(context, filter, opts)
+	data, err := h.RoleService.Find(context, filter, opts)
 	h.HandleResponse(ctx, data, err)
 }
 
 // UpdateOneById cập nhật một vai trò theo ID
 func (h *RoleHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
-
-	// Lấy ID từ context
-	id := h.GetIDFromContext(ctx)
-
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		h.HandleError(ctx, err)
-		return
-	}
-
 	input := new(models.RoleUpdateInput)
-	if response := h.ParseRequestBody(ctx, input); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	role := models.Role{
-		Name:     input.Name,
-		Describe: input.Describe,
-	}
-	data, err := h.RoleService.Update(context, objectID, role)
-	h.HandleResponse(ctx, data, err)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		roleInput := input.(*models.RoleUpdateInput)
+		id := h.GetIDFromContext(ctx)
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, err
+		}
+		role := models.Role{
+			Name:     roleInput.Name,
+			Describe: roleInput.Describe,
+		}
+		return h.RoleService.UpdateById(context.Background(), objectID, role)
+	})
 }
 
 // DeleteOneById xóa một vai trò theo ID
 func (h *RoleHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.RoleService.Delete(context, utility.String2ObjectID(id))
+	err := h.RoleService.DeleteById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }
 

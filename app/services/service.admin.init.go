@@ -100,14 +100,14 @@ func (h *InitService) InitPermission() {
 		// Tìm quyền theo filter
 
 		filter := bson.M{"name": permission.Name}
-		_, err := h.PermissionCRUD.FindOneByFilter(context.TODO(), filter, nil)
+		_, err := h.PermissionCRUD.FindOne(context.TODO(), filter, nil)
 		if err != nil && err != mongo.ErrNoDocuments {
 			continue
 		}
 
 		// Nếu quyền chưa tồn tại thì thêm quyền vào collection
 		if err == mongo.ErrNoDocuments {
-			h.PermissionCRUD.Create(context.TODO(), permission)
+			h.PermissionCRUD.InsertOne(context.TODO(), permission)
 		}
 	}
 }
@@ -118,7 +118,7 @@ func (h *InitService) InitPermission() {
 // Sau đó, gán tất cả các quyền cho vai trò Administrator
 func (h *InitService) InitRole() error {
 	// Kiểm tra vai trò Administrator đã tồn tại chưa
-	adminRole, err := h.RoleCRUD.FindOneByFilter(context.TODO(), bson.M{"name": "Administrator"}, nil)
+	adminRole, err := h.RoleCRUD.FindOne(context.TODO(), bson.M{"name": "Administrator"}, nil)
 	if err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
@@ -133,13 +133,13 @@ func (h *InitService) InitRole() error {
 	}
 
 	// Thêm vai trò vào collection
-	adminRole, err = h.RoleCRUD.Create(context.TODO(), newAdminRole)
+	adminRole, err = h.RoleCRUD.InsertOne(context.TODO(), newAdminRole)
 	if err != nil {
 		return errors.New("Failed to insert role Administrator")
 	}
 
 	// Lấy tất cả quyền
-	permissions, err := h.PermissionCRUD.FindAll(context.TODO(), bson.M{}, nil)
+	permissions, err := h.PermissionCRUD.Find(context.TODO(), bson.M{}, nil)
 	if err != nil {
 		return errors.New("Failed to get all permissions")
 	}
@@ -150,7 +150,7 @@ func (h *InitService) InitRole() error {
 			RoleID:       adminRole.ID,
 			PermissionID: permission.ID,
 		}
-		_, err = h.RolePermissionCRUD.Create(context.TODO(), rolePermission)
+		_, err = h.RolePermissionCRUD.InsertOne(context.TODO(), rolePermission)
 		if err != nil {
 			continue
 		}
@@ -161,7 +161,7 @@ func (h *InitService) InitRole() error {
 // Viết hàm kiểm tra các quyền của role Administrator, nếu thiếu quyền nào thì thêm vào
 func (h *InitService) CheckPermissionForAdministrator() (err error) {
 	// Tìm role theo tên
-	role, err := h.RoleCRUD.FindOneByFilter(context.TODO(), bson.M{"name": "Administrator"}, nil)
+	role, err := h.RoleCRUD.FindOne(context.TODO(), bson.M{"name": "Administrator"}, nil)
 	if err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
@@ -178,7 +178,7 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 	}
 
 	// Lấy tất cả quyền
-	permissions, err := h.PermissionCRUD.FindAll(nil, nil, nil)
+	permissions, err := h.PermissionCRUD.Find(context.TODO(), bson.M{}, nil)
 	if err != nil {
 		return errors.New("Failed to get all permissions")
 	}
@@ -202,7 +202,7 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 		}
 
 		// Tìm quyền của role Administrator
-		_, err = h.RolePermissionCRUD.FindOneByFilter(context.TODO(), filter, nil)
+		_, err = h.RolePermissionCRUD.FindOne(context.TODO(), filter, nil)
 		if err != nil && err != mongo.ErrNoDocuments {
 			continue
 		}
@@ -212,7 +212,7 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 				PermissionID: modelPermission.ID,
 				Scope:        0,
 			}
-			_, err = h.RolePermissionCRUD.Create(context.TODO(), rolePermission)
+			_, err = h.RolePermissionCRUD.InsertOne(context.TODO(), rolePermission)
 
 			if err != nil {
 				fmt.Errorf("Failed to insert role permission: %v", err)
@@ -227,13 +227,13 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 // Viết hàm set administator để gán quyền admin cho user
 func (h *InitService) SetAdministrator(userID primitive.ObjectID) (result interface{}, err error) {
 	// Tìm user theo ID
-	user, err := h.UserCRUD.FindOne(context.TODO(), userID)
+	user, err := h.UserCRUD.FindOneById(context.TODO(), userID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Tìm role theo tên
-	role, err := h.RoleCRUD.FindOneByFilter(context.TODO(), bson.M{"name": "Administrator"}, nil)
+	role, err := h.RoleCRUD.FindOne(context.TODO(), bson.M{"name": "Administrator"}, nil)
 	if err != nil && err != mongo.ErrNoDocuments {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func (h *InitService) SetAdministrator(userID primitive.ObjectID) (result interf
 		UserID: user.ID,
 		RoleID: role.ID,
 	}
-	result, err = h.UserRoleCRUD.Create(context.TODO(), userRole)
+	result, err = h.UserRoleCRUD.InsertOne(context.TODO(), userRole)
 	if err != nil {
 		return nil, err
 	}

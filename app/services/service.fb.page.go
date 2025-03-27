@@ -72,7 +72,7 @@ func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCrea
 		}
 
 		// Lưu FbPage
-		createdPage, err := s.BaseServiceImpl.Create(ctx, *page)
+		createdPage, err := s.BaseServiceImpl.InsertOne(ctx, *page)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +81,7 @@ func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCrea
 	} else {
 		// Lấy FbPage hiện tại
 		filter := bson.M{"pageId": pageId}
-		page, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
+		page, err := s.BaseServiceImpl.FindOne(ctx, filter, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -94,18 +94,13 @@ func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCrea
 		page.UpdatedAt = time.Now().Unix()
 
 		// Cập nhật FbPage
-		updatedPage, err := s.BaseServiceImpl.Update(ctx, page.ID, page)
+		updatedPage, err := s.BaseServiceImpl.UpdateById(ctx, page.ID, page)
 		if err != nil {
 			return nil, err
 		}
 
 		return &updatedPage, nil
 	}
-}
-
-// FindOneById tìm một FbPage theo ID
-func (s *FbPageService) FindOneById(ctx context.Context, id primitive.ObjectID) (models.FbPage, error) {
-	return s.BaseServiceImpl.FindOne(ctx, id)
 }
 
 // FindOneByPageID tìm một FbPage theo PageID
@@ -156,7 +151,7 @@ func (s *FbPageService) UpdateToken(ctx context.Context, input *models.FbPageUpd
 	page.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật FbPage
-	updatedPage, err := s.BaseServiceImpl.Update(ctx, page.ID, page)
+	updatedPage, err := s.BaseServiceImpl.UpdateById(ctx, page.ID, page)
 	if err != nil {
 		return nil, err
 	}

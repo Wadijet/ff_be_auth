@@ -70,7 +70,7 @@ func (s *FbPostService) ReviceData(ctx context.Context, input *models.FbPostCrea
 		}
 
 		// Lưu FbPost
-		createdPost, err := s.BaseServiceImpl.Create(ctx, *post)
+		createdPost, err := s.BaseServiceImpl.InsertOne(ctx, *post)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +79,7 @@ func (s *FbPostService) ReviceData(ctx context.Context, input *models.FbPostCrea
 	} else {
 		filter := bson.M{"postId": postId}
 		// Lấy FbPost hiện tại
-		post, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
+		post, err := s.BaseServiceImpl.FindOne(ctx, filter, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -89,18 +89,13 @@ func (s *FbPostService) ReviceData(ctx context.Context, input *models.FbPostCrea
 		post.UpdatedAt = time.Now().Unix()
 
 		// Cập nhật FbPost
-		updatedPost, err := s.BaseServiceImpl.Update(ctx, post.ID, post)
+		updatedPost, err := s.BaseServiceImpl.UpdateById(ctx, post.ID, post)
 		if err != nil {
 			return nil, err
 		}
 
 		return &updatedPost, nil
 	}
-}
-
-// FindOne tìm kiếm một bài viết theo ID
-func (s *FbPostService) FindOne(ctx context.Context, id primitive.ObjectID) (models.FbPost, error) {
-	return s.BaseServiceImpl.FindOne(ctx, id)
 }
 
 // FindOneByPostID tìm một FbPost theo PostID
@@ -151,7 +146,7 @@ func (s *FbPostService) UpdateToken(ctx context.Context, input *models.FbPostUpd
 	post.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật FbPost
-	updatedPost, err := s.BaseServiceImpl.Update(ctx, post.ID, post)
+	updatedPost, err := s.BaseServiceImpl.UpdateById(ctx, post.ID, post)
 	if err != nil {
 		return nil, err
 	}

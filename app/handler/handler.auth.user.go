@@ -36,7 +36,7 @@ func NewUserHandler(c *config.Configuration, db *mongo.Client) *UserHandler {
 func (h *UserHandler) FindOneById(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.UserService.FindOne(context, utility.String2ObjectID(id))
+	data, err := h.UserService.FindOneById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -48,7 +48,7 @@ func (h *UserHandler) FindAllWithFilter(ctx *fasthttp.RequestCtx) {
 	opts := options.Find().
 		SetSkip((page - 1) * limit).
 		SetLimit(limit)
-	data, err := h.UserService.FindAll(context, filter, opts)
+	data, err := h.UserService.Find(context, filter, opts)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -56,15 +56,11 @@ func (h *UserHandler) FindAllWithFilter(ctx *fasthttp.RequestCtx) {
 
 // Registry đăng ký người dùng mới
 func (h *UserHandler) Registry(ctx *fasthttp.RequestCtx) {
-	inputStruct := new(models.UserCreateInput)
-	if response := h.ParseRequestBody(ctx, inputStruct); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	data, err := h.UserService.Create(context, inputStruct)
-	h.HandleResponse(ctx, data, err)
+	input := new(models.UserCreateInput)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		userInput := input.(*models.UserCreateInput)
+		return h.UserService.Registry(context.Background(), userInput)
+	})
 }
 
 // Login đăng nhập người dùng
@@ -108,7 +104,7 @@ func (h *UserHandler) GetMyInfo(ctx *fasthttp.RequestCtx) {
 
 	strMyID := ctx.UserValue("userId").(string)
 	context := context.Background()
-	data, err := h.UserService.FindOne(context, utility.String2ObjectID(strMyID))
+	data, err := h.UserService.FindOneById(context, utility.String2ObjectID(strMyID))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -123,7 +119,7 @@ func (h *UserHandler) GetMyRoles(ctx *fasthttp.RequestCtx) {
 	context := context.Background()
 
 	// Lấy thông tin user
-	user, err := h.UserService.FindOne(context, utility.String2ObjectID(strMyID))
+	user, err := h.UserService.FindOneById(context, utility.String2ObjectID(strMyID))
 	if err != nil {
 		h.HandleError(ctx, err)
 		return
@@ -135,7 +131,7 @@ func (h *UserHandler) GetMyRoles(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	role, err := h.RoleService.FindOne(context, utility.String2ObjectID(user.Token))
+	role, err := h.RoleService.FindOneById(context, utility.String2ObjectID(user.Token))
 	if err != nil {
 		h.HandleError(ctx, err)
 		return
@@ -181,7 +177,7 @@ func (h *UserHandler) ChangeInfo(ctx *fasthttp.RequestCtx) {
 	user := models.User{
 		Name: inputStruct.Name,
 	}
-	data, err := h.UserService.Update(context, utility.String2ObjectID(strMyID), user)
+	data, err := h.UserService.UpdateById(context, utility.String2ObjectID(strMyID), user)
 	h.HandleResponse(ctx, data, err)
 }
 

@@ -73,7 +73,7 @@ func (s *AccessTokenService) Create(ctx context.Context, input *models.AccessTok
 	}
 
 	// Lưu access token
-	createdAccessToken, err := s.BaseServiceImpl.Create(ctx, *accessToken)
+	createdAccessToken, err := s.BaseServiceImpl.InsertOne(ctx, *accessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (s *AccessTokenService) Create(ctx context.Context, input *models.AccessTok
 // Update cập nhật thông tin access token
 func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, input *models.AccessTokenUpdateInput) (*models.AccessToken, error) {
 	// Kiểm tra access token tồn tại
-	accessToken, err := s.BaseServiceImpl.FindOne(ctx, id)
+	accessToken, err := s.BaseServiceImpl.FindOneById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -121,15 +121,10 @@ func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, 
 	accessToken.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật access token
-	updatedAccessToken, err := s.BaseServiceImpl.Update(ctx, id, accessToken)
+	updatedAccessToken, err := s.BaseServiceImpl.UpdateById(ctx, id, accessToken)
 	if err != nil {
 		return nil, err
 	}
 
 	return &updatedAccessToken, nil
-}
-
-// Delete xóa access token
-func (s *AccessTokenService) Delete(ctx context.Context, id primitive.ObjectID) error {
-	return s.BaseServiceImpl.Delete(ctx, id)
 }

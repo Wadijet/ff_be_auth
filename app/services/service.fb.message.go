@@ -42,8 +42,8 @@ func (s *FbMessageService) IsMessageExist(ctx context.Context, conversationId st
 	return true, nil
 }
 
-// ReviceData nhận data từ Facebook và lưu vào cơ sở dữ liệu
-func (s *FbMessageService) ReviceData(ctx context.Context, input *models.FbMessageCreateInput) (*models.FbMessage, error) {
+// Upsert nhận data từ Facebook và lưu vào cơ sở dữ liệu
+func (s *FbMessageService) Upsert(ctx context.Context, input *models.FbMessageCreateInput) (*models.FbMessage, error) {
 	if input.PanCakeData == nil {
 		return nil, errors.New("ApiData is required")
 	}
@@ -51,61 +51,31 @@ func (s *FbMessageService) ReviceData(ctx context.Context, input *models.FbMessa
 	// Lấy thông tin MessageId từ ApiData đưa vào biến
 	conversationId := input.PanCakeData["conversation_id"].(string)
 
-	// Kiểm tra FbMessage đã tồn tại chưa
-	exists, err := s.IsMessageExist(ctx, conversationId, input.CustomerId)
+	// Tạo filter để tìm kiếm document
+	filter := bson.M{
+		"conversationId": conversationId,
+		"customerId":     input.CustomerId,
+	}
+
+	// Tạo message mới
+	message := &models.FbMessage{
+		ID:             primitive.NewObjectID(),
+		PageId:         input.PageId,
+		PageUsername:   input.PageUsername,
+		PanCakeData:    input.PanCakeData,
+		CustomerId:     input.CustomerId,
+		ConversationId: conversationId,
+		CreatedAt:      time.Now().Unix(),
+		UpdatedAt:      time.Now().Unix(),
+	}
+
+	// Sử dụng Upsert từ base.service
+	upsertedMessage, err := s.BaseServiceImpl.Upsert(ctx, filter, *message)
 	if err != nil {
 		return nil, err
 	}
 
-	if !exists {
-		// Tạo một FbMessage mới
-		message := &models.FbMessage{
-			ID:             primitive.NewObjectID(),
-			PageId:         input.PageId,
-			PageUsername:   input.PageUsername,
-			PanCakeData:    input.PanCakeData,
-			CustomerId:     input.CustomerId,
-			ConversationId: conversationId,
-			CreatedAt:      time.Now().Unix(),
-			UpdatedAt:      time.Now().Unix(),
-		}
-
-		// Lưu FbMessage
-		createdMessage, err := s.BaseServiceImpl.Create(ctx, *message)
-		if err != nil {
-			return nil, err
-		}
-
-		return &createdMessage, nil
-	} else {
-		// Lấy FbMessage hiện tại
-		filter := bson.M{"conversationId": conversationId}
-		message, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		// Cập nhật thông tin mới
-		message.PanCakeData = input.PanCakeData
-		message.PageId = input.PageId
-		message.PageUsername = input.PageUsername
-		message.ConversationId = conversationId
-		message.CustomerId = input.CustomerId
-		message.UpdatedAt = time.Now().Unix()
-
-		// Cập nhật FbMessage
-		updatedMessage, err := s.BaseServiceImpl.Update(ctx, message.ID, message)
-		if err != nil {
-			return nil, err
-		}
-
-		return &updatedMessage, nil
-	}
-}
-
-// FindOneById tìm một FbMessage theo ID
-func (s *FbMessageService) FindOneById(ctx context.Context, id primitive.ObjectID) (models.FbMessage, error) {
-	return s.BaseServiceImpl.FindOne(ctx, id)
+	return &upsertedMessage, nil
 }
 
 // FindOneByConversationID tìm một FbMessage theo ConversationID

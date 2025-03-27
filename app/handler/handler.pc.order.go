@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -31,14 +32,10 @@ func NewPcOrderHandler(c *config.Configuration, db *mongo.Client) *PcOrderHandle
 // Create xử lý tạo mới PcOrder
 func (h *PcOrderHandler) Create(ctx *fasthttp.RequestCtx) {
 	input := new(models.PcOrderCreateInput)
-	if response := h.ParseRequestBody(ctx, input); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	data, err := h.PcOrderService.ReviceData(context, input)
-	h.HandleResponse(ctx, data, err)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		pcOrderInput := input.(*models.PcOrderCreateInput)
+		return h.PcOrderService.ReviceData(context.Background(), pcOrderInput)
+	})
 }
 
 // FindOne tìm một PcOrder theo ID
@@ -61,15 +58,14 @@ func (h *PcOrderHandler) FindOne(ctx *fasthttp.RequestCtx) {
 func (h *PcOrderHandler) FindAll(ctx *fasthttp.RequestCtx) {
 	page, limit := h.ParsePagination(ctx)
 	context := context.Background()
-	data, err := h.PcOrderService.FindAll(context, page, limit)
+	filter := bson.M{}
+	data, err := h.PcOrderService.FindWithPagination(context, filter, page, limit)
 	h.HandleResponse(ctx, data, err)
 }
 
 // Update cập nhật một PcOrder
 func (h *PcOrderHandler) Update(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
-
-	// Chuyển đổi string ID thành ObjectID
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		h.HandleError(ctx, err)
@@ -77,20 +73,15 @@ func (h *PcOrderHandler) Update(ctx *fasthttp.RequestCtx) {
 	}
 
 	input := new(models.PcOrderCreateInput)
-	if response := h.ParseRequestBody(ctx, input); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	pcOrder := models.PcOrder{
-		ID:          objectID,
-		PanCakeData: input.PanCakeData,
-		UpdatedAt:   time.Now().Unix(),
-	}
-
-	data, err := h.PcOrderService.Update(context, objectID, pcOrder)
-	h.HandleResponse(ctx, data, err)
+	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
+		pcOrderInput := input.(*models.PcOrderCreateInput)
+		pcOrder := models.PcOrder{
+			ID:          objectID,
+			PanCakeData: pcOrderInput.PanCakeData,
+			UpdatedAt:   time.Now().Unix(),
+		}
+		return h.PcOrderService.UpdateById(context.Background(), objectID, pcOrder)
+	})
 }
 
 // Delete xóa một PcOrder
@@ -105,6 +96,6 @@ func (h *PcOrderHandler) Delete(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	err = h.PcOrderService.Delete(context, objectID)
+	err = h.PcOrderService.DeleteById(context, objectID)
 	h.HandleResponse(ctx, nil, err)
 }

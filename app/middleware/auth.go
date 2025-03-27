@@ -105,7 +105,7 @@ func (jt *JwtToken) getUserPermissions(userID string) (map[string]byte, error) {
 	permissions := make(map[string]byte)
 
 	// Lấy danh sách vai trò của user
-	findRoles, err := jt.UserRoleCRUD.FindAll(context.TODO(), bson.M{"userId": utility.String2ObjectID(userID)}, nil)
+	findRoles, err := jt.UserRoleCRUD.Find(context.TODO(), bson.M{"userId": utility.String2ObjectID(userID)}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -113,14 +113,14 @@ func (jt *JwtToken) getUserPermissions(userID string) (map[string]byte, error) {
 	// Duyệt qua từng vai trò để lấy permissions
 	for _, userRole := range findRoles {
 		// Lấy danh sách permissions của vai trò
-		findRolePermissions, err := jt.RolePermissionCRUD.FindAll(context.TODO(), bson.M{"roleId": userRole.RoleID}, nil)
+		findRolePermissions, err := jt.RolePermissionCRUD.Find(context.TODO(), bson.M{"roleId": userRole.RoleID}, nil)
 		if err != nil {
 			continue
 		}
 
 		// Lấy thông tin chi tiết của từng permission
 		for _, rolePermission := range findRolePermissions {
-			permission, err := jt.PermissionCRUD.FindOne(context.TODO(), rolePermission.PermissionID)
+			permission, err := jt.PermissionCRUD.FindOneById(context.TODO(), rolePermission.PermissionID)
 			if err != nil {
 				continue
 			}
@@ -167,7 +167,7 @@ func (jt *JwtToken) CheckUserAuth(requirePermission string, next fasthttp.Reques
 		}
 
 		// Kiểm tra user có tồn tại không
-		findUser, err := jt.UserCRUD.FindOne(context.TODO(), utility.String2ObjectID(t.UserID))
+		findUser, err := jt.UserCRUD.FindOneById(context.TODO(), utility.String2ObjectID(t.UserID))
 		if err != nil {
 			ctx.SetStatusCode(utility.StatusUnauthorized)
 			utility.JSON(ctx, utility.Payload(false, err, utility.MsgUnauthorized))

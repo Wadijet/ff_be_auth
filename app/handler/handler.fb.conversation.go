@@ -39,7 +39,7 @@ func (h *FbConversationHandler) Create(ctx *fasthttp.RequestCtx) {
 	}
 
 	context := context.Background()
-	data, err := h.FbConversationService.ReviceData(context, input)
+	data, err := h.FbConversationService.Upsert(context, input)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -47,7 +47,7 @@ func (h *FbConversationHandler) Create(ctx *fasthttp.RequestCtx) {
 func (h *FbConversationHandler) FindOne(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	data, err := h.FbConversationService.FindOne(context, utility.String2ObjectID(id))
+	data, err := h.FbConversationService.FindOneById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -62,7 +62,7 @@ func (h *FbConversationHandler) FindAll(ctx *fasthttp.RequestCtx) {
 		filter = bson.M{"pageId": pageId}
 	}
 
-	data, err := h.FbConversationService.FindAllWithPaginate(context, filter, page, limit)
+	data, err := h.FbConversationService.FindWithPagination(context, filter, page, limit)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -107,7 +107,7 @@ func (h *FbConversationHandler) Update(ctx *fasthttp.RequestCtx) {
 		UpdatedAt:        time.Now().Unix(),
 	}
 
-	data, err := h.FbConversationService.Update(context, objectID, conversation)
+	data, err := h.FbConversationService.UpdateById(context, objectID, conversation)
 	h.HandleResponse(ctx, data, err)
 }
 
@@ -115,6 +115,6 @@ func (h *FbConversationHandler) Update(ctx *fasthttp.RequestCtx) {
 func (h *FbConversationHandler) Delete(ctx *fasthttp.RequestCtx) {
 	id := h.GetIDFromContext(ctx)
 	context := context.Background()
-	err := h.FbConversationService.Delete(context, utility.String2ObjectID(id))
+	err := h.FbConversationService.DeleteById(context, utility.String2ObjectID(id))
 	h.HandleResponse(ctx, nil, err)
 }

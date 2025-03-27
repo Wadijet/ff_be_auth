@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // PcOrderService là cấu trúc chứa các phương thức liên quan đến đơn hàng
@@ -103,7 +102,7 @@ func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCr
 		}
 
 		// Lưu PcOrder
-		createdPcOrder, err := s.BaseServiceImpl.Create(ctx, *pcOrder)
+		createdPcOrder, err := s.BaseServiceImpl.InsertOne(ctx, *pcOrder)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +111,7 @@ func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCr
 	} else {
 		// Lấy PcOrder hiện tại
 		filter := bson.M{"pancakeOrderId": pancakeOrderIdStr}
-		pcOrder, err := s.BaseServiceImpl.FindOneByFilter(ctx, filter, nil)
+		pcOrder, err := s.BaseServiceImpl.FindOne(ctx, filter, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -122,24 +121,11 @@ func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCr
 		pcOrder.UpdatedAt = time.Now().Unix()
 
 		// Cập nhật PcOrder
-		updatedPcOrder, err := s.BaseServiceImpl.Update(ctx, pcOrder.ID, pcOrder)
+		updatedPcOrder, err := s.BaseServiceImpl.UpdateById(ctx, pcOrder.ID, pcOrder)
 		if err != nil {
 			return nil, err
 		}
 
 		return &updatedPcOrder, nil
 	}
-}
-
-// FindOneById tìm một PcOrder theo ID
-func (s *PcOrderService) FindOneById(ctx context.Context, id primitive.ObjectID) (models.PcOrder, error) {
-	return s.BaseServiceImpl.FindOne(ctx, id)
-}
-
-// FindAll tìm tất cả các PcOrder với phân trang
-func (s *PcOrderService) FindAll(ctx context.Context, page int64, limit int64) ([]models.PcOrder, error) {
-	opts := options.Find().
-		SetSkip((page - 1) * limit).
-		SetLimit(limit)
-	return s.BaseServiceImpl.FindAll(ctx, nil, opts)
 }

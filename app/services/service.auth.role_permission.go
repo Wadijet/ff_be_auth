@@ -52,12 +52,12 @@ func (s *RolePermissionService) IsExist(ctx context.Context, roleID, permissionI
 // Create tạo mới một quyền vai trò
 func (s *RolePermissionService) Create(ctx context.Context, input *models.RolePermissionCreateInput) (*models.RolePermission, error) {
 	// Kiểm tra Role có tồn tại không
-	if _, err := s.roleService.FindOne(ctx, input.RoleID); err != nil {
+	if _, err := s.roleService.FindOneById(ctx, input.RoleID); err != nil {
 		return nil, errors.New("Role not found")
 	}
 
 	// Kiểm tra Permission có tồn tại không
-	if _, err := s.permissionService.FindOne(ctx, input.PermissionID); err != nil {
+	if _, err := s.permissionService.FindOneById(ctx, input.PermissionID); err != nil {
 		return nil, errors.New("Permission not found")
 	}
 
@@ -81,7 +81,7 @@ func (s *RolePermissionService) Create(ctx context.Context, input *models.RolePe
 	}
 
 	// Lưu rolePermission
-	createdRolePermission, err := s.BaseServiceImpl.Create(ctx, *rolePermission)
+	createdRolePermission, err := s.BaseServiceImpl.InsertOne(ctx, *rolePermission)
 	if err != nil {
 		return nil, err
 	}
