@@ -20,38 +20,58 @@ import (
 // CÁC HÀM TIỆN ÍCH
 // ====================================
 
-// GetDBName lấy tên database từ cấu hình
+// GetDBNameFromCollectionName lấy tên database từ cấu hình
 // Parameters:
 //   - c: Cấu hình hệ thống
 //   - collectionName: Tên collection
 //
 // Returns:
 //   - string: Tên database
-func GetDBName(c *config.Configuration, collectionName string) string {
+func GetDBNameFromCollectionName(c *config.Configuration, collectionName string) string {
 	return c.MongoDB_DBNameAuth
+}
+
+// GetCollectionFromName lấy collection từ tên database và tên collection
+// Parameters:
+//   - db: Client MongoDB
+//   - dbName: Tên database
+//   - collectionName: Tên collection
+func GetCollectionFromName(db *mongo.Client, dbName string, collectionName string) *mongo.Collection {
+	// Kiểm tra database có tồn tại không
+	database := db.Database(dbName)
+	if database == nil {
+		return nil
+	}
+
+	// Kiểm tra collection có tồn tại không
+	collection := database.Collection(collectionName)
+	if collection == nil {
+		return nil
+	}
+	return collection
 }
 
 // ====================================
 // INTERFACE VÀ STRUCT
 // ====================================
 
-// BaseService định nghĩa interface chứa các phương thức cơ bản cho việc tương tác với MongoDB
+// BaseServiceMongo định nghĩa interface chứa các phương thức cơ bản cho việc tương tác với MongoDB
 // Type Parameters:
-//   - T: Kiểu dữ liệu của model
-type BaseService[T any] interface {
+//   - Model: Kiểu dữ liệu của model
+type BaseServiceMongo[Model any] interface {
 	// NHÓM 1: CÁC HÀM CHUẨN MONGODB DRIVER
 	// ====================================
 
 	// 1.1 Thao tác Insert
-	InsertOne(ctx context.Context, data T) (T, error)
-	InsertMany(ctx context.Context, data []T) ([]T, error)
+	InsertOne(ctx context.Context, data Model) (Model, error)
+	InsertMany(ctx context.Context, data []Model) ([]Model, error)
 
 	// 1.2 Thao tác Find
-	FindOne(ctx context.Context, filter interface{}, opts *options.FindOneOptions) (T, error)
-	Find(ctx context.Context, filter interface{}, opts *options.FindOptions) ([]T, error)
+	FindOne(ctx context.Context, filter interface{}, opts *options.FindOneOptions) (Model, error)
+	Find(ctx context.Context, filter interface{}, opts *options.FindOptions) ([]Model, error)
 
 	// 1.3 Thao tác Update
-	UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts *options.UpdateOptions) (T, error)
+	UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts *options.UpdateOptions) (Model, error)
 	UpdateMany(ctx context.Context, filter interface{}, update interface{}, opts *options.UpdateOptions) (int64, error)
 
 	// 1.4 Thao tác Delete
@@ -59,8 +79,8 @@ type BaseService[T any] interface {
 	DeleteMany(ctx context.Context, filter interface{}) (int64, error)
 
 	// 1.5 Thao tác Atomic
-	FindOneAndUpdate(ctx context.Context, filter interface{}, update interface{}, opts *options.FindOneAndUpdateOptions) (T, error)
-	FindOneAndDelete(ctx context.Context, filter interface{}, opts *options.FindOneAndDeleteOptions) (T, error)
+	FindOneAndUpdate(ctx context.Context, filter interface{}, update interface{}, opts *options.FindOneAndUpdateOptions) (Model, error)
+	FindOneAndDelete(ctx context.Context, filter interface{}, opts *options.FindOneAndDeleteOptions) (Model, error)
 
 	// 1.6 Các thao tác khác
 	CountDocuments(ctx context.Context, filter interface{}) (int64, error)
@@ -70,37 +90,37 @@ type BaseService[T any] interface {
 	// ================================
 
 	// 2.1 Các hàm Find mở rộng
-	FindOneById(ctx context.Context, id primitive.ObjectID) (T, error)
-	FindManyByIds(ctx context.Context, ids []primitive.ObjectID) ([]T, error)
-	FindWithPagination(ctx context.Context, filter interface{}, page, limit int64) (*models.PaginateResult[T], error)
+	FindOneById(ctx context.Context, id primitive.ObjectID) (Model, error)
+	FindManyByIds(ctx context.Context, ids []primitive.ObjectID) ([]Model, error)
+	FindWithPagination(ctx context.Context, filter interface{}, page, limit int64) (*models.PaginateResult[Model], error)
 
 	// 2.2 Các hàm Update/Delete mở rộng
-	UpdateById(ctx context.Context, id primitive.ObjectID, data T) (T, error)
+	UpdateById(ctx context.Context, id primitive.ObjectID, data Model) (Model, error)
 	DeleteById(ctx context.Context, id primitive.ObjectID) error
 
 	// 2.3 Các hàm Upsert tiện ích
-	Upsert(ctx context.Context, filter interface{}, data T) (T, error)
-	UpsertMany(ctx context.Context, filter interface{}, data []T) ([]T, error)
+	Upsert(ctx context.Context, filter interface{}, data Model) (Model, error)
+	UpsertMany(ctx context.Context, filter interface{}, data []Model) ([]Model, error)
 
 	// 2.4 Các hàm kiểm tra
 	DocumentExists(ctx context.Context, filter interface{}) (bool, error)
 }
 
-// BaseServiceImpl định nghĩa struct triển khai các phương thức cơ bản cho service
+// BaseServiceMongoImpl định nghĩa struct triển khai các phương thức cơ bản cho service
 // Type Parameters:
-//   - T: Kiểu dữ liệu của model
-type BaseServiceImpl[T any] struct {
+//   - Model: Kiểu dữ liệu của model
+type BaseServiceMongoImpl[T any] struct {
 	collection *mongo.Collection // Collection MongoDB
 }
 
-// NewBaseService tạo mới một BaseServiceImpl
+// NewBaseServiceMongo tạo mới một BaseServiceImpl
 // Parameters:
 //   - collection: Collection MongoDB
 //
 // Returns:
 //   - *BaseServiceImpl[T]: Instance mới của BaseServiceImpl
-func NewBaseService[T any](collection *mongo.Collection) *BaseServiceImpl[T] {
-	return &BaseServiceImpl[T]{
+func NewBaseServiceMongo[T any](collection *mongo.Collection) *BaseServiceMongoImpl[T] {
+	return &BaseServiceMongoImpl[T]{
 		collection: collection,
 	}
 }
@@ -113,7 +133,7 @@ func NewBaseService[T any](collection *mongo.Collection) *BaseServiceImpl[T] {
 // -------------------
 
 // InsertOne tạo mới một bản ghi trong database
-func (s *BaseServiceImpl[T]) InsertOne(ctx context.Context, data T) (T, error) {
+func (s *BaseServiceMongoImpl[T]) InsertOne(ctx context.Context, data T) (T, error) {
 	var zero T
 
 	// Chuyển data thành map để thêm timestamps
@@ -143,7 +163,7 @@ func (s *BaseServiceImpl[T]) InsertOne(ctx context.Context, data T) (T, error) {
 }
 
 // InsertMany tạo nhiều bản ghi trong database
-func (s *BaseServiceImpl[T]) InsertMany(ctx context.Context, data []T) ([]T, error) {
+func (s *BaseServiceMongoImpl[T]) InsertMany(ctx context.Context, data []T) ([]T, error) {
 	var documents []interface{}
 	now := time.Now().UnixMilli()
 
@@ -182,7 +202,7 @@ func (s *BaseServiceImpl[T]) InsertMany(ctx context.Context, data []T) ([]T, err
 // ----------------
 
 // FindOne tìm một document theo điều kiện lọc
-func (s *BaseServiceImpl[T]) FindOne(ctx context.Context, filter interface{}, opts *options.FindOneOptions) (T, error) {
+func (s *BaseServiceMongoImpl[T]) FindOne(ctx context.Context, filter interface{}, opts *options.FindOneOptions) (T, error) {
 	var zero T
 	var result T
 
@@ -210,7 +230,7 @@ func (s *BaseServiceImpl[T]) FindOne(ctx context.Context, filter interface{}, op
 }
 
 // Find tìm tất cả bản ghi theo điều kiện lọc
-func (s *BaseServiceImpl[T]) Find(ctx context.Context, filter interface{}, opts *options.FindOptions) ([]T, error) {
+func (s *BaseServiceMongoImpl[T]) Find(ctx context.Context, filter interface{}, opts *options.FindOptions) ([]T, error) {
 	if filter == nil {
 		filter = bson.D{}
 	}
@@ -237,7 +257,7 @@ func (s *BaseServiceImpl[T]) Find(ctx context.Context, filter interface{}, opts 
 // ------------------
 
 // UpdateOne cập nhật một document
-func (s *BaseServiceImpl[T]) UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts *options.UpdateOptions) (T, error) {
+func (s *BaseServiceMongoImpl[T]) UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts *options.UpdateOptions) (T, error) {
 	var zero T
 
 	if filter == nil {
@@ -281,7 +301,7 @@ func (s *BaseServiceImpl[T]) UpdateOne(ctx context.Context, filter interface{}, 
 }
 
 // UpdateMany cập nhật nhiều document
-func (s *BaseServiceImpl[T]) UpdateMany(ctx context.Context, filter interface{}, update interface{}, opts *options.UpdateOptions) (int64, error) {
+func (s *BaseServiceMongoImpl[T]) UpdateMany(ctx context.Context, filter interface{}, update interface{}, opts *options.UpdateOptions) (int64, error) {
 	if filter == nil {
 		filter = bson.D{}
 	}
@@ -315,7 +335,7 @@ func (s *BaseServiceImpl[T]) UpdateMany(ctx context.Context, filter interface{},
 // ------------------
 
 // DeleteOne xóa một document
-func (s *BaseServiceImpl[T]) DeleteOne(ctx context.Context, filter interface{}) error {
+func (s *BaseServiceMongoImpl[T]) DeleteOne(ctx context.Context, filter interface{}) error {
 	if filter == nil {
 		filter = bson.D{}
 	}
@@ -333,7 +353,7 @@ func (s *BaseServiceImpl[T]) DeleteOne(ctx context.Context, filter interface{}) 
 }
 
 // DeleteMany xóa nhiều document
-func (s *BaseServiceImpl[T]) DeleteMany(ctx context.Context, filter interface{}) (int64, error) {
+func (s *BaseServiceMongoImpl[T]) DeleteMany(ctx context.Context, filter interface{}) (int64, error) {
 	if filter == nil {
 		filter = bson.D{}
 	}
@@ -350,7 +370,7 @@ func (s *BaseServiceImpl[T]) DeleteMany(ctx context.Context, filter interface{})
 // ------------------
 
 // FindOneAndUpdate tìm và cập nhật một document
-func (s *BaseServiceImpl[T]) FindOneAndUpdate(ctx context.Context, filter interface{}, update interface{}, opts *options.FindOneAndUpdateOptions) (T, error) {
+func (s *BaseServiceMongoImpl[T]) FindOneAndUpdate(ctx context.Context, filter interface{}, update interface{}, opts *options.FindOneAndUpdateOptions) (T, error) {
 	var zero T
 
 	if filter == nil {
@@ -384,7 +404,7 @@ func (s *BaseServiceImpl[T]) FindOneAndUpdate(ctx context.Context, filter interf
 }
 
 // FindOneAndDelete tìm và xóa một document
-func (s *BaseServiceImpl[T]) FindOneAndDelete(ctx context.Context, filter interface{}, opts *options.FindOneAndDeleteOptions) (T, error) {
+func (s *BaseServiceMongoImpl[T]) FindOneAndDelete(ctx context.Context, filter interface{}, opts *options.FindOneAndDeleteOptions) (T, error) {
 	var zero T
 
 	if filter == nil {
@@ -408,7 +428,7 @@ func (s *BaseServiceImpl[T]) FindOneAndDelete(ctx context.Context, filter interf
 // --------------------
 
 // CountDocuments đếm số lượng document
-func (s *BaseServiceImpl[T]) CountDocuments(ctx context.Context, filter interface{}) (int64, error) {
+func (s *BaseServiceMongoImpl[T]) CountDocuments(ctx context.Context, filter interface{}) (int64, error) {
 	if filter == nil {
 		filter = bson.D{}
 	}
@@ -417,7 +437,7 @@ func (s *BaseServiceImpl[T]) CountDocuments(ctx context.Context, filter interfac
 }
 
 // Distinct lấy danh sách các giá trị duy nhất
-func (s *BaseServiceImpl[T]) Distinct(ctx context.Context, fieldName string, filter interface{}) ([]interface{}, error) {
+func (s *BaseServiceMongoImpl[T]) Distinct(ctx context.Context, fieldName string, filter interface{}) ([]interface{}, error) {
 	if filter == nil {
 		filter = bson.D{}
 	}
@@ -433,7 +453,7 @@ func (s *BaseServiceImpl[T]) Distinct(ctx context.Context, fieldName string, fil
 // -----------------------
 
 // FindOneById tìm một document theo ObjectId
-func (s *BaseServiceImpl[T]) FindOneById(ctx context.Context, id primitive.ObjectID) (T, error) {
+func (s *BaseServiceMongoImpl[T]) FindOneById(ctx context.Context, id primitive.ObjectID) (T, error) {
 	var result T
 	filter := bson.M{"_id": id}
 	err := s.collection.FindOne(ctx, filter).Decode(&result)
@@ -444,7 +464,7 @@ func (s *BaseServiceImpl[T]) FindOneById(ctx context.Context, id primitive.Objec
 }
 
 // FindManyByIds tìm nhiều document theo danh sách ID
-func (s *BaseServiceImpl[T]) FindManyByIds(ctx context.Context, ids []primitive.ObjectID) ([]T, error) {
+func (s *BaseServiceMongoImpl[T]) FindManyByIds(ctx context.Context, ids []primitive.ObjectID) ([]T, error) {
 	filter := bson.M{"_id": bson.M{"$in": ids}}
 	cursor, err := s.collection.Find(ctx, filter)
 	if err != nil {
@@ -461,7 +481,7 @@ func (s *BaseServiceImpl[T]) FindManyByIds(ctx context.Context, ids []primitive.
 }
 
 // FindWithPagination tìm tất cả bản ghi với phân trang
-func (s *BaseServiceImpl[T]) FindWithPagination(ctx context.Context, filter interface{}, page, limit int64) (*models.PaginateResult[T], error) {
+func (s *BaseServiceMongoImpl[T]) FindWithPagination(ctx context.Context, filter interface{}, page, limit int64) (*models.PaginateResult[T], error) {
 	if filter == nil {
 		filter = bson.D{}
 	}
@@ -511,7 +531,7 @@ func (s *BaseServiceImpl[T]) FindWithPagination(ctx context.Context, filter inte
 // Returns:
 //   - T: Document đã được cập nhật
 //   - error: Lỗi nếu có
-func (s *BaseServiceImpl[T]) UpdateById(ctx context.Context, id primitive.ObjectID, data T) (T, error) {
+func (s *BaseServiceMongoImpl[T]) UpdateById(ctx context.Context, id primitive.ObjectID, data T) (T, error) {
 	var zero T
 	filter := bson.M{"_id": id}
 
@@ -555,7 +575,7 @@ func (s *BaseServiceImpl[T]) UpdateById(ctx context.Context, id primitive.Object
 //
 // Returns:
 //   - error: Lỗi nếu có
-func (s *BaseServiceImpl[T]) DeleteById(ctx context.Context, id primitive.ObjectID) error {
+func (s *BaseServiceMongoImpl[T]) DeleteById(ctx context.Context, id primitive.ObjectID) error {
 	filter := bson.M{"_id": id}
 	result, err := s.collection.DeleteOne(ctx, filter)
 	if err != nil {
@@ -573,7 +593,7 @@ func (s *BaseServiceImpl[T]) DeleteById(ctx context.Context, id primitive.Object
 // --------------------------
 
 // Upsert thực hiện thao tác update nếu tồn tại, insert nếu chưa tồn tại
-func (s *BaseServiceImpl[T]) Upsert(ctx context.Context, filter interface{}, data T) (T, error) {
+func (s *BaseServiceMongoImpl[T]) Upsert(ctx context.Context, filter interface{}, data T) (T, error) {
 	var zero T
 
 	// Chuyển data thành map để thêm timestamps
@@ -603,7 +623,7 @@ func (s *BaseServiceImpl[T]) Upsert(ctx context.Context, filter interface{}, dat
 }
 
 // UpsertMany thực hiện thao tác upsert cho nhiều document
-func (s *BaseServiceImpl[T]) UpsertMany(ctx context.Context, filter interface{}, data []T) ([]T, error) {
+func (s *BaseServiceMongoImpl[T]) UpsertMany(ctx context.Context, filter interface{}, data []T) ([]T, error) {
 	if len(data) == 0 {
 		return []T{}, nil
 	}
@@ -686,7 +706,7 @@ func (s *BaseServiceImpl[T]) UpsertMany(ctx context.Context, filter interface{},
 // -------------------
 
 // DocumentExists kiểm tra xem một document có tồn tại không
-func (s *BaseServiceImpl[T]) DocumentExists(ctx context.Context, filter interface{}) (bool, error) {
+func (s *BaseServiceMongoImpl[T]) DocumentExists(ctx context.Context, filter interface{}) (bool, error) {
 	if filter == nil {
 		filter = bson.D{}
 	}

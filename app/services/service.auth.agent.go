@@ -17,14 +17,14 @@ import (
 
 // AgentService là cấu trúc chứa các phương thức liên quan đến trợ lý
 type AgentService struct {
-	*BaseServiceImpl[models.Agent]
+	*BaseServiceMongoImpl[models.Agent]
 }
 
 // NewAgentService tạo mới AgentService
 func NewAgentService(c *config.Configuration, db *mongo.Client) *AgentService {
-	agentCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.Agents)).Collection(global.MongoDB_ColNames.Agents)
+	agentCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Agents), global.MongoDB_ColNames.Agents)
 	return &AgentService{
-		BaseServiceImpl: NewBaseService[models.Agent](agentCollection),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.Agent](agentCollection),
 	}
 }
 
@@ -32,7 +32,7 @@ func NewAgentService(c *config.Configuration, db *mongo.Client) *AgentService {
 func (s *AgentService) CheckOnlineStatus(ctx context.Context) error {
 	// Lấy tất cả các agent
 	opts := options.Find()
-	agents, err := s.BaseServiceImpl.Find(ctx, bson.M{}, opts)
+	agents, err := s.BaseServiceMongoImpl.Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (s *AgentService) CheckOnlineStatus(ctx context.Context) error {
 			agent.Status = 0
 			agent.UpdatedAt = time.Now().Unix()
 
-			_, err := s.BaseServiceImpl.UpdateById(ctx, agent.ID, agent)
+			_, err := s.BaseServiceMongoImpl.UpdateById(ctx, agent.ID, agent)
 			if err != nil {
 				return err
 			}
@@ -58,7 +58,7 @@ func (s *AgentService) CheckOnlineStatus(ctx context.Context) error {
 // CheckIn điểm danh cho một trợ lý
 func (s *AgentService) CheckIn(ctx context.Context, id primitive.ObjectID) (*models.Agent, error) {
 	// Kiểm tra agent tồn tại
-	agent, err := s.BaseServiceImpl.FindOneById(ctx, id)
+	agent, err := s.BaseServiceMongoImpl.FindOneById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (s *AgentService) CheckIn(ctx context.Context, id primitive.ObjectID) (*mod
 	agent.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật agent
-	updatedAgent, err := s.BaseServiceImpl.UpdateById(ctx, id, agent)
+	updatedAgent, err := s.BaseServiceMongoImpl.UpdateById(ctx, id, agent)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (s *AgentService) CheckIn(ctx context.Context, id primitive.ObjectID) (*mod
 // CheckOut điểm danh cho một trợ lý
 func (s *AgentService) CheckOut(ctx context.Context, id primitive.ObjectID) (*models.Agent, error) {
 	// Kiểm tra agent tồn tại
-	agent, err := s.BaseServiceImpl.FindOneById(ctx, id)
+	agent, err := s.BaseServiceMongoImpl.FindOneById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (s *AgentService) CheckOut(ctx context.Context, id primitive.ObjectID) (*mo
 	agent.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật agent
-	updatedAgent, err := s.BaseServiceImpl.UpdateById(ctx, id, agent)
+	updatedAgent, err := s.BaseServiceMongoImpl.UpdateById(ctx, id, agent)
 	if err != nil {
 		return nil, err
 	}

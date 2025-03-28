@@ -17,14 +17,14 @@ import (
 
 // PcOrderService là cấu trúc chứa các phương thức liên quan đến đơn hàng
 type PcOrderService struct {
-	*BaseServiceImpl[models.PcOrder]
+	*BaseServiceMongoImpl[models.PcOrder]
 }
 
 // NewPcOrderService tạo mới PcOrderService
 func NewPcOrderService(c *config.Configuration, db *mongo.Client) *PcOrderService {
-	pcOrderCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.PcOrders)).Collection(global.MongoDB_ColNames.PcOrders)
+	pcOrderCollection := db.Database(GetDBNameFromCollectionName(c, global.MongoDB_ColNames.PcOrders)).Collection(global.MongoDB_ColNames.PcOrders)
 	return &PcOrderService{
-		BaseServiceImpl: NewBaseService[models.PcOrder](pcOrderCollection),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.PcOrder](pcOrderCollection),
 	}
 }
 
@@ -32,7 +32,7 @@ func NewPcOrderService(c *config.Configuration, db *mongo.Client) *PcOrderServic
 func (s *PcOrderService) IsPancakeOrderIdExist(ctx context.Context, pancakeOrderId string) (bool, error) {
 	filter := bson.M{"pancakeOrderId": pancakeOrderId}
 	var pcOrder models.PcOrder
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&pcOrder)
+	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&pcOrder)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
@@ -46,7 +46,7 @@ func (s *PcOrderService) IsPancakeOrderIdExist(ctx context.Context, pancakeOrder
 func (s *PcOrderService) FindOne(ctx context.Context, id primitive.ObjectID) (models.PcOrder, error) {
 	filter := bson.M{"_id": id}
 	var result models.PcOrder
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&result)
+	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
 		return models.PcOrder{}, err
 	}
@@ -56,7 +56,7 @@ func (s *PcOrderService) FindOne(ctx context.Context, id primitive.ObjectID) (mo
 // Delete xóa một document theo ObjectId
 func (s *PcOrderService) Delete(ctx context.Context, id primitive.ObjectID) error {
 	filter := bson.M{"_id": id}
-	_, err := s.BaseServiceImpl.collection.DeleteOne(ctx, filter)
+	_, err := s.BaseServiceMongoImpl.collection.DeleteOne(ctx, filter)
 	return err
 }
 
@@ -65,7 +65,7 @@ func (s *PcOrderService) Update(ctx context.Context, id primitive.ObjectID, pcOr
 	filter := bson.M{"_id": id}
 	update := bson.M{"$set": pcOrder}
 
-	_, err := s.BaseServiceImpl.collection.UpdateOne(ctx, filter, update)
+	_, err := s.BaseServiceMongoImpl.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return models.PcOrder{}, err
 	}
@@ -102,7 +102,7 @@ func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCr
 		}
 
 		// Lưu PcOrder
-		createdPcOrder, err := s.BaseServiceImpl.InsertOne(ctx, *pcOrder)
+		createdPcOrder, err := s.BaseServiceMongoImpl.InsertOne(ctx, *pcOrder)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +111,7 @@ func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCr
 	} else {
 		// Lấy PcOrder hiện tại
 		filter := bson.M{"pancakeOrderId": pancakeOrderIdStr}
-		pcOrder, err := s.BaseServiceImpl.FindOne(ctx, filter, nil)
+		pcOrder, err := s.BaseServiceMongoImpl.FindOne(ctx, filter, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +121,7 @@ func (s *PcOrderService) ReviceData(ctx context.Context, input *models.PcOrderCr
 		pcOrder.UpdatedAt = time.Now().Unix()
 
 		// Cập nhật PcOrder
-		updatedPcOrder, err := s.BaseServiceImpl.UpdateById(ctx, pcOrder.ID, pcOrder)
+		updatedPcOrder, err := s.BaseServiceMongoImpl.UpdateById(ctx, pcOrder.ID, pcOrder)
 		if err != nil {
 			return nil, err
 		}

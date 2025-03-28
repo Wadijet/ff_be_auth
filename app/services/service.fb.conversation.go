@@ -17,14 +17,14 @@ import (
 
 // FbConversationService là cấu trúc chứa các phương thức liên quan đến cuộc trò chuyện Facebook
 type FbConversationService struct {
-	*BaseServiceImpl[models.FbConversation]
+	*BaseServiceMongoImpl[models.FbConversation]
 }
 
 // NewFbConversationService tạo mới FbConversationService
 func NewFbConversationService(c *config.Configuration, db *mongo.Client) *FbConversationService {
-	fbConversationCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.FbConvesations)).Collection(global.MongoDB_ColNames.FbConvesations)
+	fbConversationCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.FbConvesations), global.MongoDB_ColNames.FbConvesations)
 	return &FbConversationService{
-		BaseServiceImpl: NewBaseService[models.FbConversation](fbConversationCollection),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.FbConversation](fbConversationCollection),
 	}
 }
 
@@ -32,7 +32,7 @@ func NewFbConversationService(c *config.Configuration, db *mongo.Client) *FbConv
 func (s *FbConversationService) IsConversationIdExist(ctx context.Context, conversationId string) (bool, error) {
 	filter := bson.M{"conversationId": conversationId}
 	var conversation models.FbConversation
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&conversation)
+	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&conversation)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
@@ -76,7 +76,7 @@ func (s *FbConversationService) Upsert(ctx context.Context, input *models.FbConv
 	}
 
 	// Sử dụng Upsert để tạo mới hoặc cập nhật conversation
-	upsertedConversation, err := s.BaseServiceImpl.Upsert(ctx, filter, *conversation)
+	upsertedConversation, err := s.BaseServiceMongoImpl.Upsert(ctx, filter, *conversation)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (s *FbConversationService) FindAllSortByApiUpdate(ctx context.Context, page
 		SetLimit(limit).
 		SetSort(bson.D{{"panCakeUpdatedAt", -1}})
 
-	cursor, err := s.BaseServiceImpl.collection.Find(ctx, filter, opts)
+	cursor, err := s.BaseServiceMongoImpl.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}

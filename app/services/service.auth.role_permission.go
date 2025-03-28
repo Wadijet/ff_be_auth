@@ -16,18 +16,18 @@ import (
 
 // RolePermissionService là cấu trúc chứa các phương thức liên quan đến quyền vai trò
 type RolePermissionService struct {
-	*BaseServiceImpl[models.RolePermission]
+	*BaseServiceMongoImpl[models.RolePermission]
 	roleService       *RoleService
 	permissionService *PermissionService
 }
 
 // NewRolePermissionService tạo mới RolePermissionService
 func NewRolePermissionService(c *config.Configuration, db *mongo.Client) *RolePermissionService {
-	rolePermissionCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.RolePermissions)).Collection(global.MongoDB_ColNames.RolePermissions)
+	rolePermissionCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.RolePermissions), global.MongoDB_ColNames.RolePermissions)
 	return &RolePermissionService{
-		BaseServiceImpl:   NewBaseService[models.RolePermission](rolePermissionCollection),
-		roleService:       NewRoleService(c, db),
-		permissionService: NewPermissionService(c, db),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.RolePermission](rolePermissionCollection),
+		roleService:          NewRoleService(c, db),
+		permissionService:    NewPermissionService(c, db),
 	}
 }
 
@@ -39,7 +39,7 @@ func (s *RolePermissionService) IsExist(ctx context.Context, roleID, permissionI
 		"scope":        scope,
 	}
 	var rolePermission models.RolePermission
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&rolePermission)
+	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&rolePermission)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
@@ -49,8 +49,8 @@ func (s *RolePermissionService) IsExist(ctx context.Context, roleID, permissionI
 	return true, nil
 }
 
-// Create tạo mới một quyền vai trò
-func (s *RolePermissionService) Create(ctx context.Context, input *models.RolePermissionCreateInput) (*models.RolePermission, error) {
+// InsertOne tạo mới một quyền vai trò
+func (s *RolePermissionService) InsertOne(ctx context.Context, input *models.RolePermissionCreateInput) (*models.RolePermission, error) {
 	// Kiểm tra Role có tồn tại không
 	if _, err := s.roleService.FindOneById(ctx, input.RoleID); err != nil {
 		return nil, errors.New("Role not found")
@@ -81,7 +81,7 @@ func (s *RolePermissionService) Create(ctx context.Context, input *models.RolePe
 	}
 
 	// Lưu rolePermission
-	createdRolePermission, err := s.BaseServiceImpl.InsertOne(ctx, *rolePermission)
+	createdRolePermission, err := s.BaseServiceMongoImpl.InsertOne(ctx, *rolePermission)
 	if err != nil {
 		return nil, err
 	}

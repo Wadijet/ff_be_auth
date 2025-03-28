@@ -10,13 +10,13 @@ import (
 
 // PermissionService là cấu trúc chứa các phương thức liên quan đến quyền
 type PermissionService struct {
-	*BaseServiceImpl[models.Permission]
+	*BaseServiceMongoImpl[models.Permission]
 }
 
 // NewPermissionService tạo mới PermissionService
 func NewPermissionService(c *config.Configuration, db *mongo.Client) *PermissionService {
-	permissionCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
+	permissionCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Permissions), global.MongoDB_ColNames.Permissions)
 	return &PermissionService{
-		BaseServiceImpl: NewBaseService[models.Permission](permissionCollection),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.Permission](permissionCollection),
 	}
 }

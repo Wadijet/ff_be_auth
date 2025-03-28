@@ -14,9 +14,9 @@ import (
 
 // InitHandler là struct chứa các CRUD services và InitService
 type InitHandler struct {
-	UserCRUD       services.BaseService[models.User]
-	PermissionCRUD services.BaseService[models.Permission]
-	RoleCRUD       services.BaseService[models.Role]
+	UserCRUD       services.BaseServiceMongo[models.User]
+	PermissionCRUD services.BaseServiceMongo[models.Permission]
+	RoleCRUD       services.BaseServiceMongo[models.Role]
 	InitService    services.InitService
 }
 
@@ -25,14 +25,14 @@ func NewInitHandler(c *config.Configuration, db *mongo.Client) *InitHandler {
 	newHandler := new(InitHandler)
 
 	// Khởi tạo các collection
-	userCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
-	permissionCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
-	roleCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
+	userCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
+	permissionCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
+	roleCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
 
 	// Khởi tạo các service với BaseService
-	newHandler.UserCRUD = services.NewBaseService[models.User](userCol)
-	newHandler.PermissionCRUD = services.NewBaseService[models.Permission](permissionCol)
-	newHandler.RoleCRUD = services.NewBaseService[models.Role](roleCol)
+	newHandler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
+	newHandler.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
+	newHandler.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
 	newHandler.InitService = *services.NewInitService(c, db)
 	return newHandler
 }

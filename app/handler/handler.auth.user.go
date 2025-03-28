@@ -16,7 +16,7 @@ import (
 // UserHandler là struct chứa các dịch vụ và repository cần thiết để xử lý người dùng
 // Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
 type UserHandler struct {
-	BaseHandler
+	BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]
 	RoleService *services.RoleService
 	UserService *services.UserService
 }
@@ -26,6 +26,7 @@ func NewUserHandler(c *config.Configuration, db *mongo.Client) *UserHandler {
 	newHandler := new(UserHandler)
 	newHandler.UserService = services.NewUserService(c, db)
 	newHandler.RoleService = services.NewRoleService(c, db)
+	newHandler.BaseHandler.Service = newHandler.UserService // Gán service cho BaseHandler
 
 	return newHandler
 }

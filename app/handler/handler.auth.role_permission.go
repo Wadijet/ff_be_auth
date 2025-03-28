@@ -4,7 +4,6 @@ import (
 	"context"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/app/utility"
 	"meta_commerce/config"
 	"time"
 
@@ -12,13 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // RolePermissionHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò và quyền
 // Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
 type RolePermissionHandler struct {
-	BaseHandler
+	BaseHandler[models.RolePermission, models.RolePermissionCreateInput, models.RolePermissionUpdateInput]
 	RolePermissionService *services.RolePermissionService
 }
 
@@ -26,45 +24,11 @@ type RolePermissionHandler struct {
 func NewRolePermissionHandler(c *config.Configuration, db *mongo.Client) *RolePermissionHandler {
 	newHandler := new(RolePermissionHandler)
 	newHandler.RolePermissionService = services.NewRolePermissionService(c, db)
+	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng RolePermissionService trực tiếp
 	return newHandler
 }
 
-// CRUD functions ==========================================================================
-
-// Create xử lý tạo mới RolePermission
-func (h *RolePermissionHandler) Create(ctx *fasthttp.RequestCtx) {
-	input := new(models.RolePermissionCreateInput)
-	if response := h.ParseRequestBody(ctx, input); response != nil {
-		h.HandleError(ctx, nil)
-		return
-	}
-
-	context := context.Background()
-	data, err := h.RolePermissionService.Create(context, input)
-	h.HandleResponse(ctx, data, err)
-}
-
-// FindOneById tìm một RolePermission theo ID
-func (h *RolePermissionHandler) FindOneById(ctx *fasthttp.RequestCtx) {
-	id := h.GetIDFromContext(ctx)
-	context := context.Background()
-	data, err := h.RolePermissionService.FindOneById(context, utility.String2ObjectID(id))
-	h.HandleResponse(ctx, data, err)
-}
-
-// FindAll tìm tất cả các RolePermission với phân trang
-func (h *RolePermissionHandler) FindAll(ctx *fasthttp.RequestCtx) {
-	page, limit := h.ParsePagination(ctx)
-	context := context.Background()
-	filter := bson.M{} // Có thể thêm filter từ query params nếu cần
-
-	// Tạo options cho phân trang
-	skip := (page - 1) * limit
-	findOptions := options.Find().SetSkip(skip).SetLimit(limit)
-
-	data, err := h.RolePermissionService.Find(context, filter, findOptions)
-	h.HandleResponse(ctx, data, err)
-}
+// Các hàm đặc thù của RolePermission (nếu có) sẽ được thêm vào đây
 
 // Update cập nhật một RolePermission
 func (h *RolePermissionHandler) Update(ctx *fasthttp.RequestCtx) {
@@ -109,7 +73,7 @@ func (h *RolePermissionHandler) Update(ctx *fasthttp.RequestCtx) {
 
 	// Lưu các role permission mới
 	for _, rolePermission := range rolePermissions {
-		_, err = h.RolePermissionService.Create(context, &models.RolePermissionCreateInput{
+		_, err = h.RolePermissionService.InsertOne(context, &models.RolePermissionCreateInput{
 			RoleID:       rolePermission.RoleID,
 			PermissionID: rolePermission.PermissionID,
 			Scope:        rolePermission.Scope,
@@ -121,12 +85,4 @@ func (h *RolePermissionHandler) Update(ctx *fasthttp.RequestCtx) {
 	}
 
 	h.HandleResponse(ctx, rolePermissions, nil)
-}
-
-// Delete xóa một RolePermission
-func (h *RolePermissionHandler) Delete(ctx *fasthttp.RequestCtx) {
-	id := h.GetIDFromContext(ctx)
-	context := context.Background()
-	err := h.RolePermissionService.DeleteById(context, utility.String2ObjectID(id))
-	h.HandleResponse(ctx, nil, err)
 }

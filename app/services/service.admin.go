@@ -17,21 +17,21 @@ import (
 
 // AdminService chứa các service cho User, Permission và Role
 type AdminService struct {
-	UserService       *BaseServiceImpl[models.User]
-	PermissionService *BaseServiceImpl[models.Permission]
-	RoleService       *BaseServiceImpl[models.Role]
+	UserService       *BaseServiceMongoImpl[models.User]
+	PermissionService *BaseServiceMongoImpl[models.Permission]
+	RoleService       *BaseServiceMongoImpl[models.Role]
 }
 
 // NewAdminService tạo mới AdminService với các service tương ứng
 func NewAdminService(c *config.Configuration, db *mongo.Client) *AdminService {
-	userCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
-	permissionCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
-	roleCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
+	userCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Users), global.MongoDB_ColNames.Users)
+	permissionCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Permissions), global.MongoDB_ColNames.Permissions)
+	roleCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Roles), global.MongoDB_ColNames.Roles)
 
 	return &AdminService{
-		UserService:       NewBaseService[models.User](userCollection),
-		PermissionService: NewBaseService[models.Permission](permissionCollection),
-		RoleService:       NewBaseService[models.Role](roleCollection),
+		UserService:       NewBaseServiceMongo[models.User](userCollection),
+		PermissionService: NewBaseServiceMongo[models.Permission](permissionCollection),
+		RoleService:       NewBaseServiceMongo[models.Role](roleCollection),
 	}
 }
 

@@ -17,14 +17,14 @@ import (
 
 // AccessTokenService là cấu trúc chứa các phương thức liên quan đến access token
 type AccessTokenService struct {
-	*BaseServiceImpl[models.AccessToken]
+	*BaseServiceMongoImpl[models.AccessToken]
 }
 
 // NewAccessTokenService tạo mới AccessTokenService
 func NewAccessTokenService(c *config.Configuration, db *mongo.Client) *AccessTokenService {
-	accessTokenCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.AccessTokens)).Collection(global.MongoDB_ColNames.AccessTokens)
+	accessTokenCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.AccessTokens), global.MongoDB_ColNames.AccessTokens)
 	return &AccessTokenService{
-		BaseServiceImpl: NewBaseService[models.AccessToken](accessTokenCollection),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.AccessToken](accessTokenCollection),
 	}
 }
 
@@ -32,7 +32,7 @@ func NewAccessTokenService(c *config.Configuration, db *mongo.Client) *AccessTok
 func (s *AccessTokenService) IsNameExist(ctx context.Context, name string) (bool, error) {
 	filter := bson.M{"name": name}
 	var accessToken models.AccessToken
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&accessToken)
+	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&accessToken)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
@@ -73,7 +73,7 @@ func (s *AccessTokenService) Create(ctx context.Context, input *models.AccessTok
 	}
 
 	// Lưu access token
-	createdAccessToken, err := s.BaseServiceImpl.InsertOne(ctx, *accessToken)
+	createdAccessToken, err := s.BaseServiceMongoImpl.InsertOne(ctx, *accessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (s *AccessTokenService) Create(ctx context.Context, input *models.AccessTok
 // Update cập nhật thông tin access token
 func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, input *models.AccessTokenUpdateInput) (*models.AccessToken, error) {
 	// Kiểm tra access token tồn tại
-	accessToken, err := s.BaseServiceImpl.FindOneById(ctx, id)
+	accessToken, err := s.BaseServiceMongoImpl.FindOneById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, 
 	accessToken.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật access token
-	updatedAccessToken, err := s.BaseServiceImpl.UpdateById(ctx, id, accessToken)
+	updatedAccessToken, err := s.BaseServiceMongoImpl.UpdateById(ctx, id, accessToken)
 	if err != nil {
 		return nil, err
 	}

@@ -17,14 +17,14 @@ import (
 
 // FbMessageService là cấu trúc chứa các phương thức liên quan đến tin nhắn Facebook
 type FbMessageService struct {
-	*BaseServiceImpl[models.FbMessage]
+	*BaseServiceMongoImpl[models.FbMessage]
 }
 
 // NewFbMessageService tạo mới FbMessageService
 func NewFbMessageService(c *config.Configuration, db *mongo.Client) *FbMessageService {
-	fbMessageCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.FbMessages)).Collection(global.MongoDB_ColNames.FbMessages)
+	fbMessageCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.FbMessages), global.MongoDB_ColNames.FbMessages)
 	return &FbMessageService{
-		BaseServiceImpl: NewBaseService[models.FbMessage](fbMessageCollection),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.FbMessage](fbMessageCollection),
 	}
 }
 
@@ -32,7 +32,7 @@ func NewFbMessageService(c *config.Configuration, db *mongo.Client) *FbMessageSe
 func (s *FbMessageService) IsMessageExist(ctx context.Context, conversationId string, customerId string) (bool, error) {
 	filter := bson.M{"conversationId": conversationId, "customerId": customerId}
 	var message models.FbMessage
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&message)
+	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&message)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
@@ -70,7 +70,7 @@ func (s *FbMessageService) Upsert(ctx context.Context, input *models.FbMessageCr
 	}
 
 	// Sử dụng Upsert từ base.service
-	upsertedMessage, err := s.BaseServiceImpl.Upsert(ctx, filter, *message)
+	upsertedMessage, err := s.BaseServiceMongoImpl.Upsert(ctx, filter, *message)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (s *FbMessageService) Upsert(ctx context.Context, input *models.FbMessageCr
 func (s *FbMessageService) FindOneByConversationID(ctx context.Context, conversationID string) (models.FbMessage, error) {
 	filter := bson.M{"conversationId": conversationID}
 	var message models.FbMessage
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&message)
+	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&message)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return message, errors.New("message not found")
@@ -99,7 +99,7 @@ func (s *FbMessageService) FindAll(ctx context.Context, page int64, limit int64)
 		SetLimit(limit).
 		SetSort(bson.D{{"updatedAt", 1}})
 
-	cursor, err := s.BaseServiceImpl.collection.Find(ctx, nil, opts)
+	cursor, err := s.BaseServiceMongoImpl.collection.Find(ctx, nil, opts)
 	if err != nil {
 		return nil, err
 	}

@@ -1,23 +1,17 @@
 package handler
 
 import (
-	"context"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/app/utility"
 	"meta_commerce/config"
 
-	"github.com/valyala/fasthttp"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // RoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
 // Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
 type RoleHandler struct {
-	BaseHandler
+	BaseHandler[models.Role, models.RoleCreateInput, models.RoleUpdateInput]
 	RoleService *services.RoleService
 }
 
@@ -25,75 +19,8 @@ type RoleHandler struct {
 func NewRoleHandler(c *config.Configuration, db *mongo.Client) *RoleHandler {
 	newHandler := new(RoleHandler)
 	newHandler.RoleService = services.NewRoleService(c, db)
+	newHandler.BaseHandler.Service = newHandler.RoleService // Gán service cho BaseHandler
 	return newHandler
 }
 
-// CRUD functions ==========================================================================
-
-// Create xử lý tạo mới vai trò
-func (h *RoleHandler) Create(ctx *fasthttp.RequestCtx) {
-	input := new(models.RoleCreateInput)
-	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
-		roleInput := input.(*models.RoleCreateInput)
-		role := models.Role{
-			Name:     roleInput.Name,
-			Describe: roleInput.Describe,
-		}
-		return h.RoleService.InsertOne(context.Background(), role)
-	})
-}
-
-// FindOneById tìm vai trò theo ID
-func (h *RoleHandler) FindOneById(ctx *fasthttp.RequestCtx) {
-	id := h.GetIDFromContext(ctx)
-
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		h.HandleError(ctx, err)
-		return
-	}
-
-	context := context.Background()
-	data, err := h.RoleService.FindOneById(context, objectID)
-	h.HandleResponse(ctx, data, err)
-}
-
-// FindAll tìm tất cả các vai trò với phân trang
-func (h *RoleHandler) FindAll(ctx *fasthttp.RequestCtx) {
-	page, limit := h.ParsePagination(ctx)
-	context := context.Background()
-	filter := bson.M{} // Có thể thêm filter từ query params nếu cần
-	opts := options.Find().
-		SetSkip((page - 1) * limit).
-		SetLimit(limit)
-	data, err := h.RoleService.Find(context, filter, opts)
-	h.HandleResponse(ctx, data, err)
-}
-
-// UpdateOneById cập nhật một vai trò theo ID
-func (h *RoleHandler) UpdateOneById(ctx *fasthttp.RequestCtx) {
-	input := new(models.RoleUpdateInput)
-	h.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
-		roleInput := input.(*models.RoleUpdateInput)
-		id := h.GetIDFromContext(ctx)
-		objectID, err := primitive.ObjectIDFromHex(id)
-		if err != nil {
-			return nil, err
-		}
-		role := models.Role{
-			Name:     roleInput.Name,
-			Describe: roleInput.Describe,
-		}
-		return h.RoleService.UpdateById(context.Background(), objectID, role)
-	})
-}
-
-// DeleteOneById xóa một vai trò theo ID
-func (h *RoleHandler) DeleteOneById(ctx *fasthttp.RequestCtx) {
-	id := h.GetIDFromContext(ctx)
-	context := context.Background()
-	err := h.RoleService.DeleteById(context, utility.String2ObjectID(id))
-	h.HandleResponse(ctx, nil, err)
-}
-
-// Other functions =========================================================================
+// Các hàm đặc thù của Role (nếu có) sẽ được thêm vào đây

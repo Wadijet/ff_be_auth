@@ -16,18 +16,18 @@ import (
 
 // UserRoleService là cấu trúc chứa các phương thức liên quan đến vai trò người dùng
 type UserRoleService struct {
-	*BaseServiceImpl[models.UserRole]
+	*BaseServiceMongoImpl[models.UserRole]
 	userService *UserService
 	roleService *RoleService
 }
 
 // NewUserRoleService tạo mới UserRoleService
 func NewUserRoleService(c *config.Configuration, db *mongo.Client) *UserRoleService {
-	userRoleCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.UserRoles)).Collection(global.MongoDB_ColNames.UserRoles)
+	userRoleCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.UserRoles), global.MongoDB_ColNames.UserRoles)
 	return &UserRoleService{
-		BaseServiceImpl: NewBaseService[models.UserRole](userRoleCollection),
-		userService:     NewUserService(c, db),
-		roleService:     NewRoleService(c, db),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.UserRole](userRoleCollection),
+		userService:          NewUserService(c, db),
+		roleService:          NewRoleService(c, db),
 	}
 }
 
@@ -62,7 +62,7 @@ func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCrea
 	}
 
 	// Lưu userRole
-	createdUserRole, err := s.BaseServiceImpl.InsertOne(ctx, *userRole)
+	createdUserRole, err := s.BaseServiceMongoImpl.InsertOne(ctx, *userRole)
 	if err != nil {
 		return nil, err
 	}

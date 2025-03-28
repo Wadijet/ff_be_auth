@@ -15,11 +15,11 @@ import (
 
 // InitService định nghĩa các CRUD repository cho User, Permission và Role
 type InitService struct {
-	UserCRUD           BaseService[models.User]
-	PermissionCRUD     BaseService[models.Permission]
-	RoleCRUD           BaseService[models.Role]
-	RolePermissionCRUD BaseService[models.RolePermission]
-	UserRoleCRUD       BaseService[models.UserRole]
+	UserCRUD           BaseServiceMongo[models.User]
+	PermissionCRUD     BaseServiceMongo[models.Permission]
+	RoleCRUD           BaseServiceMongo[models.Role]
+	RolePermissionCRUD BaseServiceMongo[models.RolePermission]
+	UserRoleCRUD       BaseServiceMongo[models.UserRole]
 }
 
 // NewInitService khởi tạo các repository và trả về một đối tượng InitService
@@ -27,68 +27,100 @@ func NewInitService(c *config.Configuration, db *mongo.Client) *InitService {
 	newService := new(InitService)
 
 	// Khởi tạo các collection
-	userCol := db.Database(GetDBName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
-	permissionCol := db.Database(GetDBName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
-	roleCol := db.Database(GetDBName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
-	rolePermissionCol := db.Database(GetDBName(c, global.MongoDB_ColNames.RolePermissions)).Collection(global.MongoDB_ColNames.RolePermissions)
-	userRoleCol := db.Database(GetDBName(c, global.MongoDB_ColNames.UserRoles)).Collection(global.MongoDB_ColNames.UserRoles)
+	userCol := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Users), global.MongoDB_ColNames.Users)
+	permissionCol := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Permissions), global.MongoDB_ColNames.Permissions)
+	roleCol := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Roles), global.MongoDB_ColNames.Roles)
+	rolePermissionCol := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.RolePermissions), global.MongoDB_ColNames.RolePermissions)
+	userRoleCol := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.UserRoles), global.MongoDB_ColNames.UserRoles)
 
 	// Khởi tạo các service với BaseService
-	newService.UserCRUD = NewBaseService[models.User](userCol)
-	newService.PermissionCRUD = NewBaseService[models.Permission](permissionCol)
-	newService.RoleCRUD = NewBaseService[models.Role](roleCol)
-	newService.RolePermissionCRUD = NewBaseService[models.RolePermission](rolePermissionCol)
-	newService.UserRoleCRUD = NewBaseService[models.UserRole](userRoleCol)
+	newService.UserCRUD = NewBaseServiceMongo[models.User](userCol)
+	newService.PermissionCRUD = NewBaseServiceMongo[models.Permission](permissionCol)
+	newService.RoleCRUD = NewBaseServiceMongo[models.Role](roleCol)
+	newService.RolePermissionCRUD = NewBaseServiceMongo[models.RolePermission](rolePermissionCol)
+	newService.UserRoleCRUD = NewBaseServiceMongo[models.UserRole](userRoleCol)
 
 	return newService
 }
 
 var InitialPermissions = []models.Permission{
+	// ====================================  AUTH MODULE =============================================
+	// User Management
+	{Name: "User.Insert", Describe: "Quyền tạo người dùng", Group: "Auth", Category: "User"},
+	{Name: "User.Read", Describe: "Quyền xem danh sách người dùng", Group: "Auth", Category: "User"},
+	{Name: "User.Update", Describe: "Quyền cập nhật thông tin người dùng", Group: "Auth", Category: "User"},
+	{Name: "User.Delete", Describe: "Quyền xóa người dùng", Group: "Auth", Category: "User"},
+	{Name: "User.Block", Describe: "Quyền khóa/mở khóa người dùng", Group: "Auth", Category: "User"},
+	{Name: "User.SetRole", Describe: "Quyền phân quyền cho người dùng", Group: "Auth", Category: "User"},
 
-	{Name: "User.Read", Describe: "Quyền xem người dùng", Group: "Auth", Category: "User"},
-	{Name: "User.Block", Describe: "Quyền khóa người dùng", Group: "Auth", Category: "User"},
-	{Name: "Permission.Read", Describe: "Quyền xem các quyền", Group: "Auth", Category: "Permission"},
-	{Name: "Role.Create", Describe: "Quyền tạo vai trò", Group: "Auth", Category: "Role"},
-	{Name: "Role.Read", Describe: "Quyền xem vai trò", Group: "Auth", Category: "Role"},
+	// Role Management
+	{Name: "Role.Insert", Describe: "Quyền tạo vai trò", Group: "Auth", Category: "Role"},
+	{Name: "Role.Read", Describe: "Quyền xem danh sách vai trò", Group: "Auth", Category: "Role"},
 	{Name: "Role.Update", Describe: "Quyền cập nhật vai trò", Group: "Auth", Category: "Role"},
 	{Name: "Role.Delete", Describe: "Quyền xóa vai trò", Group: "Auth", Category: "Role"},
-	{Name: "RolePermission.Create", Describe: "Quyền tạo phân quyền cho vai trò", Group: "Auth", Category: "RolePermission"},
-	{Name: "RolePermission.Read", Describe: "Quyền xem phân quyền cho vai trò", Group: "Auth", Category: "RolePermission"},
-	{Name: "RolePermission.Update", Describe: "Quyền cập nhật phân quyền cho vai trò", Group: "Auth", Category: "RolePermission"},
-	{Name: "RolePermission.Delete", Describe: "Quyền xóa phân quyền cho vai trò", Group: "Auth", Category: "RolePermission"},
-	{Name: "UserRole.Create", Describe: "Quyền tạo phân công vai trò", Group: "Auth", Category: "UserRole"},
-	{Name: "UserRole.Read", Describe: "Quyền xem phân công vai trò", Group: "Auth", Category: "UserRole"},
-	{Name: "UserRole.Update", Describe: "Quyền cập nhật phân công vai trò", Group: "Auth", Category: "UserRole"},
-	{Name: "UserRole.Delete", Describe: "Quyền xóa phân công vai trò", Group: "Auth", Category: "UserRole"},
-	{Name: "UserRole.Delete", Describe: "Quyền xóa phân công vai trò", Group: "Auth", Category: "UserRole"},
-	{Name: "Agent.Read", Describe: "Quyền xem trợ lý", Group: "Auth", Category: "Agent"},
-	{Name: "Agent.Create", Describe: "Quyền tạo trợ lý", Group: "Auth", Category: "Agent"},
-	{Name: "Agent.Update", Describe: "Quyền cập nhật trợ lý", Group: "Auth", Category: "Agent"},
-	{Name: "Agent.Delete", Describe: "Quyền xóa trợ lý", Group: "Auth", Category: "Agent"},
-	{Name: "AccessToken.Read", Describe: "Quyền xem Access token", Group: "Pancake", Category: "AccessToken"},
-	{Name: "AccessToken.Create", Describe: "Quyền tạo Access token", Group: "Pancake", Category: "AccessToken"},
-	{Name: "AccessToken.Update", Describe: "Quyền cập nhật Access token", Group: "Pancake", Category: "AccessToken"},
-	{Name: "AccessToken.Delete", Describe: "Quyền xóa Access token", Group: "Pancake", Category: "AccessToken"},
-	{Name: "FbPage.Read", Describe: "Quyền xem trang Facebook", Group: "Pancake", Category: "FbPage"},
-	{Name: "FbPage.Create", Describe: "Quyền tạo trang Facebook", Group: "Pancake", Category: "FbPage"},
-	{Name: "FbPage.Update", Describe: "Quyền cập nhật trang Facebook", Group: "Pancake", Category: "FbPage"},
+
+	// Permission Management
+	{Name: "Permission.Insert", Describe: "Quyền tạo quyền", Group: "Auth", Category: "Permission"},
+	{Name: "Permission.Read", Describe: "Quyền xem danh sách quyền", Group: "Auth", Category: "Permission"},
+	{Name: "Permission.Update", Describe: "Quyền cập nhật quyền", Group: "Auth", Category: "Permission"},
+	{Name: "Permission.Delete", Describe: "Quyền xóa quyền", Group: "Auth", Category: "Permission"},
+
+	// Role-Permission Management
+	{Name: "RolePermission.Insert", Describe: "Quyền tạo phân quyền cho vai trò", Group: "Auth", Category: "RolePermission"},
+	{Name: "RolePermission.Read", Describe: "Quyền xem phân quyền của vai trò", Group: "Auth", Category: "RolePermission"},
+	{Name: "RolePermission.Update", Describe: "Quyền cập nhật phân quyền của vai trò", Group: "Auth", Category: "RolePermission"},
+	{Name: "RolePermission.Delete", Describe: "Quyền xóa phân quyền của vai trò", Group: "Auth", Category: "RolePermission"},
+
+	// User-Role Management
+	{Name: "UserRole.Insert", Describe: "Quyền phân công vai trò cho người dùng", Group: "Auth", Category: "UserRole"},
+	{Name: "UserRole.Read", Describe: "Quyền xem vai trò của người dùng", Group: "Auth", Category: "UserRole"},
+	{Name: "UserRole.Update", Describe: "Quyền cập nhật vai trò của người dùng", Group: "Auth", Category: "UserRole"},
+	{Name: "UserRole.Delete", Describe: "Quyền xóa vai trò của người dùng", Group: "Auth", Category: "UserRole"},
+
+	// Agent Management
+	{Name: "Agent.Insert", Describe: "Quyền tạo đại lý", Group: "Auth", Category: "Agent"},
+	{Name: "Agent.Read", Describe: "Quyền xem danh sách đại lý", Group: "Auth", Category: "Agent"},
+	{Name: "Agent.Update", Describe: "Quyền cập nhật thông tin đại lý", Group: "Auth", Category: "Agent"},
+	{Name: "Agent.Delete", Describe: "Quyền xóa đại lý", Group: "Auth", Category: "Agent"},
+	{Name: "Agent.CheckIn", Describe: "Quyền kiểm tra trạng thái đại lý", Group: "Auth", Category: "Agent"},
+
+	// ====================================  PANCAKE MODULE ===========================================
+	// Access Token Management
+	{Name: "AccessToken.Insert", Describe: "Quyền tạo token", Group: "Pancake", Category: "AccessToken"},
+	{Name: "AccessToken.Read", Describe: "Quyền xem danh sách token", Group: "Pancake", Category: "AccessToken"},
+	{Name: "AccessToken.Update", Describe: "Quyền cập nhật token", Group: "Pancake", Category: "AccessToken"},
+	{Name: "AccessToken.Delete", Describe: "Quyền xóa token", Group: "Pancake", Category: "AccessToken"},
+
+	// Facebook Page Management
+	{Name: "FbPage.Insert", Describe: "Quyền tạo trang Facebook", Group: "Pancake", Category: "FbPage"},
+	{Name: "FbPage.Read", Describe: "Quyền xem danh sách trang Facebook", Group: "Pancake", Category: "FbPage"},
+	{Name: "FbPage.Update", Describe: "Quyền cập nhật thông tin trang Facebook", Group: "Pancake", Category: "FbPage"},
 	{Name: "FbPage.Delete", Describe: "Quyền xóa trang Facebook", Group: "Pancake", Category: "FbPage"},
-	{Name: "FbConversation.Read", Describe: "Quyền xem cuộc trò chuyện trên Facebook", Group: "Pancake", Category: "FbConversation"},
-	{Name: "FbConversation.Create", Describe: "Quyền tạo cuộc trò chuyện trên Facebook", Group: "Pancake", Category: "FbConversation"},
-	{Name: "FbConversation.Update", Describe: "Quyền cập nhật cuộc trò chuyện trên Facebook", Group: "Pancake", Category: "FbConversation"},
-	{Name: "FbConversation.Delete", Describe: "Quyền xóa cuộc trò chuyện trên Facebook", Group: "Pancake", Category: "FbConversation"},
-	{Name: "FbMessage.Read", Describe: "Quyền xem tin nhắn trên Facebook", Group: "Pancake", Category: "FbMessage"},
-	{Name: "FbMessage.Create", Describe: "Quyền tạo tin nhắn trên Facebook", Group: "Pancake", Category: "FbMessage"},
-	{Name: "FbMessage.Update", Describe: "Quyền cập nhật tin nhắn trên Facebook", Group: "Pancake", Category: "FbMessage"},
-	{Name: "FbMessage.Delete", Describe: "Quyền xóa tin nhắn trên Facebook", Group: "Pancake", Category: "FbMessage"},
-	{Name: "FbPost.Read", Describe: "Quyền xem bài viết trên Facebook", Group: "Pancake", Category: "FbPost"},
-	{Name: "FbPost.Create", Describe: "Quyền tạo bài viết trên Facebook", Group: "Pancake", Category: "FbPost"},
-	{Name: "FbPost.Update", Describe: "Quyền cập nhật bài viết trên Facebook", Group: "Pancake", Category: "FbPost"},
-	{Name: "FbPost.Delete", Describe: "Quyền xóa bài viết trên Facebook", Group: "Pancake", Category: "FbPost"},
-	{Name: "PcOrder.Read", Describe: "Quyền xem đơn hàng trên PanCake", Group: "Pancake", Category: "PcOrder"},
-	{Name: "PcOrder.Create", Describe: "Quyền tạo đơn hàng trên PanCake", Group: "Pancake", Category: "PcOrder"},
-	{Name: "PcOrder.Update", Describe: "Quyền cập nhật đơn hàng trên PanCake", Group: "Pancake", Category: "PcOrder"},
-	{Name: "PcOrder.Delete", Describe: "Quyền xóa đơn hàng trên PanCake", Group: "Pancake", Category: "PcOrder"},
+	{Name: "FbPage.UpdateToken", Describe: "Quyền cập nhật token trang Facebook", Group: "Pancake", Category: "FbPage"},
+
+	// Facebook Conversation Management
+	{Name: "FbConversation.Insert", Describe: "Quyền tạo cuộc trò chuyện", Group: "Pancake", Category: "FbConversation"},
+	{Name: "FbConversation.Read", Describe: "Quyền xem danh sách cuộc trò chuyện", Group: "Pancake", Category: "FbConversation"},
+	{Name: "FbConversation.Update", Describe: "Quyền cập nhật cuộc trò chuyện", Group: "Pancake", Category: "FbConversation"},
+	{Name: "FbConversation.Delete", Describe: "Quyền xóa cuộc trò chuyện", Group: "Pancake", Category: "FbConversation"},
+
+	// Facebook Message Management
+	{Name: "FbMessage.Insert", Describe: "Quyền tạo tin nhắn", Group: "Pancake", Category: "FbMessage"},
+	{Name: "FbMessage.Read", Describe: "Quyền xem danh sách tin nhắn", Group: "Pancake", Category: "FbMessage"},
+	{Name: "FbMessage.Update", Describe: "Quyền cập nhật tin nhắn", Group: "Pancake", Category: "FbMessage"},
+	{Name: "FbMessage.Delete", Describe: "Quyền xóa tin nhắn", Group: "Pancake", Category: "FbMessage"},
+
+	// Facebook Post Management
+	{Name: "FbPost.Insert", Describe: "Quyền tạo bài viết", Group: "Pancake", Category: "FbPost"},
+	{Name: "FbPost.Read", Describe: "Quyền xem danh sách bài viết", Group: "Pancake", Category: "FbPost"},
+	{Name: "FbPost.Update", Describe: "Quyền cập nhật bài viết", Group: "Pancake", Category: "FbPost"},
+	{Name: "FbPost.Delete", Describe: "Quyền xóa bài viết", Group: "Pancake", Category: "FbPost"},
+
+	// Pancake Order Management
+	{Name: "PcOrder.Insert", Describe: "Quyền tạo đơn hàng", Group: "Pancake", Category: "PcOrder"},
+	{Name: "PcOrder.Read", Describe: "Quyền xem danh sách đơn hàng", Group: "Pancake", Category: "PcOrder"},
+	{Name: "PcOrder.Update", Describe: "Quyền cập nhật đơn hàng", Group: "Pancake", Category: "PcOrder"},
+	{Name: "PcOrder.Delete", Describe: "Quyền xóa đơn hàng", Group: "Pancake", Category: "PcOrder"},
 }
 
 // Viết hàm InitPermission để khởi tạo các quyền mặc định theo nguyên tắc sau:

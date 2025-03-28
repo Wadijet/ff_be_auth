@@ -20,18 +20,18 @@ import (
 
 // UserService là cấu trúc chứa các phương thức liên quan đến người dùng
 type UserService struct {
-	*BaseServiceImpl[models.User]
-	userRoleService *BaseServiceImpl[models.UserRole]
+	*BaseServiceMongoImpl[models.User]
+	userRoleService *BaseServiceMongoImpl[models.UserRole]
 }
 
 // NewUserService tạo mới UserService
 func NewUserService(c *config.Configuration, db *mongo.Client) *UserService {
-	userCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
-	userRoleCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.UserRoles)).Collection(global.MongoDB_ColNames.UserRoles)
+	userCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Users), global.MongoDB_ColNames.Users)
+	userRoleCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.UserRoles), global.MongoDB_ColNames.UserRoles)
 
 	return &UserService{
-		BaseServiceImpl: NewBaseService[models.User](userCollection),
-		userRoleService: NewBaseService[models.UserRole](userRoleCollection),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.User](userCollection),
+		userRoleService:      NewBaseServiceMongo[models.UserRole](userRoleCollection),
 	}
 }
 
@@ -39,7 +39,7 @@ func NewUserService(c *config.Configuration, db *mongo.Client) *UserService {
 func (s *UserService) IsEmailExist(ctx context.Context, email string) (bool, error) {
 	filter := bson.M{"email": email}
 	var user models.User
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&user)
+	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
@@ -88,7 +88,7 @@ func (s *UserService) Registry(ctx context.Context, input *models.UserCreateInpu
 	}
 
 	// Lưu user
-	createdUser, err := s.BaseServiceImpl.InsertOne(ctx, *user)
+	createdUser, err := s.BaseServiceMongoImpl.InsertOne(ctx, *user)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (s *UserService) Registry(ctx context.Context, input *models.UserCreateInpu
 func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (*models.User, error) {
 	// Tìm user theo email
 	filter := bson.M{"email": input.Email}
-	user, err := s.BaseServiceImpl.FindOne(ctx, filter, nil)
+	user, err := s.BaseServiceMongoImpl.FindOne(ctx, filter, nil)
 	if err != nil {
 		if err == utility.ErrNotFound {
 			return nil, utility.ErrInvalidCredentials
@@ -146,7 +146,7 @@ func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (
 	}
 
 	// Cập nhật user
-	updatedUser, err := s.BaseServiceImpl.UpdateById(ctx, user.ID, user)
+	updatedUser, err := s.BaseServiceMongoImpl.UpdateById(ctx, user.ID, user)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (
 // Logout đăng xuất người dùng
 func (s *UserService) Logout(ctx context.Context, userID primitive.ObjectID, input *models.UserLogoutInput) error {
 	// Tìm user
-	user, err := s.BaseServiceImpl.FindOneById(ctx, userID)
+	user, err := s.BaseServiceMongoImpl.FindOneById(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -174,14 +174,14 @@ func (s *UserService) Logout(ctx context.Context, userID primitive.ObjectID, inp
 	user.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật user
-	_, err = s.BaseServiceImpl.UpdateById(ctx, userID, user)
+	_, err = s.BaseServiceMongoImpl.UpdateById(ctx, userID, user)
 	return err
 }
 
 // ChangePassword thay đổi mật khẩu
 func (s *UserService) ChangePassword(ctx context.Context, userID primitive.ObjectID, input *models.UserChangePasswordInput) error {
 	// Tìm user
-	user, err := s.BaseServiceImpl.FindOneById(ctx, userID)
+	user, err := s.BaseServiceMongoImpl.FindOneById(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -211,6 +211,6 @@ func (s *UserService) ChangePassword(ctx context.Context, userID primitive.Objec
 	user.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật user
-	_, err = s.BaseServiceImpl.UpdateById(ctx, userID, user)
+	_, err = s.BaseServiceMongoImpl.UpdateById(ctx, userID, user)
 	return err
 }

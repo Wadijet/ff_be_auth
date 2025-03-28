@@ -10,13 +10,13 @@ import (
 
 // RoleService là cấu trúc chứa các phương thức liên quan đến vai trò
 type RoleService struct {
-	*BaseServiceImpl[models.Role]
+	*BaseServiceMongoImpl[models.Role]
 }
 
 // NewRoleService tạo mới RoleService
 func NewRoleService(c *config.Configuration, db *mongo.Client) *RoleService {
-	roleCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
+	roleCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Roles), global.MongoDB_ColNames.Roles)
 	return &RoleService{
-		BaseServiceImpl: NewBaseService[models.Role](roleCollection),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.Role](roleCollection),
 	}
 }

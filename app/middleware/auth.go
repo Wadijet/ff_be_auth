@@ -28,11 +28,11 @@ import (
 // - Cache: Cache để lưu trữ tạm thời permissions và roles
 type JwtToken struct {
 	C                  *config.Configuration
-	UserCRUD           services.BaseService[models.User]
-	RoleCRUD           services.BaseService[models.Role]
-	PermissionCRUD     services.BaseService[models.Permission]
-	RolePermissionCRUD services.BaseService[models.RolePermission]
-	UserRoleCRUD       services.BaseService[models.UserRole]
+	UserCRUD           services.BaseServiceMongo[models.User]
+	RoleCRUD           services.BaseServiceMongo[models.Role]
+	PermissionCRUD     services.BaseServiceMongo[models.Permission]
+	RolePermissionCRUD services.BaseServiceMongo[models.RolePermission]
+	UserRoleCRUD       services.BaseServiceMongo[models.UserRole]
 	Cache              *utility.Cache
 }
 
@@ -48,18 +48,18 @@ func NewJwtToken(c *config.Configuration, db *mongo.Client) *JwtToken {
 	newHandler.C = c
 
 	// Khởi tạo các collection từ database
-	userCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
-	roleCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
-	permissionCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
-	rolePermissionCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.RolePermissions)).Collection(global.MongoDB_ColNames.RolePermissions)
-	userRoleCol := db.Database(services.GetDBName(c, global.MongoDB_ColNames.UserRoles)).Collection(global.MongoDB_ColNames.UserRoles)
+	userCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
+	roleCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
+	permissionCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
+	rolePermissionCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.RolePermissions)).Collection(global.MongoDB_ColNames.RolePermissions)
+	userRoleCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.UserRoles)).Collection(global.MongoDB_ColNames.UserRoles)
 
 	// Khởi tạo các service với BaseService để thực hiện các thao tác CRUD
-	newHandler.UserCRUD = services.NewBaseService[models.User](userCol)
-	newHandler.RoleCRUD = services.NewBaseService[models.Role](roleCol)
-	newHandler.PermissionCRUD = services.NewBaseService[models.Permission](permissionCol)
-	newHandler.RolePermissionCRUD = services.NewBaseService[models.RolePermission](rolePermissionCol)
-	newHandler.UserRoleCRUD = services.NewBaseService[models.UserRole](userRoleCol)
+	newHandler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
+	newHandler.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
+	newHandler.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
+	newHandler.RolePermissionCRUD = services.NewBaseServiceMongo[models.RolePermission](rolePermissionCol)
+	newHandler.UserRoleCRUD = services.NewBaseServiceMongo[models.UserRole](userRoleCol)
 
 	// Khởi tạo cache với thời gian sống 5 phút và thời gian dọn dẹp 10 phút
 	newHandler.Cache = utility.NewCache(5*time.Minute, 10*time.Minute)

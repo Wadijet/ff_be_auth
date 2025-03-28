@@ -17,14 +17,14 @@ import (
 
 // FbPageService là cấu trúc chứa các phương thức liên quan đến trang Facebook
 type FbPageService struct {
-	*BaseServiceImpl[models.FbPage]
+	*BaseServiceMongoImpl[models.FbPage]
 }
 
 // NewFbPageService tạo mới FbPageService
 func NewFbPageService(c *config.Configuration, db *mongo.Client) *FbPageService {
-	fbPageCollection := db.Database(GetDBName(c, global.MongoDB_ColNames.FbPages)).Collection(global.MongoDB_ColNames.FbPages)
+	fbPageCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.FbPages), global.MongoDB_ColNames.FbPages)
 	return &FbPageService{
-		BaseServiceImpl: NewBaseService[models.FbPage](fbPageCollection),
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.FbPage](fbPageCollection),
 	}
 }
 
@@ -32,7 +32,7 @@ func NewFbPageService(c *config.Configuration, db *mongo.Client) *FbPageService 
 func (s *FbPageService) IsPageExist(ctx context.Context, pageId string) (bool, error) {
 	filter := bson.M{"pageId": pageId}
 	var page models.FbPage
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&page)
+	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&page)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
@@ -72,7 +72,7 @@ func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCrea
 		}
 
 		// Lưu FbPage
-		createdPage, err := s.BaseServiceImpl.InsertOne(ctx, *page)
+		createdPage, err := s.BaseServiceMongoImpl.InsertOne(ctx, *page)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +81,7 @@ func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCrea
 	} else {
 		// Lấy FbPage hiện tại
 		filter := bson.M{"pageId": pageId}
-		page, err := s.BaseServiceImpl.FindOne(ctx, filter, nil)
+		page, err := s.BaseServiceMongoImpl.FindOne(ctx, filter, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +94,7 @@ func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCrea
 		page.UpdatedAt = time.Now().Unix()
 
 		// Cập nhật FbPage
-		updatedPage, err := s.BaseServiceImpl.UpdateById(ctx, page.ID, page)
+		updatedPage, err := s.BaseServiceMongoImpl.UpdateById(ctx, page.ID, page)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +107,7 @@ func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCrea
 func (s *FbPageService) FindOneByPageID(ctx context.Context, pageID string) (models.FbPage, error) {
 	filter := bson.M{"pageId": pageID}
 	var page models.FbPage
-	err := s.BaseServiceImpl.collection.FindOne(ctx, filter).Decode(&page)
+	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&page)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return page, errors.New("page not found")
@@ -124,7 +124,7 @@ func (s *FbPageService) FindAll(ctx context.Context, page int64, limit int64) ([
 		SetLimit(limit).
 		SetSort(bson.D{{"updatedAt", 1}})
 
-	cursor, err := s.BaseServiceImpl.collection.Find(ctx, nil, opts)
+	cursor, err := s.BaseServiceMongoImpl.collection.Find(ctx, nil, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (s *FbPageService) UpdateToken(ctx context.Context, input *models.FbPageUpd
 	page.UpdatedAt = time.Now().Unix()
 
 	// Cập nhật FbPage
-	updatedPage, err := s.BaseServiceImpl.UpdateById(ctx, page.ID, page)
+	updatedPage, err := s.BaseServiceMongoImpl.UpdateById(ctx, page.ID, page)
 	if err != nil {
 		return nil, err
 	}
