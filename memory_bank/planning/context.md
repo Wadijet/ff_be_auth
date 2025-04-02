@@ -1,14 +1,61 @@
-# Ngữ cảnh hiện tại
+# Current Context
+
+## Status Overview
+- Sprint: 1
+- Phase: Giai đoạn 1 - Chuẩn bị
+- Progress: 40% (8/20 points)
+
+## Active Tasks
+1. Framework Migration (In Progress)
+   - Chuyển từ FastHTTP sang Fiber
+   - Routes migration đang được thực hiện
+   - Middleware migration sẽ được thực hiện tiếp theo
+
+2. Clean Architecture Setup (In Progress)
+   - Cấu trúc thư mục đã hoàn thành
+   - Đang refactor code theo clean architecture
+   - Cần setup dependency injection
+
+## Next Focus
+1. Metadata System
+   - Thiết kế schema cho auth flows, API routes và database config
+   - Tạo cấu trúc thư mục metadata với các thành phần auth/, api/, db/
+   - Setup metadata parser với YAML và hot reload
+
+2. Middleware Configuration
+   - Setup logger middleware
+   - Implement error handler
+   - Configure CORS
+
+## Technical Context
+- Framework: Fiber (migration in progress)
+- Architecture: Clean Architecture
+- Database: MongoDB (sẽ được cấu hình qua metadata)
+- Authentication: JWT (planned)
+
+## Dependencies
+- go.mod đã được setup
+- Fiber framework đã được thêm
+- MongoDB driver đã được cài đặt
+
+## Notes
+- Migration được thực hiện theo từng phần để giảm thiểu rủi ro
+- Clean Architecture giúp code dễ maintain và test hơn
+- Metadata system sẽ giúp cấu hình linh hoạt hơn
+
+## Risks
+1. Framework Migration
+   - Impact: High
+   - Mitigation: Phased approach và extensive testing
+
+2. Performance
+   - Impact: Medium
+   - Mitigation: Benchmarking và optimization
 
 ## Môi trường
 - OS: Windows (win32 10.0.19045)
 - Shell: PowerShell
 - Workspace: D:\Crossborder\ff_be_auth
-
-## Trạng thái
-- Chế độ: PLAN
-- Giai đoạn: Cải thiện kiến trúc
-- Tiếp theo: Tái cấu trúc theo Clean Architecture
 
 ## Cấu trúc hiện tại
 ### Framework & Libraries

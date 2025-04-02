@@ -110,6 +110,34 @@
   + Dependencies handling
   + Error recovery
 
+## 9. Database Management
+- **Database Administration**
+  + Database creation/deletion
+  + Connection management
+  + Backup & restore
+  + Performance tuning
+  + Multi-database support
+  + Database monitoring
+  + Access control
+
+- **Collection Management**
+  + Collection CRUD operations
+  + Schema validation
+  + Data modeling
+  + Version control
+  + Collection relationships
+  + Data migration tools
+  + Collection templates
+
+- **Index Management**
+  + Index creation/optimization
+  + Index strategy planning
+  + Performance monitoring
+  + Auto-indexing rules
+  + Index analytics
+  + Query optimization
+  + Index maintenance
+
 ## Use Cases
 
 ### 1. Authentication & Authorization

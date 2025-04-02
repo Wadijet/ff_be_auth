@@ -1,4 +1,9 @@
 ---
+description: 
+globs: 
+alwaysApply: false
+---
+---
 description: main rule
 globs: main.mdc
 alwaysApply: false

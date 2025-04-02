@@ -268,15 +268,19 @@ From the analysis document:
 
 | Aspect | Old System | New System |
 |--------|------------|------------|
-| **Structure** | Single file | Multiple specialized files |
+| **Structure** | Single file | Modular directory structure (planning/, architecture/, features/, metadata/) |
 | **Context Usage** | Loads everything at once | Just-in-time loading |
 | **Guidance** | Text-based instructions | Visual process maps + text |
 | **Decision Making** | Basic decision points | Comprehensive decision trees |
 | **Technical Validation** | Basic verification | Dedicated QA processes |
 | **Platform Awareness** | Limited | Comprehensive adaptation |
-| **Memory Bank** | Same core files | Same core files with improved organization |
-| **Documentation** | Standardized formats | Mode-specific specialized formats |
+| **Memory Bank** | Flat file structure | Hierarchical directory organization |
+| **Documentation** | Standardized formats | Mode-specific specialized formats in appropriate directories |
 | **Complexity Levels** | 4-level scale | Same 4-level scale with enhanced process flows |
+| **File Organization** | All files in root | Organized by purpose in specific directories |
+| **Feature Management** | Mixed in documentation | Dedicated features/ directory with core/ and advanced/ |
+| **Architecture Docs** | Part of main files | Dedicated architecture/ directory |
+| **Technical Context** | Scattered across files | Centralized in metadata/ directory |
 
 ## When to Use Each System
 
@@ -307,6 +311,26 @@ graph TD
 
 ## Getting Started with the New System
 
+### Directory Structure
+```
+memory_bank/
+├── planning/          # Task and progress tracking
+│   ├── tasks.md      # Source of truth for tasks
+│   ├── progress.md   # Implementation status
+│   └── milestones.md # Project milestones
+├── architecture/      # System design decisions
+│   ├── overview.md   # Architecture overview
+│   ├── components.md # Component details
+│   └── decisions.md  # Design decisions
+├── features/         # Feature specifications
+│   ├── core/        # Core feature docs
+│   └── advanced/    # Advanced feature docs
+└── metadata/        # Technical context
+    ├── auth/        # Authentication metadata
+    ├── etl/         # ETL process metadata
+    └── api/         # API specifications
+```
+
 ### Basic Commands
 
 To activate different modes in the new system:
@@ -318,6 +342,14 @@ CREATIVE - Explore design options for complex components
 IMPLEMENT - Systematically build planned components
 QA - Validate technical implementation
 ```
+
+### Mode-Directory Relationships
+
+- **VAN Mode**: Works with planning/ and metadata/
+- **PLAN Mode**: Works with planning/ and features/
+- **CREATIVE Mode**: Works with planning/, architecture/, and features/
+- **IMPLEMENT Mode**: Works with planning/ and metadata/
+- **QA Mode**: Works with planning/ and metadata/
 
 ### Example Workflow
 
@@ -372,22 +404,37 @@ While the rules are modularized, the Memory Bank files maintain continuity acros
 ```mermaid
 graph LR
     subgraph "Memory Bank Files"
-        Tasks["tasks.md<br>Source of Truth"]
-        Active["activeContext.md<br>Current Focus"]
-        Progress["progress.md<br>Implementation Status"]
-        Creative["creative-*.md<br>Design Decisions"]
+        Plan["planning/<br>Task Management"]
+        Arch["architecture/<br>System Design"]
+        Feat["features/<br>Feature Specs"]
+        Meta["metadata/<br>Technical Context"]
     end
     
-    VAN["VAN MODE"] -.-> Tasks & Active
-    PLAN["PLAN MODE"] -.-> Tasks & Active
-    CREATIVE["CREATIVE MODE"] -.-> Tasks & Creative
-    IMPLEMENT["IMPLEMENT MODE"] -.-> Tasks & Progress
-    QA["QA MODE"] -.-> Tasks & Progress
+    Plan -->|"Contains"| Tasks["tasks.md"]
+    Plan -->|"Contains"| Progress["progress.md"]
+    Plan -->|"Contains"| Milestones["milestones.md"]
     
-    style Tasks fill:#f9d77e,stroke:#d9b95c,stroke-width:3px
-    style Active fill:#a8d5ff,stroke:#88b5e0
-    style Progress fill:#c5e8b7,stroke:#a5c897
-    style Creative fill:#f4b8c4,stroke:#d498a4
+    Arch -->|"Contains"| Overview["overview.md"]
+    Arch -->|"Contains"| Components["components.md"]
+    Arch -->|"Contains"| Decisions["decisions.md"]
+    
+    Feat -->|"Contains"| Core["core/"]
+    Feat -->|"Contains"| Advanced["advanced/"]
+    
+    Meta -->|"Contains"| Auth["auth/"]
+    Meta -->|"Contains"| ETL["etl/"]
+    Meta -->|"Contains"| API["api/"]
+    
+    VAN["VAN MODE"] -.-> Plan & Meta
+    PLAN["PLAN MODE"] -.-> Plan & Feat
+    CREATIVE["CREATIVE MODE"] -.-> Plan & Arch & Feat
+    IMPLEMENT["IMPLEMENT MODE"] -.-> Plan & Meta
+    QA["QA MODE"] -.-> Plan & Meta
+    
+    style Plan fill:#f9d77e,stroke:#d9b95c,stroke-width:3px
+    style Arch fill:#a8d5ff,stroke:#88b5e0
+    style Feat fill:#c5e8b7,stroke:#a5c897
+    style Meta fill:#f4b8c4,stroke:#d498a4
     
     style VAN fill:#80bfff,stroke:#4da6ff
     style PLAN fill:#80ffaa,stroke:#4dbb5f

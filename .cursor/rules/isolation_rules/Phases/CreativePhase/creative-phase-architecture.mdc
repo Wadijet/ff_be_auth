@@ -1,4 +1,9 @@
 ---
+description: 
+globs: 
+alwaysApply: false
+---
+---
 description: creative phase architecture
 globs: creative-phase-architecture.md
 alwaysApply: false

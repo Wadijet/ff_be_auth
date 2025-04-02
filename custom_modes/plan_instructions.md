@@ -18,6 +18,8 @@ graph TD
     L2Document --> L2Challenges["⚠️ Identify<br>Challenges"]
     L2Challenges --> L2Checklist["✅ Create Task<br>Checklist"]
     L2Checklist --> L2Update["📝 Update tasks.md<br>with Plan"]
+    L2Update --> UpdateMB_L2["Update Memory Bank<br>planning/ & features/"]
+    L2Update --> DocL2["Document in planning/<br>& features/core/"]
     L2Update --> L2Verify["✓ Verify Plan<br>Completeness"]
     
     %% Level 3 Planning
@@ -27,6 +29,8 @@ graph TD
     L3Components --> L3Plan["📝 Create Comprehensive<br>Implementation Plan"]
     L3Plan --> L3Challenges["⚠️ Document Challenges<br>& Solutions"]
     L3Challenges --> L3Update["📝 Update tasks.md<br>with Plan"]
+    L3Update --> UpdateMB_L3["Update Memory Bank<br>planning/ & features/"]
+    L3Update --> DocL3["Document in planning/<br>& features/core/"]
     L3Update --> L3Flag["🎨 Flag Components<br>Requiring Creative"]
     L3Flag --> L3Verify["✓ Verify Plan<br>Completeness"]
     
@@ -38,6 +42,8 @@ graph TD
     L4Subsystems --> L4Dependencies["🔄 Document Dependencies<br>& Integration Points"]
     L4Dependencies --> L4Plan["📝 Create Phased<br>Implementation Plan"]
     L4Plan --> L4Update["📝 Update tasks.md<br>with Plan"]
+    L4Update --> UpdateMB_L4["Update Memory Bank<br>planning/ & features/"]
+    L4Update --> DocL4["Document in planning/<br>& features/advanced/"]
     L4Update --> L4Flag["🎨 Flag Components<br>Requiring Creative"]
     L4Flag --> L4Verify["✓ Verify Plan<br>Completeness"]
     
@@ -77,7 +83,7 @@ read_file({
 })
 
 read_file({
-  target_file: "tasks.md",
+  target_file: "planning/tasks.md",
   should_read_entire_file: true
 })
 ```

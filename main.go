@@ -100,11 +100,7 @@ func initDatabase_MongoDB() {
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcOrders), models.PcOrder{})
 
 	// gọi hàm khởi tạo các quyền mặc định
-	InitService, err := services.NewInitService(global.MongoDB_ServerConfig, global.MongoDB_Session)
-	if err != nil {
-		logrus.Fatalf("Failed to initialize init service: %v", err)
-	}
-
+	InitService := services.NewInitService()
 	InitService.InitPermission()
 	InitService.CheckPermissionForAdministrator()
 }

@@ -2,14 +2,37 @@
 
 ## Giai đoạn 1: Chuẩn bị
 ### Framework & Architecture
-- [ ] Chuyển từ FastHTTP sang Fiber
-- [ ] Setup Clean Architecture structure
+- [~] Chuyển từ FastHTTP sang Fiber
+  - [x] Setup project structure
+  - [~] Migrate routes
+  - [ ] Migrate middleware
+- [~] Setup Clean Architecture structure
+  - [x] Tạo cấu trúc thư mục
+  - [~] Refactor code
+  - [ ] Setup dependency injection
 - [ ] Cấu hình middleware cơ bản
+  - [ ] Logger middleware
+  - [ ] Error handler
+  - [ ] CORS middleware
 
 ### Metadata System
-- [ ] Thiết kế metadata schema
+- [x] Thiết kế metadata schema
+  - [x] Auth flows schema
+  - [x] API routes schema
+  - [x] Database config schema
 - [ ] Tạo cấu trúc thư mục metadata
+  - [ ] auth/flows và policies
+  - [ ] api/routes và validation
+  - [ ] db/connections và schemas
 - [ ] Setup metadata parser
+  - [ ] YAML parser với validation
+  - [ ] Schema validators
+  - [ ] Hot reload system
+  - [ ] Memory cache
+  - [ ] Change event handlers
+  - [ ] Error handling
+  - [ ] Health checks
+  - [ ] Performance monitoring
 
 ## Giai đoạn 2: Core Migration
 ### Database Layer
@@ -73,4 +96,5 @@
 ## Hoàn thành
 - [x] Phân tích yêu cầu
 - [x] Thiết kế kiến trúc
-- [x] Lập kế hoạch triển khai 
+- [x] Lập kế hoạch triển khai
+- [x] Tạo cấu trúc Memory Bank 

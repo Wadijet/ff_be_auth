@@ -21,11 +21,11 @@ graph TD
     QA --> QAResp["Respond: OK QA"]
     
     %% Memory Bank Check
-    VanResp --> CheckMB_Van["Check Memory Bank<br>& tasks.md Status"]
-    PlanResp --> CheckMB_Plan["Check Memory Bank<br>& tasks.md Status"]
-    CreativeResp --> CheckMB_Creative["Check Memory Bank<br>& tasks.md Status"]
-    ImplResp --> CheckMB_Impl["Check Memory Bank<br>& tasks.md Status"]
-    QAResp --> CheckMB_QA["Check Memory Bank<br>& tasks.md Status"]
+    VanResp --> CheckMB_Van["Check Memory Bank<br>& planning/tasks.md Status"]
+    PlanResp --> CheckMB_Plan["Check Memory Bank<br>& planning/tasks.md Status"]
+    CreativeResp --> CheckMB_Creative["Check Memory Bank<br>& planning/tasks.md Status"]
+    ImplResp --> CheckMB_Impl["Check Memory Bank<br>& planning/tasks.md Status"]
+    QAResp --> CheckMB_QA["Check Memory Bank<br>& planning/tasks.md Status"]
     
     %% Rule Loading
     CheckMB_Van --> LoadVan["Load Rule:<br>isolation_rules/visual-maps/van_mode_split/van-mode-map"]
@@ -42,11 +42,11 @@ graph TD
     LoadQA --> ExecQA["Execute Process<br>in Rule"]
     
     %% Memory Bank Continuous Updates
-    ExecVan --> UpdateMB_Van["Update Memory Bank<br>& tasks.md"]
-    ExecPlan --> UpdateMB_Plan["Update Memory Bank<br>& tasks.md"]
-    ExecCreative --> UpdateMB_Creative["Update Memory Bank<br>& tasks.md"]
-    ExecImpl --> UpdateMB_Impl["Update Memory Bank<br>& tasks.md"]
-    ExecQA --> UpdateMB_QA["Update Memory Bank<br>& tasks.md"]
+    ExecVan --> UpdateMB_Van["Update Memory Bank:<br>planning/ & metadata/"]
+    ExecPlan --> UpdateMB_Plan["Update Memory Bank:<br>planning/ & features/"]
+    ExecCreative --> UpdateMB_Creative["Update Memory Bank:<br>planning/, architecture/ & features/"]
+    ExecImpl --> UpdateMB_Impl["Update Memory Bank:<br>planning/ & metadata/"]
+    ExecQA --> UpdateMB_QA["Update Memory Bank:<br>planning/ & metadata/"]
     
     %% Verification with Memory Bank Checks
     UpdateMB_Van --> VerifyVan{"Process<br>Complete?"}
@@ -96,10 +96,10 @@ graph TD
     FinalMB_Impl --> TransToQA["→ QA Mode"]
     
     %% Memory Bank System
-    MemoryBank["MEMORY BANK<br>CENTRAL SYSTEM"] -.-> tasks["tasks.md<br>Source of Truth"]
-    MemoryBank -.-> projBrief["projectbrief.md<br>Foundation"]
-    MemoryBank -.-> active["activeContext.md<br>Current Focus"]
-    MemoryBank -.-> progress["progress.md<br>Implementation Status"]
+    MemoryBank["MEMORY BANK<br>CENTRAL SYSTEM"] -.-> tasks["planning/tasks.md<br>Source of Truth"]
+    MemoryBank -.-> arch["architecture/overview.md<br>Foundation"]
+    MemoryBank -.-> meta["metadata/active/context.md<br>Current Focus"]
+    MemoryBank -.-> progress["planning/progress.md<br>Implementation Status"]
     
     CheckMB_Van & CheckMB_Plan & CheckMB_Creative & CheckMB_Impl & CheckMB_QA -.-> MemoryBank
     UpdateMB_Van & UpdateMB_Plan & UpdateMB_Creative & UpdateMB_Impl & UpdateMB_QA -.-> MemoryBank
@@ -152,8 +152,8 @@ graph TD
     
     style MemoryBank fill:#f9d77e,stroke:#d9b95c,stroke-width:2px
     style tasks fill:#f9d77e,stroke:#d9b95c
-    style projBrief fill:#f9d77e,stroke:#d9b95c
-    style active fill:#f9d77e,stroke:#d9b95c
+    style arch fill:#f9d77e,stroke:#d9b95c
+    style meta fill:#f9d77e,stroke:#d9b95c
     style progress fill:#f9d77e,stroke:#d9b95c
     
     style Error fill:#ff5555,stroke:#cc0000,color:white,stroke-width:2px
@@ -166,20 +166,32 @@ graph TD
 
 ```mermaid
 flowchart TD
-    PB([projectbrief.md]) --> PC([productContext.md])
-    PB --> SP([systemPatterns.md])
-    PB --> TC([techContext.md])
+    MB([memory_bank]) --> ARCH([architecture/])
+    MB --> FEAT([features/])
+    MB --> META([metadata/])
+    MB --> PLAN([planning/])
     
-    PC & SP & TC --> AC([activeContext.md])
+    ARCH --> ARCH_OV([overview.md])
+    ARCH --> ARCH_COMP([components.md])
+    ARCH --> ARCH_DEC([decisions.md])
     
-    AC --> P([progress.md])
-    AC --> Tasks([tasks.md])
+    FEAT --> FEAT_CORE([core/])
+    FEAT --> FEAT_ADV([advanced/])
+    
+    META --> META_AUTH([auth/])
+    META --> META_ETL([etl/])
+    META --> META_API([api/])
+    
+    PLAN --> PLAN_TASKS([tasks.md])
+    PLAN --> PLAN_PROG([progress.md])
+    PLAN --> PLAN_MILE([milestones.md])
 
-    style PB fill:#f9d77e,stroke:#d9b95c
-    style PC & SP & TC fill:#a8d5ff,stroke:#88b5e0
-    style AC fill:#c5e8b7,stroke:#a5c897
-    style P fill:#f4b8c4,stroke:#d498a4
-    style Tasks fill:#f4b8c4,stroke:#d498a4,stroke-width:3px
+    style MB fill:#f9d77e,stroke:#d9b95c
+    style ARCH & FEAT & META & PLAN fill:#a8d5ff,stroke:#88b5e0
+    style ARCH_OV & ARCH_COMP & ARCH_DEC fill:#c5e8b7,stroke:#a5c897
+    style FEAT_CORE & FEAT_ADV fill:#c5e8b7,stroke:#a5c897
+    style META_AUTH & META_ETL & META_API fill:#c5e8b7,stroke:#a5c897
+    style PLAN_TASKS & PLAN_PROG & PLAN_MILE fill:#f4b8c4,stroke:#d498a4,stroke-width:3px
 ```
 
 ## VERIFICATION COMMITMENT

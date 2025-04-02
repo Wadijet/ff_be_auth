@@ -4,6 +4,85 @@ Your role is to perform detailed design and architecture work for components fla
 
 <mermaid>
 graph TD
+    Start["🚀 START CREATIVE MODE"] --> ReadTasks["📚 Read planning/tasks.md &<br>planning/implementation-plan.md<br>.cursor/rules/isolation_rules/main.mdc"]
+    
+    %% Initialization
+    ReadTasks --> Identify["🔍 Identify Components<br>Requiring Creative Phases<br>.cursor/rules/isolation_rules/visual-maps/creative-mode-map.mdc"]
+    Identify --> Prioritize["📊 Prioritize Components<br>for Creative Work"]
+    
+    %% Creative Phase Type Determination
+    Prioritize --> TypeCheck{"🎨 Determine<br>Creative Phase<br>Type"}
+    TypeCheck -->|"Architecture"| ArchDesign["🏗️ ARCHITECTURE DESIGN<br>.cursor/rules/isolation_rules/visual-maps/creative-mode-map.mdc"]
+    TypeCheck -->|"Algorithm"| AlgoDesign["⚙️ ALGORITHM DESIGN<br>.cursor/rules/isolation_rules/visual-maps/creative-mode-map.mdc"]
+    TypeCheck -->|"UI/UX"| UIDesign["🎨 UI/UX DESIGN<br>.cursor/rules/isolation_rules/visual-maps/creative-mode-map.mdc"]
+    
+    %% Architecture Design Process
+    ArchDesign --> ArchRequirements["📋 Define Requirements<br>& Constraints"]
+    ArchRequirements --> ArchOptions["🔄 Generate Multiple<br>Architecture Options"]
+    ArchOptions --> ArchAnalysis["⚖️ Analyze Pros/Cons<br>of Each Option"]
+    ArchAnalysis --> ArchSelect["✅ Select & Justify<br>Recommended Approach"]
+    ArchSelect --> ArchGuidelines["📝 Document Implementation<br>Guidelines"]
+    ArchGuidelines --> ArchVerify["✓ Verify Against<br>Requirements"]
+    
+    %% Algorithm Design Process
+    AlgoDesign --> AlgoRequirements["📋 Define Requirements<br>& Constraints"]
+    AlgoRequirements --> AlgoOptions["🔄 Generate Multiple<br>Algorithm Options"]
+    AlgoOptions --> AlgoAnalysis["⚖️ Analyze Pros/Cons<br>& Complexity"]
+    AlgoAnalysis --> AlgoSelect["✅ Select & Justify<br>Recommended Approach"]
+    AlgoSelect --> AlgoGuidelines["📝 Document Implementation<br>Guidelines"]
+    AlgoGuidelines --> AlgoVerify["✓ Verify Against<br>Requirements"]
+    
+    %% UI/UX Design Process
+    UIDesign --> UIRequirements["📋 Define Requirements<br>& Constraints"]
+    UIRequirements --> UIOptions["🔄 Generate Multiple<br>Design Options"]
+    UIOptions --> UIAnalysis["⚖️ Analyze Pros/Cons<br>of Each Option"]
+    UIAnalysis --> UISelect["✅ Select & Justify<br>Recommended Approach"]
+    UISelect --> UIGuidelines["📝 Document Implementation<br>Guidelines"]
+    UIGuidelines --> UIVerify["✓ Verify Against<br>Requirements"]
+    
+    %% Verification & Update
+    ArchVerify & AlgoVerify & UIVerify --> UpdateMemoryBank["📝 Update Memory Bank<br>with Design Decisions"]
+    
+    %% Check for More Components
+    UpdateMemoryBank --> MoreComponents{"📋 More<br>Components?"}
+    MoreComponents -->|"Yes"| TypeCheck
+    MoreComponents -->|"No"| VerifyAll["✅ Verify All Components<br>Have Completed<br>Creative Phases"]
+    
+    %% Completion & Transition
+    VerifyAll --> UpdateTasks["📝 Update tasks.md<br>with Status"]
+    UpdateTasks --> UpdatePlan["📋 Update Implementation<br>Plan with Decisions"]
+    UpdatePlan --> Transition["⏭️ NEXT MODE:<br>IMPLEMENT MODE"]
+    
+    %% Creative Phase Template
+    TypeCheck -.-> Template["🎨 CREATIVE PHASE TEMPLATE:<br>- 🎨🎨🎨 ENTERING CREATIVE PHASE<br>- Component Description<br>- Requirements & Constraints<br>- Options Analysis<br>- Recommended Approach<br>- Implementation Guidelines<br>- Verification Checkpoint<br>- 🎨🎨🎨 EXITING CREATIVE PHASE"]
+    
+    %% Validation Options
+    Start -.-> Validation["🔍 VALIDATION OPTIONS:<br>- Review flagged components<br>- Demonstrate creative process<br>- Create design options<br>- Show verification<br>- Generate guidelines<br>- Show mode transition"]
+    
+    %% Styling
+    style Start fill:#d971ff,stroke:#a33bc2,color:white
+    style ReadTasks fill:#e6b3ff,stroke:#d971ff
+    style Identify fill:#80bfff,stroke:#4da6ff
+    style Prioritize fill:#80bfff,stroke:#4da6ff
+    style TypeCheck fill:#d94dbb,stroke:#a3378a,color:white
+    style ArchDesign fill:#4da6ff,stroke:#0066cc,color:white
+    style AlgoDesign fill:#4dbb5f,stroke:#36873f,color:white
+    style UIDesign fill:#ffa64d,stroke:#cc7a30,color:white
+    style MoreComponents fill:#d94dbb,stroke:#a3378a,color:white
+    style VerifyAll fill:#4dbbbb,stroke:#368787,color:white
+    style Transition fill:#5fd94d,stroke:#3da336,color:white
+</mermaid> 
+
+## IMPLEMENTATION STEPS
+
+### Step 1: READ TASKS & MAIN RULE
+```
+# MEMORY BANK CREATIVE MODE
+
+Your role is to perform detailed design and architecture work for components flagged during the planning phase.
+
+<mermaid>
+graph TD
     Start["🚀 START CREATIVE MODE"] --> ReadTasks["📚 Read tasks.md &<br>implementation-plan.md<br>.cursor/rules/isolation_rules/main.mdc"]
     
     %% Initialization

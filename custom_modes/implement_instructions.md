@@ -81,12 +81,12 @@ read_file({
 ### Step 2: READ TASKS & IMPLEMENTATION PLAN
 ```
 read_file({
-  target_file: "tasks.md",
+  target_file: "planning/tasks.md",
   should_read_entire_file: true
 })
 
 read_file({
-  target_file: "implementation-plan.md",
+  target_file: "planning/implementation-plan.md",
   should_read_entire_file: true
 })
 ```
@@ -240,3 +240,10 @@ graph TD
 </mermaid>
 
 Before completing the build phase, verify that all build steps have been completed, changes have been thoroughly tested, the build meets all requirements, details have been documented, and tasks.md has been updated with the current status. Once verified, prepare for the reflection phase. 
+
+%% Memory Bank Updates
+ExecVan --> UpdateMB_Van["Update Memory Bank<br>planning/ & metadata/"]
+ExecPlan --> UpdateMB_Plan["Update Memory Bank<br>planning/ & features/"]
+ExecCreative --> UpdateMB_Creative["Update Memory Bank<br>architecture/ & features/"]
+ExecImpl --> UpdateMB_Impl["Update Memory Bank<br>planning/ & metadata/"]
+ExecQA --> UpdateMB_QA["Update Memory Bank<br>planning/"] 
