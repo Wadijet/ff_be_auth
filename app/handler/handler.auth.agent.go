@@ -5,10 +5,8 @@ import (
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
-	"meta_commerce/config"
 
 	"github.com/valyala/fasthttp"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // AgentHandler là cấu trúc xử lý các yêu cầu liên quan đến đại lý
@@ -19,9 +17,9 @@ type AgentHandler struct {
 }
 
 // NewAgentHandler khởi tạo một AgentHandler mới
-func NewAgentHandler(c *config.Configuration, db *mongo.Client) *AgentHandler {
+func NewAgentHandler() *AgentHandler {
 	newHandler := new(AgentHandler)
-	newHandler.AgentService = services.NewAgentService(c, db)
+	newHandler.AgentService = services.NewAgentService()
 	newHandler.BaseHandler.Service = newHandler.AgentService // Gán service cho BaseHandler
 	return newHandler
 }

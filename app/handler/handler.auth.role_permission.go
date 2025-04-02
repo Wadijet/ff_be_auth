@@ -4,13 +4,11 @@ import (
 	"context"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/config"
 	"time"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // RolePermissionHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò và quyền
@@ -21,9 +19,9 @@ type RolePermissionHandler struct {
 }
 
 // NewRolePermissionHandler khởi tạo một RolePermissionHandler mới
-func NewRolePermissionHandler(c *config.Configuration, db *mongo.Client) *RolePermissionHandler {
+func NewRolePermissionHandler() *RolePermissionHandler {
 	newHandler := new(RolePermissionHandler)
-	newHandler.RolePermissionService = services.NewRolePermissionService(c, db)
+	newHandler.RolePermissionService = services.NewRolePermissionService()
 	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng RolePermissionService trực tiếp
 	return newHandler
 }
@@ -73,11 +71,7 @@ func (h *RolePermissionHandler) Update(ctx *fasthttp.RequestCtx) {
 
 	// Lưu các role permission mới
 	for _, rolePermission := range rolePermissions {
-		_, err = h.RolePermissionService.InsertOne(context, &models.RolePermissionCreateInput{
-			RoleID:       rolePermission.RoleID,
-			PermissionID: rolePermission.PermissionID,
-			Scope:        rolePermission.Scope,
-		})
+		_, err = h.RolePermissionService.InsertOne(context, rolePermission)
 		if err != nil {
 			h.HandleError(ctx, err)
 			return

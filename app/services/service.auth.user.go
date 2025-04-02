@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"time"
 
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/utility"
-	"meta_commerce/config"
-	"meta_commerce/global"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,9 +25,10 @@ type UserService struct {
 }
 
 // NewUserService tạo mới UserService
-func NewUserService(c *config.Configuration, db *mongo.Client) *UserService {
-	userCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Users), global.MongoDB_ColNames.Users)
-	userRoleCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.UserRoles), global.MongoDB_ColNames.UserRoles)
+func NewUserService() *UserService {
+	// Lấy collections từ registry
+	userCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
+	userRoleCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.UserRoles)
 
 	return &UserService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.User](userCollection),

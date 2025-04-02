@@ -3,9 +3,6 @@ package handler
 import (
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/config"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // FbMessageHandler là cấu trúc xử lý các yêu cầu liên quan đến Facebook Message
@@ -16,9 +13,9 @@ type FbMessageHandler struct {
 }
 
 // NewFbMessageHandler khởi tạo một FbMessageHandler mới
-func NewFbMessageHandler(c *config.Configuration, db *mongo.Client) *FbMessageHandler {
+func NewFbMessageHandler() *FbMessageHandler {
 	newHandler := new(FbMessageHandler)
-	newHandler.FbMessageService = services.NewFbMessageService(c, db)
+	newHandler.FbMessageService = services.NewFbMessageService()
 	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng FbMessageService trực tiếp
 	return newHandler
 }

@@ -4,10 +4,8 @@ import (
 	"context"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/config"
 
 	"github.com/valyala/fasthttp"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // FbPageHandler là cấu trúc xử lý các yêu cầu liên quan đến Facebook Page
@@ -21,9 +19,9 @@ type FbPageHandler struct {
 }
 
 // NewFbPageHandler khởi tạo một FbPageHandler mới
-func NewFbPageHandler(c *config.Configuration, db *mongo.Client) *FbPageHandler {
+func NewFbPageHandler() *FbPageHandler {
 	handler := &FbPageHandler{}
-	handler.FbPageService = services.NewFbPageService(c, db)
+	handler.FbPageService = services.NewFbPageService()
 	handler.Service = handler.FbPageService
 	return handler
 }

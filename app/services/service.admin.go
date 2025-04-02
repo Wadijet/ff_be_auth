@@ -2,15 +2,15 @@ package services
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/config"
-	"meta_commerce/global"
+	"meta_commerce/app/utility"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -23,10 +23,10 @@ type AdminService struct {
 }
 
 // NewAdminService tạo mới AdminService với các service tương ứng
-func NewAdminService(c *config.Configuration, db *mongo.Client) *AdminService {
-	userCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Users), global.MongoDB_ColNames.Users)
-	permissionCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Permissions), global.MongoDB_ColNames.Permissions)
-	roleCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Roles), global.MongoDB_ColNames.Roles)
+func NewAdminService() *AdminService {
+	userCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
+	permissionCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Permissions)
+	roleCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Roles)
 
 	return &AdminService{
 		UserService:       NewBaseServiceMongo[models.User](userCollection),
@@ -49,9 +49,9 @@ func (s *AdminService) SetRole(ctx context.Context, email string, roleID primiti
 	err = s.UserService.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, errors.New("user not found")
+			return nil, utility.ErrNotFound
 		}
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	// Cập nhật Role cho User
@@ -75,9 +75,9 @@ func (s *AdminService) BlockUser(ctx context.Context, email string, block bool, 
 	err := s.UserService.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, errors.New("user not found")
+			return nil, utility.ErrNotFound
 		}
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	// Cập nhật trạng thái Block và ghi chú

@@ -1,14 +1,13 @@
 package handler
 
 import (
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/config"
-	"meta_commerce/global"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // AdminHandler là cấu trúc chứa các dịch vụ cần thiết để xử lý các yêu cầu liên quan đến quản trị viên
@@ -23,20 +22,24 @@ type AdminHandler struct {
 }
 
 // NewAdminHandler khởi tạo một AdminHandler mới với cấu hình và kết nối cơ sở dữ liệu
-func NewAdminHandler(c *config.Configuration, db *mongo.Client) *AdminHandler {
+func NewAdminHandler() *AdminHandler {
 	newHandler := new(AdminHandler)
 
-	// Khởi tạo các collection
-	userCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
-	permissionCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
-	roleCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
+	// Khởi tạo các collection từ registry
+	userCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
+	roleCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Roles)
+	permissionCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Permissions)
+
+	// Khởi tạo các service
+	newHandler.AdminService = *services.NewAdminService()
 
 	// Khởi tạo các service với BaseService
 	newHandler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
 	newHandler.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
 	newHandler.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
-	newHandler.InitService = *services.NewInitService(c, db)
-	newHandler.AdminService = *services.NewAdminService(c, db)
+
+	// Khởi tạo InitService
+	newHandler.InitService = *services.NewInitService()
 
 	// Gán UserCRUD cho BaseHandler
 	newHandler.BaseHandler.Service = newHandler.UserCRUD

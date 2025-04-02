@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/config"
-	"meta_commerce/global"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,8 +21,8 @@ type PcOrderService struct {
 }
 
 // NewPcOrderService tạo mới PcOrderService
-func NewPcOrderService(c *config.Configuration, db *mongo.Client) *PcOrderService {
-	pcOrderCollection := db.Database(GetDBNameFromCollectionName(c, global.MongoDB_ColNames.PcOrders)).Collection(global.MongoDB_ColNames.PcOrders)
+func NewPcOrderService() *PcOrderService {
+	pcOrderCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.PcOrders)
 	return &PcOrderService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.PcOrder](pcOrderCollection),
 	}

@@ -9,6 +9,8 @@ import (
 	"github.com/valyala/fasthttp"
 	validator "gopkg.in/go-playground/validator.v9"
 
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	"meta_commerce/app/middleware"
 	models "meta_commerce/app/models/mongodb"
 	api "meta_commerce/app/router"
@@ -16,7 +18,6 @@ import (
 	"meta_commerce/app/utility"
 	"meta_commerce/config"
 	"meta_commerce/database"
-	"meta_commerce/global"
 )
 
 // Hàm khởi tạo các biến toàn cục
@@ -76,6 +77,13 @@ func initDatabase_MongoDB() {
 	database.EnsureDatabaseAndCollections(global.MongoDB_Session)
 	logrus.Info("Ensured database and collections") // Ghi log thông báo đã đảm bảo database và các collection
 
+	// Khởi tạo registry và đăng ký các collections
+	err = registry.InitCollections(global.MongoDB_Session, global.MongoDB_ServerConfig)
+	if err != nil {
+		logrus.Fatalf("Failed to initialize collections: %v", err)
+	}
+	logrus.Info("Initialized collection registry")
+
 	// Khơi tạo các index cho các collection
 	dbName := global.MongoDB_ServerConfig.MongoDB_DBNameAuth
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.Users), models.User{})
@@ -92,10 +100,13 @@ func initDatabase_MongoDB() {
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcOrders), models.PcOrder{})
 
 	// gọi hàm khởi tạo các quyền mặc định
-	InitService := services.NewInitService(global.MongoDB_ServerConfig, global.MongoDB_Session)
+	InitService, err := services.NewInitService(global.MongoDB_ServerConfig, global.MongoDB_Session)
+	if err != nil {
+		logrus.Fatalf("Failed to initialize init service: %v", err)
+	}
+
 	InitService.InitPermission()
 	InitService.CheckPermissionForAdministrator()
-
 }
 
 // Hàm xử lý panic

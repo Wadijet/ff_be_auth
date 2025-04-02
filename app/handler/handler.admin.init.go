@@ -1,15 +1,14 @@
 package handler
 
 import (
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
-	"meta_commerce/config"
-	"meta_commerce/global"
 	"net/http"
 
 	"github.com/valyala/fasthttp"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // InitHandler là struct chứa các CRUD services và InitService
@@ -21,19 +20,19 @@ type InitHandler struct {
 }
 
 // NewInitHandler khởi tạo InitHandler mới
-func NewInitHandler(c *config.Configuration, db *mongo.Client) *InitHandler {
+func NewInitHandler() *InitHandler {
 	newHandler := new(InitHandler)
 
-	// Khởi tạo các collection
-	userCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
-	permissionCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
-	roleCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
+	// Khởi tạo các collection từ registry
+	userCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
+	permissionCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Permissions)
+	roleCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Roles)
 
 	// Khởi tạo các service với BaseService
 	newHandler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
 	newHandler.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
 	newHandler.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
-	newHandler.InitService = *services.NewInitService(c, db)
+	newHandler.InitService = *services.NewInitService()
 	return newHandler
 }
 

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/config"
-	"meta_commerce/global"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,8 +21,8 @@ type FbConversationService struct {
 }
 
 // NewFbConversationService tạo mới FbConversationService
-func NewFbConversationService(c *config.Configuration, db *mongo.Client) *FbConversationService {
-	fbConversationCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.FbConvesations), global.MongoDB_ColNames.FbConvesations)
+func NewFbConversationService() *FbConversationService {
+	fbConversationCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.FbConvesations)
 	return &FbConversationService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.FbConversation](fbConversationCollection),
 	}

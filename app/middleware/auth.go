@@ -10,11 +10,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
 	"meta_commerce/config"
-	"meta_commerce/global"
 )
 
 // JwtToken là middleware xử lý xác thực và phân quyền người dùng thông qua JWT
@@ -47,12 +48,12 @@ func NewJwtToken(c *config.Configuration, db *mongo.Client) *JwtToken {
 	newHandler := new(JwtToken)
 	newHandler.C = c
 
-	// Khởi tạo các collection từ database
-	userCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Users)).Collection(global.MongoDB_ColNames.Users)
-	roleCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Roles)).Collection(global.MongoDB_ColNames.Roles)
-	permissionCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Permissions)).Collection(global.MongoDB_ColNames.Permissions)
-	rolePermissionCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.RolePermissions)).Collection(global.MongoDB_ColNames.RolePermissions)
-	userRoleCol := db.Database(services.GetDBNameFromCollectionName(c, global.MongoDB_ColNames.UserRoles)).Collection(global.MongoDB_ColNames.UserRoles)
+	// Khởi tạo các collection từ registry
+	userCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
+	roleCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Roles)
+	permissionCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Permissions)
+	rolePermissionCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.RolePermissions)
+	userRoleCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.UserRoles)
 
 	// Khởi tạo các service với BaseService để thực hiện các thao tác CRUD
 	newHandler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)

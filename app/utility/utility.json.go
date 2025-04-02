@@ -7,7 +7,7 @@ import (
 
 	"github.com/valyala/fasthttp"
 
-	"meta_commerce/global"
+	"meta_commerce/app/global"
 )
 
 // JSON thiết lập header và trả về dữ liệu JSON

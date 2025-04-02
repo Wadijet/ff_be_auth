@@ -4,10 +4,8 @@ import (
 	"context"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/config"
 
 	"github.com/valyala/fasthttp"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // FbPostHandler là cấu trúc xử lý các yêu cầu liên quan đến Facebook Post
@@ -21,9 +19,9 @@ type FbPostHandler struct {
 }
 
 // NewFbPostHandler khởi tạo một FbPostHandler mới
-func NewFbPostHandler(c *config.Configuration, db *mongo.Client) *FbPostHandler {
+func NewFbPostHandler() *FbPostHandler {
 	handler := &FbPostHandler{}
-	handler.FbPostService = services.NewFbPostService(c, db)
+	handler.FbPostService = services.NewFbPostService()
 	handler.Service = handler.FbPostService
 	return handler
 }

@@ -3,7 +3,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -13,43 +12,7 @@ import (
 
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/utility"
-	"meta_commerce/config"
 )
-
-// ====================================
-// CÁC HÀM TIỆN ÍCH
-// ====================================
-
-// GetDBNameFromCollectionName lấy tên database từ cấu hình
-// Parameters:
-//   - c: Cấu hình hệ thống
-//   - collectionName: Tên collection
-//
-// Returns:
-//   - string: Tên database
-func GetDBNameFromCollectionName(c *config.Configuration, collectionName string) string {
-	return c.MongoDB_DBNameAuth
-}
-
-// GetCollectionFromName lấy collection từ tên database và tên collection
-// Parameters:
-//   - db: Client MongoDB
-//   - dbName: Tên database
-//   - collectionName: Tên collection
-func GetCollectionFromName(db *mongo.Client, dbName string, collectionName string) *mongo.Collection {
-	// Kiểm tra database có tồn tại không
-	database := db.Database(dbName)
-	if database == nil {
-		return nil
-	}
-
-	// Kiểm tra collection có tồn tại không
-	collection := database.Collection(collectionName)
-	if collection == nil {
-		return nil
-	}
-	return collection
-}
 
 // ====================================
 // INTERFACE VÀ STRUCT
@@ -139,7 +102,7 @@ func (s *BaseServiceMongoImpl[T]) InsertOne(ctx context.Context, data T) (T, err
 	// Chuyển data thành map để thêm timestamps
 	dataMap, err := utility.ToMap(data)
 	if err != nil {
-		return zero, err
+		return zero, utility.ErrInvalidFormat
 	}
 
 	// Thêm timestamps
@@ -149,14 +112,14 @@ func (s *BaseServiceMongoImpl[T]) InsertOne(ctx context.Context, data T) (T, err
 
 	result, err := s.collection.InsertOne(ctx, dataMap)
 	if err != nil {
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	// Lấy lại document vừa tạo
 	var created T
 	err = s.collection.FindOne(ctx, bson.M{"_id": result.InsertedID}).Decode(&created)
 	if err != nil {
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	return created, nil
@@ -170,7 +133,7 @@ func (s *BaseServiceMongoImpl[T]) InsertMany(ctx context.Context, data []T) ([]T
 	for _, item := range data {
 		dataMap, err := utility.ToMap(item)
 		if err != nil {
-			return nil, err
+			return nil, utility.ErrInvalidFormat
 		}
 		dataMap["createdAt"] = now
 		dataMap["updatedAt"] = now
@@ -179,7 +142,7 @@ func (s *BaseServiceMongoImpl[T]) InsertMany(ctx context.Context, data []T) ([]T
 
 	result, err := s.collection.InsertMany(ctx, documents)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	// Lấy lại các documents vừa tạo
@@ -187,12 +150,12 @@ func (s *BaseServiceMongoImpl[T]) InsertMany(ctx context.Context, data []T) ([]T
 	filter := bson.M{"_id": bson.M{"$in": result.InsertedIDs}}
 	cursor, err := s.collection.Find(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	err = cursor.All(ctx, &created)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return created, nil
@@ -217,13 +180,13 @@ func (s *BaseServiceMongoImpl[T]) FindOne(ctx context.Context, filter interface{
 	findResult := s.collection.FindOne(ctx, filter, opts)
 	if err := findResult.Err(); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return zero, errors.New("record not found")
+			return zero, utility.ErrNotFound
 		}
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	if err := findResult.Decode(&result); err != nil {
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	return result, nil
@@ -241,13 +204,13 @@ func (s *BaseServiceMongoImpl[T]) Find(ctx context.Context, filter interface{}, 
 
 	cursor, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 	defer cursor.Close(ctx)
 
 	var results []T
 	if err = cursor.All(ctx, &results); err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return results, nil
@@ -271,7 +234,7 @@ func (s *BaseServiceMongoImpl[T]) UpdateOne(ctx context.Context, filter interfac
 	// Thêm updatedAt vào update
 	updateMap, err := utility.ToMap(update)
 	if err != nil {
-		return zero, err
+		return zero, utility.ErrInvalidFormat
 	}
 
 	if setMap, ok := updateMap["$set"].(map[string]interface{}); ok {
@@ -283,18 +246,18 @@ func (s *BaseServiceMongoImpl[T]) UpdateOne(ctx context.Context, filter interfac
 
 	result, err := s.collection.UpdateOne(ctx, filter, updateMap, opts)
 	if err != nil {
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	if result.ModifiedCount == 0 {
-		return zero, errors.New("no document was updated")
+		return zero, utility.ErrNotFound
 	}
 
 	// Lấy lại document đã update
 	var updated T
 	err = s.collection.FindOne(ctx, filter).Decode(&updated)
 	if err != nil {
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	return updated, nil
@@ -313,7 +276,7 @@ func (s *BaseServiceMongoImpl[T]) UpdateMany(ctx context.Context, filter interfa
 	// Thêm updatedAt vào update
 	updateMap, err := utility.ToMap(update)
 	if err != nil {
-		return 0, err
+		return 0, utility.ErrInvalidFormat
 	}
 
 	if setMap, ok := updateMap["$set"].(map[string]interface{}); ok {
@@ -325,7 +288,7 @@ func (s *BaseServiceMongoImpl[T]) UpdateMany(ctx context.Context, filter interfa
 
 	result, err := s.collection.UpdateMany(ctx, filter, updateMap, opts)
 	if err != nil {
-		return 0, err
+		return 0, utility.ConvertMongoError(err)
 	}
 
 	return result.ModifiedCount, nil
@@ -342,11 +305,11 @@ func (s *BaseServiceMongoImpl[T]) DeleteOne(ctx context.Context, filter interfac
 
 	result, err := s.collection.DeleteOne(ctx, filter)
 	if err != nil {
-		return err
+		return utility.ConvertMongoError(err)
 	}
 
 	if result.DeletedCount == 0 {
-		return errors.New("no document was deleted")
+		return utility.ErrNotFound
 	}
 
 	return nil
@@ -360,7 +323,7 @@ func (s *BaseServiceMongoImpl[T]) DeleteMany(ctx context.Context, filter interfa
 
 	result, err := s.collection.DeleteMany(ctx, filter)
 	if err != nil {
-		return 0, err
+		return 0, utility.ConvertMongoError(err)
 	}
 
 	return result.DeletedCount, nil
@@ -384,7 +347,7 @@ func (s *BaseServiceMongoImpl[T]) FindOneAndUpdate(ctx context.Context, filter i
 	// Thêm updatedAt vào update
 	updateMap, err := utility.ToMap(update)
 	if err != nil {
-		return zero, err
+		return zero, utility.ErrInvalidFormat
 	}
 
 	if setMap, ok := updateMap["$set"].(map[string]interface{}); ok {
@@ -397,7 +360,7 @@ func (s *BaseServiceMongoImpl[T]) FindOneAndUpdate(ctx context.Context, filter i
 	var result T
 	err = s.collection.FindOneAndUpdate(ctx, filter, updateMap, opts).Decode(&result)
 	if err != nil {
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	return result, nil
@@ -418,7 +381,7 @@ func (s *BaseServiceMongoImpl[T]) FindOneAndDelete(ctx context.Context, filter i
 	var result T
 	err := s.collection.FindOneAndDelete(ctx, filter, opts).Decode(&result)
 	if err != nil {
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	return result, nil
@@ -433,7 +396,12 @@ func (s *BaseServiceMongoImpl[T]) CountDocuments(ctx context.Context, filter int
 		filter = bson.D{}
 	}
 
-	return s.collection.CountDocuments(ctx, filter)
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, utility.ConvertMongoError(err)
+	}
+
+	return count, nil
 }
 
 // Distinct lấy danh sách các giá trị duy nhất
@@ -442,7 +410,12 @@ func (s *BaseServiceMongoImpl[T]) Distinct(ctx context.Context, fieldName string
 		filter = bson.D{}
 	}
 
-	return s.collection.Distinct(ctx, fieldName, filter)
+	values, err := s.collection.Distinct(ctx, fieldName, filter)
+	if err != nil {
+		return nil, utility.ConvertMongoError(err)
+	}
+
+	return values, nil
 }
 
 // ====================================
@@ -454,13 +427,16 @@ func (s *BaseServiceMongoImpl[T]) Distinct(ctx context.Context, fieldName string
 
 // FindOneById tìm một document theo ObjectId
 func (s *BaseServiceMongoImpl[T]) FindOneById(ctx context.Context, id primitive.ObjectID) (T, error) {
-	var result T
+	var zero T
 	filter := bson.M{"_id": id}
-	err := s.collection.FindOne(ctx, filter).Decode(&result)
+	err := s.collection.FindOne(ctx, filter).Decode(&zero)
 	if err != nil {
-		return result, err
+		if err == mongo.ErrNoDocuments {
+			return zero, utility.ErrNotFound
+		}
+		return zero, utility.ConvertMongoError(err)
 	}
-	return result, nil
+	return zero, nil
 }
 
 // FindManyByIds tìm nhiều document theo danh sách ID
@@ -468,13 +444,13 @@ func (s *BaseServiceMongoImpl[T]) FindManyByIds(ctx context.Context, ids []primi
 	filter := bson.M{"_id": bson.M{"$in": ids}}
 	cursor, err := s.collection.Find(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 	defer cursor.Close(ctx)
 
 	var results []T
 	if err = cursor.All(ctx, &results); err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return results, nil
@@ -494,19 +470,19 @@ func (s *BaseServiceMongoImpl[T]) FindWithPagination(ctx context.Context, filter
 	// Lấy tổng số bản ghi
 	total, err := s.collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	// Lấy dữ liệu theo trang
 	var items []T
 	cursor, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 	defer cursor.Close(ctx)
 
 	if err = cursor.All(ctx, &items); err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return &models.PaginateResult[T]{
@@ -538,7 +514,7 @@ func (s *BaseServiceMongoImpl[T]) UpdateById(ctx context.Context, id primitive.O
 	// Chuyển data thành map để thêm timestamps
 	dataMap, err := utility.ToMap(data)
 	if err != nil {
-		return zero, err
+		return zero, utility.ErrInvalidFormat
 	}
 
 	// Thêm timestamps
@@ -551,18 +527,18 @@ func (s *BaseServiceMongoImpl[T]) UpdateById(ctx context.Context, id primitive.O
 	// Thực hiện update
 	result, err := s.collection.UpdateOne(ctx, filter, bson.M{"$set": dataMap}, opts)
 	if err != nil {
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	if result.ModifiedCount == 0 {
-		return zero, errors.New("no document was updated")
+		return zero, utility.ErrNotFound
 	}
 
 	// Lấy lại document đã update
 	var updated T
 	err = s.collection.FindOne(ctx, filter).Decode(&updated)
 	if err != nil {
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	return updated, nil
@@ -579,11 +555,11 @@ func (s *BaseServiceMongoImpl[T]) DeleteById(ctx context.Context, id primitive.O
 	filter := bson.M{"_id": id}
 	result, err := s.collection.DeleteOne(ctx, filter)
 	if err != nil {
-		return err
+		return utility.ConvertMongoError(err)
 	}
 
 	if result.DeletedCount == 0 {
-		return errors.New("no document was deleted")
+		return utility.ErrNotFound
 	}
 
 	return nil
@@ -599,7 +575,7 @@ func (s *BaseServiceMongoImpl[T]) Upsert(ctx context.Context, filter interface{}
 	// Chuyển data thành map để thêm timestamps
 	dataMap, err := utility.ToMap(data)
 	if err != nil {
-		return zero, err
+		return zero, utility.ErrInvalidFormat
 	}
 
 	// Thêm timestamps
@@ -616,7 +592,7 @@ func (s *BaseServiceMongoImpl[T]) Upsert(ctx context.Context, filter interface{}
 	var upserted T
 	err = s.collection.FindOneAndUpdate(ctx, filter, bson.M{"$set": dataMap}, opts).Decode(&upserted)
 	if err != nil {
-		return zero, err
+		return zero, utility.ConvertMongoError(err)
 	}
 
 	return upserted, nil
@@ -636,7 +612,7 @@ func (s *BaseServiceMongoImpl[T]) UpsertMany(ctx context.Context, filter interfa
 		// Chuyển data thành map để thêm timestamps
 		dataMap, err := utility.ToMap(item)
 		if err != nil {
-			return nil, err
+			return nil, utility.ErrInvalidFormat
 		}
 
 		// Thêm timestamps
@@ -655,7 +631,7 @@ func (s *BaseServiceMongoImpl[T]) UpsertMany(ctx context.Context, filter interfa
 	opts := options.BulkWrite().SetOrdered(false) // SetOrdered(false) để thực hiện song song
 	result, err := s.collection.BulkWrite(ctx, models, opts)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	// Lấy lại các documents sau khi upsert
@@ -672,12 +648,12 @@ func (s *BaseServiceMongoImpl[T]) UpsertMany(ctx context.Context, filter interfa
 		if len(upsertedIDs) > 0 {
 			cursor, err := s.collection.Find(ctx, bson.M{"_id": bson.M{"$in": upsertedIDs}})
 			if err != nil {
-				return nil, err
+				return nil, utility.ConvertMongoError(err)
 			}
 			defer cursor.Close(ctx)
 
 			if err = cursor.All(ctx, &upserted); err != nil {
-				return nil, err
+				return nil, utility.ConvertMongoError(err)
 			}
 		}
 	}
@@ -686,13 +662,13 @@ func (s *BaseServiceMongoImpl[T]) UpsertMany(ctx context.Context, filter interfa
 	if result.ModifiedCount > 0 {
 		cursor, err := s.collection.Find(ctx, filter)
 		if err != nil {
-			return nil, err
+			return nil, utility.ConvertMongoError(err)
 		}
 		defer cursor.Close(ctx)
 
 		var updated []T
 		if err = cursor.All(ctx, &updated); err != nil {
-			return nil, err
+			return nil, utility.ConvertMongoError(err)
 		}
 
 		// Kết hợp cả documents mới và documents đã update
@@ -713,7 +689,7 @@ func (s *BaseServiceMongoImpl[T]) DocumentExists(ctx context.Context, filter int
 
 	count, err := s.collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return false, err
+		return false, utility.ConvertMongoError(err)
 	}
 
 	return count > 0, nil

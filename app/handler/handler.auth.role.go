@@ -3,9 +3,6 @@ package handler
 import (
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/config"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // RoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò
@@ -16,9 +13,9 @@ type RoleHandler struct {
 }
 
 // NewRoleHandler khởi tạo một RoleHandler mới
-func NewRoleHandler(c *config.Configuration, db *mongo.Client) *RoleHandler {
+func NewRoleHandler() *RoleHandler {
 	newHandler := new(RoleHandler)
-	newHandler.RoleService = services.NewRoleService(c, db)
+	newHandler.RoleService = services.NewRoleService()
 	newHandler.BaseHandler.Service = newHandler.RoleService // Gán service cho BaseHandler
 	return newHandler
 }

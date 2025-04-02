@@ -4,11 +4,9 @@ import (
 	"context"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/config"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // FbConversationHandler là cấu trúc xử lý các yêu cầu liên quan đến Facebook Conversation
@@ -19,9 +17,9 @@ type FbConversationHandler struct {
 }
 
 // NewFbConversationHandler khởi tạo một FbConversationHandler mới
-func NewFbConversationHandler(c *config.Configuration, db *mongo.Client) *FbConversationHandler {
+func NewFbConversationHandler() *FbConversationHandler {
 	newHandler := new(FbConversationHandler)
-	newHandler.FbConversationService = services.NewFbConversationService(c, db)
+	newHandler.FbConversationService = services.NewFbConversationService()
 	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng FbConversationService trực tiếp
 	return newHandler
 }

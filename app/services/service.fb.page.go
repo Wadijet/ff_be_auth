@@ -2,12 +2,12 @@ package services
 
 import (
 	"context"
-	"errors"
 	"time"
 
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/config"
-	"meta_commerce/global"
+	"meta_commerce/app/utility"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,8 +21,8 @@ type FbPageService struct {
 }
 
 // NewFbPageService tạo mới FbPageService
-func NewFbPageService(c *config.Configuration, db *mongo.Client) *FbPageService {
-	fbPageCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.FbPages), global.MongoDB_ColNames.FbPages)
+func NewFbPageService() *FbPageService {
+	fbPageCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.FbPages)
 	return &FbPageService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.FbPage](fbPageCollection),
 	}
@@ -37,7 +37,7 @@ func (s *FbPageService) IsPageExist(ctx context.Context, pageId string) (bool, e
 		if err == mongo.ErrNoDocuments {
 			return false, nil
 		}
-		return false, err
+		return false, utility.ConvertMongoError(err)
 	}
 	return true, nil
 }
@@ -45,7 +45,7 @@ func (s *FbPageService) IsPageExist(ctx context.Context, pageId string) (bool, e
 // ReviceData nhận data từ Facebook và lưu vào cơ sở dữ liệu
 func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCreateInput) (*models.FbPage, error) {
 	if input.PanCakeData == nil {
-		return nil, errors.New("ApiData is required")
+		return nil, utility.ErrInvalidInput
 	}
 
 	// Lấy thông tin PageID từ ApiData đưa vào biến
@@ -74,7 +74,7 @@ func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCrea
 		// Lưu FbPage
 		createdPage, err := s.BaseServiceMongoImpl.InsertOne(ctx, *page)
 		if err != nil {
-			return nil, err
+			return nil, utility.ConvertMongoError(err)
 		}
 
 		return &createdPage, nil
@@ -83,7 +83,7 @@ func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCrea
 		filter := bson.M{"pageId": pageId}
 		page, err := s.BaseServiceMongoImpl.FindOne(ctx, filter, nil)
 		if err != nil {
-			return nil, err
+			return nil, utility.ConvertMongoError(err)
 		}
 
 		// Cập nhật thông tin mới
@@ -96,7 +96,7 @@ func (s *FbPageService) ReviceData(ctx context.Context, input *models.FbPageCrea
 		// Cập nhật FbPage
 		updatedPage, err := s.BaseServiceMongoImpl.UpdateById(ctx, page.ID, page)
 		if err != nil {
-			return nil, err
+			return nil, utility.ConvertMongoError(err)
 		}
 
 		return &updatedPage, nil
@@ -110,9 +110,9 @@ func (s *FbPageService) FindOneByPageID(ctx context.Context, pageID string) (mod
 	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&page)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return page, errors.New("page not found")
+			return page, utility.ErrNotFound
 		}
-		return page, err
+		return page, utility.ConvertMongoError(err)
 	}
 	return page, nil
 }
@@ -126,13 +126,13 @@ func (s *FbPageService) FindAll(ctx context.Context, page int64, limit int64) ([
 
 	cursor, err := s.BaseServiceMongoImpl.collection.Find(ctx, nil, opts)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 	defer cursor.Close(ctx)
 
 	var results []models.FbPage
 	if err = cursor.All(ctx, &results); err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return results, nil
@@ -153,7 +153,7 @@ func (s *FbPageService) UpdateToken(ctx context.Context, input *models.FbPageUpd
 	// Cập nhật FbPage
 	updatedPage, err := s.BaseServiceMongoImpl.UpdateById(ctx, page.ID, page)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return &updatedPage, nil

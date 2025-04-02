@@ -5,11 +5,9 @@ import (
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
-	"meta_commerce/config"
 
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -22,10 +20,10 @@ type UserHandler struct {
 }
 
 // NewUserHandler khởi tạo một UserHandler mới
-func NewUserHandler(c *config.Configuration, db *mongo.Client) *UserHandler {
+func NewUserHandler() *UserHandler {
 	newHandler := new(UserHandler)
-	newHandler.UserService = services.NewUserService(c, db)
-	newHandler.RoleService = services.NewRoleService(c, db)
+	newHandler.UserService = services.NewUserService()
+	newHandler.RoleService = services.NewRoleService()
 	newHandler.BaseHandler.Service = newHandler.UserService // Gán service cho BaseHandler
 
 	return newHandler

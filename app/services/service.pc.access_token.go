@@ -4,11 +4,10 @@ import (
 	"context"
 	"time"
 
-	"errors"
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/utility"
-	"meta_commerce/config"
-	"meta_commerce/global"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,8 +20,8 @@ type AccessTokenService struct {
 }
 
 // NewAccessTokenService tạo mới AccessTokenService
-func NewAccessTokenService(c *config.Configuration, db *mongo.Client) *AccessTokenService {
-	accessTokenCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.AccessTokens), global.MongoDB_ColNames.AccessTokens)
+func NewAccessTokenService() *AccessTokenService {
+	accessTokenCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.AccessTokens)
 	return &AccessTokenService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.AccessToken](accessTokenCollection),
 	}
@@ -37,7 +36,7 @@ func (s *AccessTokenService) IsNameExist(ctx context.Context, name string) (bool
 		if err == mongo.ErrNoDocuments {
 			return false, nil
 		}
-		return false, err
+		return false, utility.ConvertMongoError(err)
 	}
 	return true, nil
 }
@@ -50,7 +49,7 @@ func (s *AccessTokenService) Create(ctx context.Context, input *models.AccessTok
 		return nil, err
 	}
 	if exists {
-		return nil, errors.New("Access token name already exists")
+		return nil, utility.ErrInvalidInput
 	}
 
 	// Chuyển đổi input.AssignedUsers từ mảng []string sang mảng []ObjectID
@@ -75,7 +74,7 @@ func (s *AccessTokenService) Create(ctx context.Context, input *models.AccessTok
 	// Lưu access token
 	createdAccessToken, err := s.BaseServiceMongoImpl.InsertOne(ctx, *accessToken)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return &createdAccessToken, nil
@@ -86,7 +85,7 @@ func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, 
 	// Kiểm tra access token tồn tại
 	accessToken, err := s.BaseServiceMongoImpl.FindOneById(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	// Nếu có thay đổi tên, kiểm tra tên mới
@@ -96,7 +95,7 @@ func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, 
 			return nil, err
 		}
 		if exists {
-			return nil, errors.New("Access token name already exists")
+			return nil, utility.ErrInvalidInput
 		}
 		accessToken.Name = input.Name
 	}
@@ -123,7 +122,7 @@ func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, 
 	// Cập nhật access token
 	updatedAccessToken, err := s.BaseServiceMongoImpl.UpdateById(ctx, id, accessToken)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return &updatedAccessToken, nil

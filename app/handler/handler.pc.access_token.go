@@ -3,9 +3,6 @@ package handler
 import (
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/config"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // AccessTokenHandler là cấu trúc xử lý các yêu cầu liên quan đến Access Token
@@ -19,9 +16,9 @@ type AccessTokenHandler struct {
 }
 
 // NewAccessTokenHandler khởi tạo một AccessTokenHandler mới
-func NewAccessTokenHandler(c *config.Configuration, db *mongo.Client) *AccessTokenHandler {
+func NewAccessTokenHandler() *AccessTokenHandler {
 	handler := &AccessTokenHandler{}
-	handler.AccessTokenService = services.NewAccessTokenService(c, db)
+	handler.AccessTokenService = services.NewAccessTokenService()
 	handler.Service = handler.AccessTokenService
 	return handler
 }

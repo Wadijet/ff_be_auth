@@ -2,12 +2,12 @@ package services
 
 import (
 	"context"
-	"errors"
 	"time"
 
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/config"
-	"meta_commerce/global"
+	"meta_commerce/app/utility"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,8 +21,8 @@ type FbMessageService struct {
 }
 
 // NewFbMessageService tạo mới FbMessageService
-func NewFbMessageService(c *config.Configuration, db *mongo.Client) *FbMessageService {
-	fbMessageCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.FbMessages), global.MongoDB_ColNames.FbMessages)
+func NewFbMessageService() *FbMessageService {
+	fbMessageCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.FbMessages)
 	return &FbMessageService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.FbMessage](fbMessageCollection),
 	}
@@ -37,7 +37,7 @@ func (s *FbMessageService) IsMessageExist(ctx context.Context, conversationId st
 		if err == mongo.ErrNoDocuments {
 			return false, nil
 		}
-		return false, err
+		return false, utility.ConvertMongoError(err)
 	}
 	return true, nil
 }
@@ -45,7 +45,7 @@ func (s *FbMessageService) IsMessageExist(ctx context.Context, conversationId st
 // Upsert nhận data từ Facebook và lưu vào cơ sở dữ liệu
 func (s *FbMessageService) Upsert(ctx context.Context, input *models.FbMessageCreateInput) (*models.FbMessage, error) {
 	if input.PanCakeData == nil {
-		return nil, errors.New("ApiData is required")
+		return nil, utility.ErrInvalidInput
 	}
 
 	// Lấy thông tin MessageId từ ApiData đưa vào biến
@@ -72,7 +72,7 @@ func (s *FbMessageService) Upsert(ctx context.Context, input *models.FbMessageCr
 	// Sử dụng Upsert từ base.service
 	upsertedMessage, err := s.BaseServiceMongoImpl.Upsert(ctx, filter, *message)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return &upsertedMessage, nil
@@ -85,9 +85,9 @@ func (s *FbMessageService) FindOneByConversationID(ctx context.Context, conversa
 	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&message)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return message, errors.New("message not found")
+			return message, utility.ErrNotFound
 		}
-		return message, err
+		return message, utility.ConvertMongoError(err)
 	}
 	return message, nil
 }
@@ -101,13 +101,13 @@ func (s *FbMessageService) FindAll(ctx context.Context, page int64, limit int64)
 
 	cursor, err := s.BaseServiceMongoImpl.collection.Find(ctx, nil, opts)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 	defer cursor.Close(ctx)
 
 	var results []models.FbMessage
 	if err = cursor.All(ctx, &results); err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return results, nil

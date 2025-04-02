@@ -4,14 +4,13 @@ import (
 	"context"
 	"time"
 
-	"errors"
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/config"
-	"meta_commerce/global"
+	"meta_commerce/app/utility"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // UserRoleService là cấu trúc chứa các phương thức liên quan đến vai trò người dùng
@@ -22,12 +21,13 @@ type UserRoleService struct {
 }
 
 // NewUserRoleService tạo mới UserRoleService
-func NewUserRoleService(c *config.Configuration, db *mongo.Client) *UserRoleService {
-	userRoleCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.UserRoles), global.MongoDB_ColNames.UserRoles)
+func NewUserRoleService() *UserRoleService {
+	userRoleCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.UserRoles)
+
 	return &UserRoleService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.UserRole](userRoleCollection),
-		userService:          NewUserService(c, db),
-		roleService:          NewRoleService(c, db),
+		userService:          NewUserService(),
+		roleService:          NewRoleService(),
 	}
 }
 
@@ -35,12 +35,12 @@ func NewUserRoleService(c *config.Configuration, db *mongo.Client) *UserRoleServ
 func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCreateInput) (*models.UserRole, error) {
 	// Kiểm tra User có tồn tại không
 	if _, err := s.userService.FindOneById(ctx, input.UserID); err != nil {
-		return nil, errors.New("User not found")
+		return nil, utility.ErrNotFound
 	}
 
 	// Kiểm tra Role có tồn tại không
 	if _, err := s.roleService.FindOneById(ctx, input.RoleID); err != nil {
-		return nil, errors.New("Role not found")
+		return nil, utility.ErrNotFound
 	}
 
 	// Kiểm tra UserRole đã tồn tại chưa
@@ -49,7 +49,7 @@ func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCrea
 		return nil, err
 	}
 	if exists {
-		return nil, errors.New("UserRole already exists")
+		return nil, utility.ErrInvalidInput
 	}
 
 	// Tạo userRole mới
@@ -64,7 +64,7 @@ func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCrea
 	// Lưu userRole
 	createdUserRole, err := s.BaseServiceMongoImpl.InsertOne(ctx, *userRole)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return &createdUserRole, nil
@@ -78,7 +78,7 @@ func (s *UserRoleService) IsExist(ctx context.Context, userID, roleID primitive.
 	}
 	count, err := s.collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return false, err
+		return false, utility.ConvertMongoError(err)
 	}
 	return count > 0, nil
 }

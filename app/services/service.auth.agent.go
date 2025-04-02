@@ -4,14 +4,13 @@ import (
 	"context"
 	"time"
 
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/utility"
-	"meta_commerce/config"
-	"meta_commerce/global"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -21,8 +20,8 @@ type AgentService struct {
 }
 
 // NewAgentService tạo mới AgentService
-func NewAgentService(c *config.Configuration, db *mongo.Client) *AgentService {
-	agentCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.Agents), global.MongoDB_ColNames.Agents)
+func NewAgentService() *AgentService {
+	agentCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Agents)
 	return &AgentService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.Agent](agentCollection),
 	}
@@ -34,7 +33,7 @@ func (s *AgentService) CheckOnlineStatus(ctx context.Context) error {
 	opts := options.Find()
 	agents, err := s.BaseServiceMongoImpl.Find(ctx, bson.M{}, opts)
 	if err != nil {
-		return err
+		return utility.ConvertMongoError(err)
 	}
 
 	// Duyệt qua tất cả các agent
@@ -47,7 +46,7 @@ func (s *AgentService) CheckOnlineStatus(ctx context.Context) error {
 
 			_, err := s.BaseServiceMongoImpl.UpdateById(ctx, agent.ID, agent)
 			if err != nil {
-				return err
+				return utility.ConvertMongoError(err)
 			}
 		}
 	}

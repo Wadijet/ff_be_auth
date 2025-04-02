@@ -3,9 +3,6 @@ package handler
 import (
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/config"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // PermissionHandler là struct chứa các phương thức xử lý quyền
@@ -18,9 +15,9 @@ type PermissionHandler struct {
 }
 
 // NewPermissionHandler khởi tạo một PermissionHandler mới
-func NewPermissionHandler(c *config.Configuration, db *mongo.Client) *PermissionHandler {
+func NewPermissionHandler() *PermissionHandler {
 	handler := &PermissionHandler{}
-	handler.Service = services.NewPermissionService(c, db)
+	handler.Service = services.NewPermissionService()
 	return handler
 }
 

@@ -4,17 +4,16 @@ import (
 	"context"
 	"time"
 
-	"errors"
+	"meta_commerce/app/database/registry"
+	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/config"
-	"meta_commerce/global"
+	"meta_commerce/app/utility"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// RolePermissionService là cấu trúc chứa các phương thức liên quan đến quyền vai trò
+// RolePermissionService là cấu trúc chứa các phương thức liên quan đến quyền của vai trò
 type RolePermissionService struct {
 	*BaseServiceMongoImpl[models.RolePermission]
 	roleService       *RoleService
@@ -22,52 +21,35 @@ type RolePermissionService struct {
 }
 
 // NewRolePermissionService tạo mới RolePermissionService
-func NewRolePermissionService(c *config.Configuration, db *mongo.Client) *RolePermissionService {
-	rolePermissionCollection := GetCollectionFromName(db, GetDBNameFromCollectionName(c, global.MongoDB_ColNames.RolePermissions), global.MongoDB_ColNames.RolePermissions)
+func NewRolePermissionService() *RolePermissionService {
+	rolePermissionCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.RolePermissions)
+
 	return &RolePermissionService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.RolePermission](rolePermissionCollection),
-		roleService:          NewRoleService(c, db),
-		permissionService:    NewPermissionService(c, db),
+		roleService:          NewRoleService(),
+		permissionService:    NewPermissionService(),
 	}
 }
 
-// IsExist kiểm tra quyền vai trò có tồn tại hay không
-func (s *RolePermissionService) IsExist(ctx context.Context, roleID, permissionID primitive.ObjectID, scope byte) (bool, error) {
-	filter := bson.M{
-		"roleId":       roleID,
-		"permissionId": permissionID,
-		"scope":        scope,
-	}
-	var rolePermission models.RolePermission
-	err := s.BaseServiceMongoImpl.collection.FindOne(ctx, filter).Decode(&rolePermission)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-// InsertOne tạo mới một quyền vai trò
-func (s *RolePermissionService) InsertOne(ctx context.Context, input *models.RolePermissionCreateInput) (*models.RolePermission, error) {
+// Create tạo mới một quyền cho vai trò
+func (s *RolePermissionService) Create(ctx context.Context, input *models.RolePermissionCreateInput) (*models.RolePermission, error) {
 	// Kiểm tra Role có tồn tại không
 	if _, err := s.roleService.FindOneById(ctx, input.RoleID); err != nil {
-		return nil, errors.New("Role not found")
+		return nil, utility.ErrNotFound
 	}
 
 	// Kiểm tra Permission có tồn tại không
 	if _, err := s.permissionService.FindOneById(ctx, input.PermissionID); err != nil {
-		return nil, errors.New("Permission not found")
+		return nil, utility.ErrNotFound
 	}
 
 	// Kiểm tra RolePermission đã tồn tại chưa
-	exists, err := s.IsExist(ctx, input.RoleID, input.PermissionID, input.Scope)
+	exists, err := s.IsExist(ctx, input.RoleID, input.PermissionID)
 	if err != nil {
 		return nil, err
 	}
 	if exists {
-		return nil, errors.New("RolePermission already exists")
+		return nil, utility.ErrInvalidInput
 	}
 
 	// Tạo rolePermission mới
@@ -75,7 +57,6 @@ func (s *RolePermissionService) InsertOne(ctx context.Context, input *models.Rol
 		ID:           primitive.NewObjectID(),
 		RoleID:       input.RoleID,
 		PermissionID: input.PermissionID,
-		Scope:        input.Scope,
 		CreatedAt:    time.Now().Unix(),
 		UpdatedAt:    time.Now().Unix(),
 	}
@@ -83,8 +64,21 @@ func (s *RolePermissionService) InsertOne(ctx context.Context, input *models.Rol
 	// Lưu rolePermission
 	createdRolePermission, err := s.BaseServiceMongoImpl.InsertOne(ctx, *rolePermission)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	return &createdRolePermission, nil
+}
+
+// IsExist kiểm tra xem một RolePermission đã tồn tại chưa
+func (s *RolePermissionService) IsExist(ctx context.Context, roleID, permissionID primitive.ObjectID) (bool, error) {
+	filter := bson.M{
+		"roleId":       roleID,
+		"permissionId": permissionID,
+	}
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return false, utility.ConvertMongoError(err)
+	}
+	return count > 0, nil
 }

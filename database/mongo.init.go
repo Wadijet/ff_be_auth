@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"meta_commerce/global"
+	"meta_commerce/app/global"
 	"reflect"
 	"strconv"
 	"strings"
