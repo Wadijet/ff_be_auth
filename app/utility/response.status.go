@@ -100,6 +100,13 @@ var (
 		Description: "Lỗi thông tin đăng nhập",
 	}
 
+	ErrCodeAuthRole = ErrorCode{
+		Code:        "AUTH_003",
+		Category:    "Authentication",
+		SubCategory: "Role",
+		Description: "Lỗi liên quan đến vai trò người dùng",
+	}
+
 	// Validation Errors (VAL_xxx)
 	ErrCodeValidation = ErrorCode{
 		Code:        "VAL",
@@ -197,6 +204,8 @@ var (
 	ErrTokenExpired       = NewError(ErrCodeAuthToken, "Phiên đăng nhập đã hết hạn", StatusUnauthorized, nil)
 	ErrTokenInvalid       = NewError(ErrCodeAuthToken, "Token không hợp lệ", StatusUnauthorized, nil)
 	ErrTokenMissing       = NewError(ErrCodeAuthToken, "Thiếu token xác thực", StatusUnauthorized, nil)
+	ErrUserAlreadyAdmin   = NewError(ErrCodeAuthRole, "Người dùng đã có quyền Administrator", StatusConflict, nil)
+	ErrUserNotFound       = NewError(ErrCodeAuthCredentials, "Không tìm thấy thông tin người dùng", StatusNotFound, nil)
 
 	// Validation Errors
 	ErrInvalidInput  = NewError(ErrCodeValidationInput, "Dữ liệu đầu vào không hợp lệ", StatusBadRequest, nil)

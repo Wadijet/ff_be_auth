@@ -51,35 +51,50 @@ In this isolation-focused approach, Memory Bank files maintain continuity betwee
 ```mermaid
 graph TD
     subgraph "Memory Bank Files"
-        tasks["tasks.md<br>Source of Truth"]
-        active["activeContext.md<br>Current Focus"]
-        creative["creative-*.md<br>Design Decisions"]
-        progress["progress.md<br>Implementation Status"]
+        plan["planning/<br>Task Management"]
+        arch["architecture/<br>System Design"]
+        feat["features/<br>Feature Specs"]
+        meta["metadata/<br>Technical Context"]
     end
     
-    VAN["VAN MODE"] -->|"Creates/Updates"| tasks
-    VAN -->|"Creates/Updates"| active
+    plan -->|"Contains"| tasks["tasks.md"]
+    plan -->|"Contains"| progress["progress.md"]
+    plan -->|"Contains"| milestones["milestones.md"]
     
-    PLAN["PLAN MODE"] -->|"Reads"| tasks
-    PLAN -->|"Reads"| active
-    PLAN -->|"Updates"| tasks
+    arch -->|"Contains"| overview["overview.md"]
+    arch -->|"Contains"| components["components.md"]
+    arch -->|"Contains"| decisions["decisions.md"]
     
-    Creative["CREATIVE MODE"] -->|"Reads"| tasks
-    Creative -->|"Creates"| creative
-    Creative -->|"Updates"| tasks
+    feat -->|"Contains"| core["core/"]
+    feat -->|"Contains"| advanced["advanced/"]
     
-    Implement["IMPLEMENT MODE"] -->|"Reads"| tasks
-    Implement -->|"Reads"| creative
-    Implement -->|"Updates"| tasks
+    meta -->|"Contains"| auth["auth/"]
+    meta -->|"Contains"| etl["etl/"]
+    meta -->|"Contains"| api["api/"]
+    
+    VAN["VAN MODE"] -->|"Creates/Updates"| plan
+    VAN -->|"Creates/Updates"| meta
+    
+    PLAN["PLAN MODE"] -->|"Reads"| plan
+    PLAN -->|"Updates"| plan
+    PLAN -->|"Updates"| feat
+    
+    Creative["CREATIVE MODE"] -->|"Reads"| plan
+    Creative -->|"Creates/Updates"| arch
+    Creative -->|"Updates"| feat
+    
+    Implement["IMPLEMENT MODE"] -->|"Reads"| plan
+    Implement -->|"Reads"| arch
     Implement -->|"Updates"| progress
+    Implement -->|"Updates"| meta
     
-    Reflect["REFLECT MODE"] -->|"Reads"| tasks
+    Reflect["REFLECT MODE"] -->|"Reads"| plan
     Reflect -->|"Reads"| progress
-    Reflect -->|"Updates"| tasks
+    Reflect -->|"Updates"| plan
     
-    Archive["ARCHIVE MODE"] -->|"Reads"| tasks
+    Archive["ARCHIVE MODE"] -->|"Reads"| plan
     Archive -->|"Reads"| progress
-    Archive -->|"Archives"| creative
+    Archive -->|"Archives"| arch
 ```
 
 ## 📋 MODE TRANSITION PROTOCOL

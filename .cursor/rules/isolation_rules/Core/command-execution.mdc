@@ -1,4 +1,9 @@
 ---
+description: 
+globs: 
+alwaysApply: false
+---
+---
 description: Command execution guidelines for isolation-focused Memory Bank
 globs: command-execution.mdc
 alwaysApply: false
