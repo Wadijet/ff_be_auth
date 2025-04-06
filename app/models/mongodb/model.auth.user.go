@@ -78,3 +78,14 @@ type UserPaginateResult struct {
 	// Danh sách các mục
 	Items []User `json:"items" bson:"items"`
 }
+
+// BlockUserInput là cấu trúc dữ liệu đầu vào cho việc khóa người dùng
+type BlockUserInput struct {
+	Email string `json:"email" bson:"email" validate:"required"`
+	Note  string `json:"note" bson:"note" validate:"required"`
+}
+
+// UnBlockUserInput là cấu trúc dữ liệu đầu vào cho việc mở khóa người dùng
+type UnBlockUserInput struct {
+	Email string `json:"email" bson:"email" validate:"required"`
+}

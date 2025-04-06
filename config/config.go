@@ -13,11 +13,12 @@ import (
 // Configuration chứa thông tin tĩnh cần thiết để chạy ứng dụng
 // Nó chứa thông tin cơ sở dữ liệu
 type Configuration struct {
-	InitMode              bool   `env:"INITMODE" envDefault:"false"`     // Chế độ khởi tạo
-	Address               string `env:"ADDRESS" envDefault:":8080"`      // Địa chỉ server
-	JwtSecret             string `env:"JWT_SECRET,required"`             // Bí mật JWT
-	MongoDB_ConnectionURL string `env:"MONGODB_CONNECTION_URL,required"` // URL kết nối cơ sở dữ liệu
-	MongoDB_DBNameAuth    string `env:"MONGODB_DBNAME_AUTH,required"`    // Tên cơ sở dữ liệu xác thực
+	InitMode              bool   `env:"INITMODE" envDefault:"false"`       // Chế độ khởi tạo
+	Address               string `env:"ADDRESS" envDefault:":8080"`        // Địa chỉ server
+	EnablePrefork         bool   `env:"ENABLE_PREFORK" envDefault:"false"` // Bật prefork mode
+	JwtSecret             string `env:"JWT_SECRET,required"`               // Bí mật JWT
+	MongoDB_ConnectionURL string `env:"MONGODB_CONNECTION_URL,required"`   // URL kết nối cơ sở dữ liệu
+	MongoDB_DBNameAuth    string `env:"MONGODB_DBNAME_AUTH,required"`      // Tên cơ sở dữ liệu xác thực
 }
 
 // NewConfig sẽ đọc dữ liệu cấu hình từ file .env được cung cấp

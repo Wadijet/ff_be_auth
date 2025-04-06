@@ -4,39 +4,90 @@ import (
 	"context"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
+	"meta_commerce/app/utility"
 
-	"github.com/valyala/fasthttp"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// FbConversationHandler là cấu trúc xử lý các yêu cầu liên quan đến Facebook Conversation
-// Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
-type FbConversationHandler struct {
-	BaseHandler[models.FbConversation, models.FbConversationCreateInput, models.FbConversationCreateInput]
+// FiberFbConversationHandler xử lý các route liên quan đến Facebook Conversation cho Fiber
+// Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
+type FiberFbConversationHandler struct {
+	FiberBaseHandler[models.FbConversation, models.FbConversationCreateInput, models.FbConversationCreateInput]
 	FbConversationService *services.FbConversationService
 }
 
-// NewFbConversationHandler khởi tạo một FbConversationHandler mới
-func NewFbConversationHandler() *FbConversationHandler {
-	newHandler := new(FbConversationHandler)
-	newHandler.FbConversationService = services.NewFbConversationService()
+// NewFiberFbConversationHandler tạo một instance mới của FiberFbConversationHandler
+// Returns:
+//   - *FiberFbConversationHandler: Instance mới của FiberFbConversationHandler đã được khởi tạo với các service cần thiết
+func NewFiberFbConversationHandler() *FiberFbConversationHandler {
+	handler := &FiberFbConversationHandler{}
+	handler.FbConversationService = services.NewFbConversationService()
 	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng FbConversationService trực tiếp
-	return newHandler
+	return handler
 }
 
-// Các hàm đặc thù của FbConversation (nếu có) sẽ được thêm vào đây
+// HandleFindAllSortByApiUpdate tìm tất cả các FbConversation với phân trang sắp xếp theo thời gian cập nhật của dữ liệu API
+// Parameters:
+//   - c: Context của Fiber chứa thông tin request
+//
+// Returns:
+//   - error: Lỗi nếu có
+//
+// Query Params:
+//   - page: Trang hiện tại (mặc định: 1)
+//   - limit: Số lượng item trên một trang (mặc định: 10)
+//   - pageId: ID của page Facebook cần lọc (tùy chọn)
+//
+// Response:
+//   - 200: Lấy dữ liệu thành công
+//     {
+//     "message": "Thành công",
+//     "data": {
+//     "page": 1,
+//     "limit": 10,
+//     "itemCount": 5,
+//     "items": [{
+//     "id": "...",
+//     "pageId": "...",
+//     "messages": [...],
+//     "updatedAt": 123,
+//     "createdAt": 123
+//     }]
+//     }
+//     }
+//   - 400: Tham số không hợp lệ
+//   - 500: Lỗi server
+func (h *FiberFbConversationHandler) HandleFindAllSortByApiUpdate(c fiber.Ctx) error {
+	// Parse page và limit từ query params
+	pageInt, limitInt := h.ParsePagination(c)
+	page := int64(pageInt)
+	limit := int64(limitInt)
 
-// FindAllSortByApiUpdate tìm tất cả các FbConversation với phân trang sắp xếp theo thời gian cập nhật của dữ liệu API
-func (h *FbConversationHandler) FindAllSortByApiUpdate(ctx *fasthttp.RequestCtx) {
-	page, limit := h.ParsePagination(ctx)
-	context := context.Background()
+	// Tạo filter dựa trên pageId
 	filter := bson.M{}
-
-	pageId := string(ctx.FormValue("pageId"))
-	if pageId != "" {
+	if pageId := c.Query("pageId"); pageId != "" {
 		filter = bson.M{"pageId": pageId}
 	}
 
-	data, err := h.FbConversationService.FindAllSortByApiUpdate(context, page, limit, filter)
-	h.HandleResponse(ctx, data, err)
+	// Gọi service để lấy dữ liệu
+	result, err := h.FbConversationService.FindAllSortByApiUpdate(context.Background(), page, limit, filter)
+	if err != nil {
+		if customErr, ok := err.(*utility.Error); ok {
+			return c.Status(customErr.StatusCode).JSON(fiber.Map{
+				"code":    customErr.Code,
+				"message": customErr.Message,
+				"details": customErr.Details,
+			})
+		}
+		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
+			"code":    utility.ErrCodeDatabase,
+			"message": err.Error(),
+		})
+	}
+
+	return c.Status(utility.StatusOK).JSON(fiber.Map{
+		"message": utility.MsgSuccess,
+		"data":    result,
+	})
 }

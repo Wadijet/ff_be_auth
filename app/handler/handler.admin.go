@@ -5,87 +5,218 @@ import (
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
+	"meta_commerce/app/utility"
 
-	"github.com/valyala/fasthttp"
+	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// AdminHandler là cấu trúc chứa các dịch vụ cần thiết để xử lý các yêu cầu liên quan đến quản trị viên
-// Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
-type AdminHandler struct {
-	BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]
+// FiberAdminHandler xử lý các route liên quan đến quản trị viên cho Fiber
+// Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
+type FiberAdminHandler struct {
+	FiberBaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]
 	UserCRUD       services.BaseServiceMongo[models.User]
 	PermissionCRUD services.BaseServiceMongo[models.Permission]
 	RoleCRUD       services.BaseServiceMongo[models.Role]
-	InitService    services.InitService
 	AdminService   services.AdminService
 }
 
-// NewAdminHandler khởi tạo một AdminHandler mới với cấu hình và kết nối cơ sở dữ liệu
-func NewAdminHandler() *AdminHandler {
-	newHandler := new(AdminHandler)
+// NewFiberAdminHandler tạo một instance mới của FiberAdminHandler
+// Returns:
+//   - *FiberAdminHandler: Instance mới của FiberAdminHandler đã được khởi tạo với các service cần thiết
+func NewFiberAdminHandler() *FiberAdminHandler {
+	handler := &FiberAdminHandler{}
 
 	// Khởi tạo các collection từ registry
 	userCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
-	roleCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Roles)
 	permissionCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Permissions)
-
-	// Khởi tạo các service
-	newHandler.AdminService = *services.NewAdminService()
+	roleCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Roles)
 
 	// Khởi tạo các service với BaseService
-	newHandler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
-	newHandler.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
-	newHandler.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
-
-	// Khởi tạo InitService
-	newHandler.InitService = *services.NewInitService()
+	handler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
+	handler.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
+	handler.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
+	handler.AdminService = *services.NewAdminService()
 
 	// Gán UserCRUD cho BaseHandler
-	newHandler.BaseHandler.Service = newHandler.UserCRUD
-
-	return newHandler
+	handler.Service = handler.UserCRUD
+	return handler
 }
 
-//=============================================================================
-
-// SetRoleStruct là cấu trúc dữ liệu đầu vào cho việc thiết lập vai trò người dùng
-type SetRoleStruct struct {
-	Email  string             `json:"email" bson:"email" validate:"required"`
-	RoleID primitive.ObjectID `json:"roleID" bson:"roleID" validate:"required"`
+// SetRoleInput là cấu trúc dữ liệu đầu vào cho việc thiết lập vai trò người dùng
+type SetRoleInput struct {
+	Email  string             `json:"email" validate:"required"`
+	RoleID primitive.ObjectID `json:"roleID" validate:"required"`
 }
 
-// SetRole xử lý yêu cầu thiết lập vai trò cho người dùng
-func (h *AdminHandler) SetRole(ctx *fasthttp.RequestCtx) {
-	input := new(SetRoleStruct)
-	h.BaseHandler.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
-		inputStruct := input.(*SetRoleStruct)
-		return h.AdminService.SetRole(ctx, inputStruct.Email, inputStruct.RoleID)
+// HandleSetRole xử lý thiết lập vai trò cho người dùng
+// Parameters:
+//   - c: Context của Fiber chứa thông tin request
+//
+// Returns:
+//   - error: Lỗi nếu có
+//
+// Request Body:
+//   - email: Email của người dùng cần set role
+//   - roleID: ID của role cần gán
+//
+// Response:
+//   - 200: Thiết lập role thành công
+//     {
+//     "message": "Thành công",
+//     "data": {
+//     "id": "...",
+//     "email": "...",
+//     "name": "...",
+//     "roles": ["..."],
+//     "createdAt": 123,
+//     "updatedAt": 123
+//     }
+//     }
+//   - 400: Dữ liệu đầu vào không hợp lệ
+//   - 404: Không tìm thấy người dùng hoặc role
+//   - 500: Lỗi server
+func (h *FiberAdminHandler) HandleSetRole(c fiber.Ctx) error {
+	var input SetRoleInput
+	if err := h.ParseRequestBody(c, &input); err != nil {
+		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
+			"code":    utility.ErrCodeValidationFormat,
+			"message": err.Error(),
+		})
+	}
+
+	result, err := h.AdminService.SetRole(c.Context(), input.Email, input.RoleID)
+	if err != nil {
+		if customErr, ok := err.(*utility.Error); ok {
+			return c.Status(customErr.StatusCode).JSON(fiber.Map{
+				"code":    customErr.Code,
+				"message": customErr.Message,
+				"details": customErr.Details,
+			})
+		}
+		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
+			"code":    utility.ErrCodeDatabase,
+			"message": err.Error(),
+		})
+	}
+
+	return c.Status(utility.StatusOK).JSON(fiber.Map{
+		"message": utility.MsgSuccess,
+		"data":    result,
 	})
 }
 
-// =================================================================================
+// HandleBlockUser xử lý khóa người dùng
+// Parameters:
+//   - c: Context của Fiber chứa thông tin request
+//
+// Returns:
+//   - error: Lỗi nếu có
+//
+// Request Body:
+//   - email: Email của người dùng cần khóa
+//   - note: Ghi chú lý do khóa
+//
+// Response:
+//   - 200: Khóa người dùng thành công
+//     {
+//     "message": "Thành công",
+//     "data": {
+//     "id": "...",
+//     "email": "...",
+//     "name": "...",
+//     "isBlock": true,
+//     "blockNote": "...",
+//     "createdAt": 123,
+//     "updatedAt": 123
+//     }
+//     }
+//   - 400: Dữ liệu đầu vào không hợp lệ
+//   - 404: Không tìm thấy người dùng
+//   - 500: Lỗi server
+func (h *FiberAdminHandler) HandleBlockUser(c fiber.Ctx) error {
+	var input models.BlockUserInput
+	if err := h.ParseRequestBody(c, &input); err != nil {
+		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
+			"code":    utility.ErrCodeValidationFormat,
+			"message": err.Error(),
+		})
+	}
 
-// BlockUserInput là cấu trúc dữ liệu đầu vào cho việc khóa người dùng
-type BlockUserInput struct {
-	Email string `json:"email" bson:"email" validate:"required"`
-	Note  string `json:"note" bson:"note" validate:"required"`
-}
+	result, err := h.AdminService.BlockUser(c.Context(), input.Email, true, input.Note)
+	if err != nil {
+		if customErr, ok := err.(*utility.Error); ok {
+			return c.Status(customErr.StatusCode).JSON(fiber.Map{
+				"code":    customErr.Code,
+				"message": customErr.Message,
+				"details": customErr.Details,
+			})
+		}
+		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
+			"code":    utility.ErrCodeDatabase,
+			"message": err.Error(),
+		})
+	}
 
-// BlockUser xử lý yêu cầu khóa người dùng
-func (h *AdminHandler) BlockUser(ctx *fasthttp.RequestCtx) {
-	input := new(BlockUserInput)
-	h.BaseHandler.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
-		inputStruct := input.(*BlockUserInput)
-		return h.AdminService.BlockUser(ctx, inputStruct.Email, true, inputStruct.Note)
+	return c.Status(utility.StatusOK).JSON(fiber.Map{
+		"message": utility.MsgSuccess,
+		"data":    result,
 	})
 }
 
-// UnBlockUser xử lý yêu cầu mở khóa người dùng
-func (h *AdminHandler) UnBlockUser(ctx *fasthttp.RequestCtx) {
-	input := new(BlockUserInput)
-	h.BaseHandler.GenericHandler(ctx, input, func(ctx *fasthttp.RequestCtx, input interface{}) (interface{}, error) {
-		inputStruct := input.(*BlockUserInput)
-		return h.AdminService.BlockUser(ctx, inputStruct.Email, false, inputStruct.Note)
+// HandleUnBlockUser xử lý mở khóa người dùng
+// Parameters:
+//   - c: Context của Fiber chứa thông tin request
+//
+// Returns:
+//   - error: Lỗi nếu có
+//
+// Request Body:
+//   - email: Email của người dùng cần mở khóa
+//
+// Response:
+//   - 200: Mở khóa người dùng thành công
+//     {
+//     "message": "Thành công",
+//     "data": {
+//     "id": "...",
+//     "email": "...",
+//     "name": "...",
+//     "isBlock": false,
+//     "blockNote": "",
+//     "createdAt": 123,
+//     "updatedAt": 123
+//     }
+//     }
+//   - 400: Dữ liệu đầu vào không hợp lệ
+//   - 404: Không tìm thấy người dùng
+//   - 500: Lỗi server
+func (h *FiberAdminHandler) HandleUnBlockUser(c fiber.Ctx) error {
+	var input models.UnBlockUserInput
+	if err := h.ParseRequestBody(c, &input); err != nil {
+		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
+			"code":    utility.ErrCodeValidationFormat,
+			"message": err.Error(),
+		})
+	}
+
+	result, err := h.AdminService.BlockUser(c.Context(), input.Email, false, "")
+	if err != nil {
+		if customErr, ok := err.(*utility.Error); ok {
+			return c.Status(customErr.StatusCode).JSON(fiber.Map{
+				"code":    customErr.Code,
+				"message": customErr.Message,
+				"details": customErr.Details,
+			})
+		}
+		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
+			"code":    utility.ErrCodeDatabase,
+			"message": err.Error(),
+		})
+	}
+
+	return c.Status(utility.StatusOK).JSON(fiber.Map{
+		"message": utility.MsgSuccess,
+		"data":    result,
 	})
 }

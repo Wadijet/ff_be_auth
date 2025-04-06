@@ -4,53 +4,88 @@ import (
 	"meta_commerce/app/utility"
 	"strconv"
 
-	"github.com/valyala/fasthttp"
+	"github.com/gofiber/fiber/v3"
 )
 
-type StaticHandler struct {
+// FiberStaticHandler là cấu trúc xử lý các yêu cầu liên quan đến thông tin tĩnh cho Fiber
+type FiberStaticHandler struct {
+	FiberBaseHandler[interface{}, interface{}, interface{}]
 }
 
-func NewStaticHandler() *StaticHandler {
-	newHandler := new(StaticHandler)
-	return newHandler
+// NewFiberStaticHandler khởi tạo một FiberStaticHandler mới
+// Returns:
+//   - *FiberStaticHandler: Instance mới của FiberStaticHandler
+func NewFiberStaticHandler() *FiberStaticHandler {
+	return new(FiberStaticHandler)
 }
 
 // ==========================================================================================
 
-func (h *StaticHandler) TestApi(ctx *fasthttp.RequestCtx) {
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	utility.JSON(ctx, utility.Payload(true, nil, "Test API ok"))
+// HandleTestApi kiểm tra API có hoạt động không
+// Parameters:
+//   - c: Context của Fiber chứa thông tin request
+//
+// Returns:
+//   - error: Lỗi nếu có
+//
+// Response:
+//   - 200: API hoạt động bình thường
+func (h *FiberStaticHandler) HandleTestApi(c fiber.Ctx) error {
+	return c.Status(utility.StatusOK).JSON(fiber.Map{
+		"message": utility.MsgSuccess,
+	})
 }
 
-type SystemStaticResponse struct {
-	Cpu    interface{} `json:"cpu" bson:"cpu"`
-	Memory interface{} `json:"memory" bson:"memory"`
+// FiberSystemStaticResponse là cấu trúc chứa thông tin về tài nguyên hệ thống
+type FiberSystemStaticResponse struct {
+	Cpu    interface{} `json:"cpu" bson:"cpu"`       // Thông tin về CPU
+	Memory interface{} `json:"memory" bson:"memory"` // Thông tin về bộ nhớ
 }
 
-func (h *StaticHandler) GetSystemStatic(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	result := new(SystemStaticResponse)
+// HandleGetSystemStatic lấy thông tin về tài nguyên hệ thống
+// Parameters:
+//   - c: Context của Fiber chứa thông tin request
+//
+// Returns:
+//   - error: Lỗi nếu có
+//
+// Response:
+//   - 200: Lấy thông tin thành công
+//   - 500: Lỗi server
+func (h *FiberStaticHandler) HandleGetSystemStatic(c fiber.Ctx) error {
+	result := new(FiberSystemStaticResponse)
 	result.Cpu = utility.GetCpuStatic()
 	result.Memory = utility.GetMemoryStatic()
 
-	response = utility.Payload(true, result, "Successful manipulation!")
-
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	utility.JSON(ctx, response)
+	return c.Status(utility.StatusOK).JSON(fiber.Map{
+		"message": utility.MsgSuccess,
+		"data":    result,
+	})
 }
 
-func (h *StaticHandler) GetApiStatic(ctx *fasthttp.RequestCtx) {
-	var response map[string]interface{} = nil
-
-	buf := string(ctx.FormValue("inseconds"))
-	insesonds, err := strconv.ParseInt(buf, 10, 64)
+// HandleGetApiStatic lấy thông tin thống kê về API
+// Parameters:
+//   - c: Context của Fiber chứa thông tin request
+//
+// Query Parameters:
+//   - inseconds: Số giây cần lấy thống kê (mặc định: 30)
+//
+// Returns:
+//   - error: Lỗi nếu có
+//
+// Response:
+//   - 200: Lấy thông tin thành công
+//   - 500: Lỗi server
+func (h *FiberStaticHandler) HandleGetApiStatic(c fiber.Ctx) error {
+	inseconds := c.Query("inseconds", "30")
+	insesonds, err := strconv.ParseInt(inseconds, 10, 64)
 	if err != nil {
 		insesonds = 30
 	}
 
-	response = utility.Payload(true, utility.GetApiStatic(insesonds), "Successful manipulation!")
-
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	utility.JSON(ctx, response)
+	data := utility.GetApiStatic(insesonds)
+	return c.Status(utility.StatusOK).JSON(fiber.Map{
+		"message": utility.MsgSuccess,
+		"data":    data,
+	})
 }

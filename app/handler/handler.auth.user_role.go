@@ -5,19 +5,43 @@ import (
 	"meta_commerce/app/services"
 )
 
-// UserRoleHandler là cấu trúc xử lý các yêu cầu liên quan đến vai trò của người dùng
-// Kế thừa từ BaseHandler để sử dụng các phương thức xử lý chung
-type UserRoleHandler struct {
-	BaseHandler[models.UserRole, models.UserRoleCreateInput, models.UserRoleCreateInput]
+// FiberUserRoleHandler xử lý các route liên quan đến vai trò của người dùng cho Fiber
+// Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
+// Các phương thức của FiberBaseHandler đã có sẵn:
+// - InsertOne: Thêm mới một user role
+// - InsertMany: Thêm nhiều user role
+// - FindOne: Tìm một user role theo điều kiện
+// - FindOneById: Tìm một user role theo ID
+// - FindManyByIds: Tìm nhiều user role theo danh sách ID
+// - FindWithPagination: Tìm user role với phân trang
+// - Find: Tìm nhiều user role theo điều kiện
+// - UpdateOne: Cập nhật một user role theo điều kiện
+// - UpdateMany: Cập nhật nhiều user role theo điều kiện
+// - UpdateById: Cập nhật một user role theo ID
+// - DeleteOne: Xóa một user role theo điều kiện
+// - DeleteMany: Xóa nhiều user role theo điều kiện
+// - DeleteById: Xóa một user role theo ID
+// - FindOneAndUpdate: Tìm và cập nhật một user role
+// - FindOneAndDelete: Tìm và xóa một user role
+// - CountDocuments: Đếm số lượng user role theo điều kiện
+// - Distinct: Lấy danh sách giá trị duy nhất của một trường
+// - Upsert: Thêm mới hoặc cập nhật một user role
+// - UpsertMany: Thêm mới hoặc cập nhật nhiều user role
+// - DocumentExists: Kiểm tra user role có tồn tại không
+type FiberUserRoleHandler struct {
+	FiberBaseHandler[models.UserRole, models.UserRoleCreateInput, models.UserRoleCreateInput]
 	UserRoleService *services.UserRoleService
 }
 
-// NewUserRoleHandler khởi tạo một UserRoleHandler mới
-func NewUserRoleHandler() *UserRoleHandler {
-	newHandler := new(UserRoleHandler)
-	newHandler.UserRoleService = services.NewUserRoleService()
-	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng UserRoleService trực tiếp
-	return newHandler
+// NewFiberUserRoleHandler tạo một instance mới của FiberUserRoleHandler
+// Returns:
+//   - *FiberUserRoleHandler: Instance mới của FiberUserRoleHandler đã được khởi tạo với UserRoleService
+func NewFiberUserRoleHandler() *FiberUserRoleHandler {
+	handler := &FiberUserRoleHandler{
+		UserRoleService: services.NewUserRoleService(),
+	}
+	handler.Service = handler.UserRoleService
+	return handler
 }
 
 // Các hàm đặc thù của UserRole (nếu có) sẽ được thêm vào đây
