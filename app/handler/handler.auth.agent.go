@@ -9,18 +9,18 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// FiberAgentHandler xử lý các route liên quan đến đại lý cho Fiber
+// AgentHandler xử lý các route liên quan đến đại lý cho Fiber
 // Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
-type FiberAgentHandler struct {
-	FiberBaseHandler[models.Agent, models.AgentCreateInput, models.AgentUpdateInput]
+type AgentHandler struct {
+	BaseHandler[models.Agent, models.AgentCreateInput, models.AgentUpdateInput]
 	AgentService *services.AgentService
 }
 
-// NewFiberAgentHandler tạo một instance mới của FiberAgentHandler
+// NewAgentHandler tạo một instance mới của FiberAgentHandler
 // Returns:
 //   - *FiberAgentHandler: Instance mới của FiberAgentHandler đã được khởi tạo với các service cần thiết
-func NewFiberAgentHandler() *FiberAgentHandler {
-	handler := &FiberAgentHandler{}
+func NewAgentHandler() *AgentHandler {
+	handler := &AgentHandler{}
 	handler.AgentService = services.NewAgentService()
 	handler.Service = handler.AgentService // Gán service cho BaseHandler
 	return handler
@@ -50,35 +50,17 @@ func NewFiberAgentHandler() *FiberAgentHandler {
 //   - 400: ID không hợp lệ
 //   - 404: Không tìm thấy agent
 //   - 500: Lỗi server
-func (h *FiberAgentHandler) HandleCheckIn(c fiber.Ctx) error {
+func (h *AgentHandler) HandleCheckIn(c fiber.Ctx) error {
 	userId := c.Locals("userId")
 	if userId == nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": "ID không hợp lệ",
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	strMyID := userId.(string)
 	result, err := h.AgentService.CheckIn(context.Background(), utility.String2ObjectID(strMyID))
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    result,
-	})
+	h.HandleResponse(c, result, err)
+	return nil
 }
 
 // HandleCheckOut xử lý check-out cho Agent
@@ -105,33 +87,15 @@ func (h *FiberAgentHandler) HandleCheckIn(c fiber.Ctx) error {
 //   - 400: ID không hợp lệ
 //   - 404: Không tìm thấy agent
 //   - 500: Lỗi server
-func (h *FiberAgentHandler) HandleCheckOut(c fiber.Ctx) error {
+func (h *AgentHandler) HandleCheckOut(c fiber.Ctx) error {
 	userId := c.Locals("userId")
 	if userId == nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": "ID không hợp lệ",
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	strMyID := userId.(string)
 	result, err := h.AgentService.CheckOut(context.Background(), utility.String2ObjectID(strMyID))
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    result,
-	})
+	h.HandleResponse(c, result, err)
+	return nil
 }

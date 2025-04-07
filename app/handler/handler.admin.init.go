@@ -1,30 +1,30 @@
 package handler
 
 import (
-	"meta_commerce/app/database/registry"
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
+	"meta_commerce/app/registry"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
 
 	"github.com/gofiber/fiber/v3"
 )
 
-// FiberInitHandler xử lý các route liên quan đến khởi tạo hệ thống cho Fiber
+// InitHandler xử lý các route liên quan đến khởi tạo hệ thống cho Fiber
 // Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
-type FiberInitHandler struct {
-	FiberBaseHandler[interface{}, interface{}, interface{}]
+type InitHandler struct {
+	BaseHandler[interface{}, interface{}, interface{}]
 	UserCRUD       services.BaseServiceMongo[models.User]
 	PermissionCRUD services.BaseServiceMongo[models.Permission]
 	RoleCRUD       services.BaseServiceMongo[models.Role]
 	InitService    services.InitService
 }
 
-// NewFiberInitHandler tạo một instance mới của FiberInitHandler
+// NewInitHandler tạo một instance mới của FiberInitHandler
 // Returns:
 //   - *FiberInitHandler: Instance mới của FiberInitHandler đã được khởi tạo với các service cần thiết
-func NewFiberInitHandler() *FiberInitHandler {
-	handler := &FiberInitHandler{}
+func NewInitHandler() *InitHandler {
+	handler := &InitHandler{}
 
 	// Khởi tạo các collection từ registry
 	userCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
@@ -65,32 +65,14 @@ func NewFiberInitHandler() *FiberInitHandler {
 //   - 400: ID không hợp lệ
 //   - 404: Không tìm thấy người dùng
 //   - 500: Lỗi server
-func (h *FiberInitHandler) HandleSetAdministrator(c fiber.Ctx) error {
-	id := c.Params("id")
+func (h *InitHandler) HandleSetAdministrator(c fiber.Ctx) error {
+	id := h.GetIDFromContext(c)
 	if id == "" {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": "ID không hợp lệ",
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	result, err := h.InitService.SetAdministrator(utility.String2ObjectID(id))
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    result,
-	})
+	h.HandleResponse(c, result, err)
+	return nil
 }

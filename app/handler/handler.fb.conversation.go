@@ -10,18 +10,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// FiberFbConversationHandler xử lý các route liên quan đến Facebook Conversation cho Fiber
+// FbConversationHandler xử lý các route liên quan đến Facebook Conversation cho Fiber
 // Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
-type FiberFbConversationHandler struct {
-	FiberBaseHandler[models.FbConversation, models.FbConversationCreateInput, models.FbConversationCreateInput]
+type FbConversationHandler struct {
+	BaseHandler[models.FbConversation, models.FbConversationCreateInput, models.FbConversationCreateInput]
 	FbConversationService *services.FbConversationService
 }
 
-// NewFiberFbConversationHandler tạo một instance mới của FiberFbConversationHandler
+// NewFbConversationHandler tạo một instance mới của FiberFbConversationHandler
 // Returns:
 //   - *FiberFbConversationHandler: Instance mới của FiberFbConversationHandler đã được khởi tạo với các service cần thiết
-func NewFiberFbConversationHandler() *FiberFbConversationHandler {
-	handler := &FiberFbConversationHandler{}
+func NewFbConversationHandler() *FbConversationHandler {
+	handler := &FbConversationHandler{}
 	handler.FbConversationService = services.NewFbConversationService()
 	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng FbConversationService trực tiếp
 	return handler
@@ -58,7 +58,7 @@ func NewFiberFbConversationHandler() *FiberFbConversationHandler {
 //     }
 //   - 400: Tham số không hợp lệ
 //   - 500: Lỗi server
-func (h *FiberFbConversationHandler) HandleFindAllSortByApiUpdate(c fiber.Ctx) error {
+func (h *FbConversationHandler) HandleFindAllSortByApiUpdate(c fiber.Ctx) error {
 	// Parse page và limit từ query params
 	pageInt, limitInt := h.ParsePagination(c)
 	page := int64(pageInt)

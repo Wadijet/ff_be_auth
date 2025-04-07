@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"meta_commerce/app/database/registry"
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
+	"meta_commerce/app/registry"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
 
@@ -11,21 +11,21 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// FiberAdminHandler xử lý các route liên quan đến quản trị viên cho Fiber
+// AdminHandler xử lý các route liên quan đến quản trị viên cho Fiber
 // Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
-type FiberAdminHandler struct {
-	FiberBaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]
+type AdminHandler struct {
+	BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]
 	UserCRUD       services.BaseServiceMongo[models.User]
 	PermissionCRUD services.BaseServiceMongo[models.Permission]
 	RoleCRUD       services.BaseServiceMongo[models.Role]
 	AdminService   services.AdminService
 }
 
-// NewFiberAdminHandler tạo một instance mới của FiberAdminHandler
+// NewAdminHandler tạo một instance mới của FiberAdminHandler
 // Returns:
 //   - *FiberAdminHandler: Instance mới của FiberAdminHandler đã được khởi tạo với các service cần thiết
-func NewFiberAdminHandler() *FiberAdminHandler {
-	handler := &FiberAdminHandler{}
+func NewAdminHandler() *AdminHandler {
+	handler := &AdminHandler{}
 
 	// Khởi tạo các collection từ registry
 	userCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
@@ -76,34 +76,16 @@ type SetRoleInput struct {
 //   - 400: Dữ liệu đầu vào không hợp lệ
 //   - 404: Không tìm thấy người dùng hoặc role
 //   - 500: Lỗi server
-func (h *FiberAdminHandler) HandleSetRole(c fiber.Ctx) error {
+func (h *AdminHandler) HandleSetRole(c fiber.Ctx) error {
 	var input SetRoleInput
 	if err := h.ParseRequestBody(c, &input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": err.Error(),
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, err.Error(), utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	result, err := h.AdminService.SetRole(c.Context(), input.Email, input.RoleID)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    result,
-	})
+	h.HandleResponse(c, result, err)
+	return nil
 }
 
 // HandleBlockUser xử lý khóa người dùng
@@ -134,34 +116,16 @@ func (h *FiberAdminHandler) HandleSetRole(c fiber.Ctx) error {
 //   - 400: Dữ liệu đầu vào không hợp lệ
 //   - 404: Không tìm thấy người dùng
 //   - 500: Lỗi server
-func (h *FiberAdminHandler) HandleBlockUser(c fiber.Ctx) error {
+func (h *AdminHandler) HandleBlockUser(c fiber.Ctx) error {
 	var input models.BlockUserInput
 	if err := h.ParseRequestBody(c, &input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": err.Error(),
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, err.Error(), utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	result, err := h.AdminService.BlockUser(c.Context(), input.Email, true, input.Note)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    result,
-	})
+	h.HandleResponse(c, result, err)
+	return nil
 }
 
 // HandleUnBlockUser xử lý mở khóa người dùng
@@ -191,32 +155,14 @@ func (h *FiberAdminHandler) HandleBlockUser(c fiber.Ctx) error {
 //   - 400: Dữ liệu đầu vào không hợp lệ
 //   - 404: Không tìm thấy người dùng
 //   - 500: Lỗi server
-func (h *FiberAdminHandler) HandleUnBlockUser(c fiber.Ctx) error {
+func (h *AdminHandler) HandleUnBlockUser(c fiber.Ctx) error {
 	var input models.UnBlockUserInput
 	if err := h.ParseRequestBody(c, &input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": err.Error(),
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, err.Error(), utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	result, err := h.AdminService.BlockUser(c.Context(), input.Email, false, "")
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    result,
-	})
+	h.HandleResponse(c, result, err)
+	return nil
 }

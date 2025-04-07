@@ -5,7 +5,7 @@ import (
 	"meta_commerce/app/services"
 )
 
-// FiberUserRoleHandler xử lý các route liên quan đến vai trò của người dùng cho Fiber
+// UserRoleHandler xử lý các route liên quan đến vai trò của người dùng cho Fiber
 // Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
 // Các phương thức của FiberBaseHandler đã có sẵn:
 // - InsertOne: Thêm mới một user role
@@ -28,16 +28,16 @@ import (
 // - Upsert: Thêm mới hoặc cập nhật một user role
 // - UpsertMany: Thêm mới hoặc cập nhật nhiều user role
 // - DocumentExists: Kiểm tra user role có tồn tại không
-type FiberUserRoleHandler struct {
-	FiberBaseHandler[models.UserRole, models.UserRoleCreateInput, models.UserRoleCreateInput]
+type UserRoleHandler struct {
+	BaseHandler[models.UserRole, models.UserRoleCreateInput, models.UserRoleCreateInput]
 	UserRoleService *services.UserRoleService
 }
 
-// NewFiberUserRoleHandler tạo một instance mới của FiberUserRoleHandler
+// NewUserRoleHandler tạo một instance mới của FiberUserRoleHandler
 // Returns:
 //   - *FiberUserRoleHandler: Instance mới của FiberUserRoleHandler đã được khởi tạo với UserRoleService
-func NewFiberUserRoleHandler() *FiberUserRoleHandler {
-	handler := &FiberUserRoleHandler{
+func NewUserRoleHandler() *UserRoleHandler {
+	handler := &UserRoleHandler{
 		UserRoleService: services.NewUserRoleService(),
 	}
 	handler.Service = handler.UserRoleService

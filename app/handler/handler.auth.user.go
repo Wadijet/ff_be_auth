@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// FiberAuthUserHandler xử lý các route liên quan đến xác thực người dùng cho Fiber
+// UserHandler xử lý các route liên quan đến xác thực người dùng cho Fiber
 // Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
 // Các phương thức của FiberBaseHandler đã có sẵn:
 // - InsertOne: Thêm mới một user
@@ -31,21 +31,23 @@ import (
 // - Upsert: Thêm mới hoặc cập nhật một user
 // - UpsertMany: Thêm mới hoặc cập nhật nhiều user
 // - DocumentExists: Kiểm tra user có tồn tại không
-type FiberAuthUserHandler struct {
-	FiberBaseHandler[models.User, models.UserCreateInput, models.User]
+type UserHandler struct {
+	BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]
 	UserService *services.UserService
 	RoleService *services.RoleService
 }
 
-// NewFiberAuthUserHandler tạo một instance mới của FiberAuthUserHandler
+// NewUserHandler tạo một instance mới của FiberAuthUserHandler
 // Returns:
 //   - *FiberAuthUserHandler: Instance mới của FiberAuthUserHandler đã được khởi tạo với UserService và RoleService
-func NewFiberAuthUserHandler() *FiberAuthUserHandler {
-	handler := &FiberAuthUserHandler{
+func NewUserHandler() *UserHandler {
+	handler := &UserHandler{
 		UserService: services.NewUserService(),
 		RoleService: services.NewRoleService(),
 	}
-	handler.Service = handler.UserService
+	handler.BaseHandler = BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]{
+		Service: handler.UserService,
+	}
 	return handler
 }
 
@@ -76,34 +78,16 @@ func NewFiberAuthUserHandler() *FiberAuthUserHandler {
 //   - 400: Dữ liệu không hợp lệ
 //   - 401: Email hoặc mật khẩu không đúng
 //   - 500: Lỗi server
-func (h *FiberAuthUserHandler) HandleLogin(c fiber.Ctx) error {
+func (h *UserHandler) HandleLogin(c fiber.Ctx) error {
 	input := new(models.UserLoginInput)
 	if err := c.Bind().Body(input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": utility.MsgValidationError,
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, utility.MsgValidationError, utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	data, err := h.UserService.Login(c.Context(), input)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }
 
 // HandleRegister xử lý đăng ký tài khoản mới
@@ -133,34 +117,16 @@ func (h *FiberAuthUserHandler) HandleLogin(c fiber.Ctx) error {
 //   - 400: Dữ liệu không hợp lệ
 //   - 409: Email đã tồn tại
 //   - 500: Lỗi server
-func (h *FiberAuthUserHandler) HandleRegister(c fiber.Ctx) error {
+func (h *UserHandler) HandleRegister(c fiber.Ctx) error {
 	input := new(models.UserCreateInput)
-	if err := c.Bind().Body(input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": utility.MsgValidationError,
-		})
+	if err := h.ParseRequestBody(c, input); err != nil {
+		h.HandleResponse(c, nil, err)
+		return nil
 	}
 
 	data, err := h.UserService.Registry(c.Context(), input)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }
 
 // HandleLogout xử lý đăng xuất
@@ -181,41 +147,22 @@ func (h *FiberAuthUserHandler) HandleRegister(c fiber.Ctx) error {
 //   - 400: Dữ liệu không hợp lệ
 //   - 401: Chưa đăng nhập
 //   - 500: Lỗi server
-func (h *FiberAuthUserHandler) HandleLogout(c fiber.Ctx) error {
+func (h *UserHandler) HandleLogout(c fiber.Ctx) error {
 	userID := c.Locals("userId")
 	if userID == nil {
-		return c.Status(utility.StatusUnauthorized).JSON(fiber.Map{
-			"code":    utility.ErrCodeAuthCredentials,
-			"message": utility.MsgUnauthorized,
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuthCredentials, utility.MsgUnauthorized, utility.StatusUnauthorized, nil))
+		return nil
 	}
 
 	input := new(models.UserLogoutInput)
 	if err := c.Bind().Body(input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": utility.MsgValidationError,
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, utility.MsgValidationError, utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	err := h.UserService.Logout(c.Context(), utility.String2ObjectID(userID.(string)), input)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-	})
+	h.HandleResponse(c, nil, err)
+	return nil
 }
 
 // HandleGetMyInfo xử lý lấy thông tin cá nhân của người dùng đang đăng nhập
@@ -240,34 +187,16 @@ func (h *FiberAuthUserHandler) HandleLogout(c fiber.Ctx) error {
 //   - 401: Chưa đăng nhập
 //   - 404: Không tìm thấy thông tin người dùng
 //   - 500: Lỗi server
-func (h *FiberAuthUserHandler) HandleGetMyInfo(c fiber.Ctx) error {
+func (h *UserHandler) HandleGetMyInfo(c fiber.Ctx) error {
 	userID := c.Locals("userId")
 	if userID == nil {
-		return c.Status(utility.StatusUnauthorized).JSON(fiber.Map{
-			"code":    utility.ErrCodeAuthCredentials,
-			"message": utility.MsgUnauthorized,
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuthCredentials, utility.MsgUnauthorized, utility.StatusUnauthorized, nil))
+		return nil
 	}
 
 	data, err := h.UserService.FindOneById(c.Context(), utility.String2ObjectID(userID.(string)))
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }
 
 // HandleChangePassword xử lý thay đổi mật khẩu
@@ -289,41 +218,22 @@ func (h *FiberAuthUserHandler) HandleGetMyInfo(c fiber.Ctx) error {
 //   - 400: Dữ liệu không hợp lệ
 //   - 401: Chưa đăng nhập hoặc mật khẩu cũ không đúng
 //   - 500: Lỗi server
-func (h *FiberAuthUserHandler) HandleChangePassword(c fiber.Ctx) error {
+func (h *UserHandler) HandleChangePassword(c fiber.Ctx) error {
 	userID := c.Locals("userId")
 	if userID == nil {
-		return c.Status(utility.StatusUnauthorized).JSON(fiber.Map{
-			"code":    utility.ErrCodeAuthCredentials,
-			"message": utility.MsgUnauthorized,
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuthCredentials, utility.MsgUnauthorized, utility.StatusUnauthorized, nil))
+		return nil
 	}
 
 	input := new(models.UserChangePasswordInput)
 	if err := c.Bind().Body(input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": utility.MsgValidationError,
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, utility.MsgValidationError, utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	err := h.UserService.ChangePassword(c.Context(), utility.String2ObjectID(userID.(string)), input)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-	})
+	h.HandleResponse(c, nil, err)
+	return nil
 }
 
 // HandleGetMyRoles xử lý lấy danh sách vai trò của người dùng đang đăng nhập
@@ -348,55 +258,27 @@ func (h *FiberAuthUserHandler) HandleChangePassword(c fiber.Ctx) error {
 //   - 401: Chưa đăng nhập
 //   - 404: Không tìm thấy thông tin người dùng hoặc vai trò
 //   - 500: Lỗi server
-func (h *FiberAuthUserHandler) HandleGetMyRoles(c fiber.Ctx) error {
+func (h *UserHandler) HandleGetMyRoles(c fiber.Ctx) error {
 	userID := c.Locals("userId")
 	if userID == nil {
-		return c.Status(utility.StatusUnauthorized).JSON(fiber.Map{
-			"code":    utility.ErrCodeAuthCredentials,
-			"message": utility.MsgUnauthorized,
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuthCredentials, utility.MsgUnauthorized, utility.StatusUnauthorized, nil))
+		return nil
 	}
 
 	user, err := h.UserService.FindOneById(c.Context(), utility.String2ObjectID(userID.(string)))
 	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
+		h.HandleResponse(c, nil, err)
+		return nil
 	}
 
 	if user.Token == "" {
-		return c.Status(utility.StatusOK).JSON(fiber.Map{
-			"message": utility.MsgSuccess,
-		})
+		h.HandleResponse(c, nil, nil)
+		return nil
 	}
 
 	role, err := h.RoleService.FindOneById(c.Context(), utility.String2ObjectID(user.Token))
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    role,
-	})
+	h.HandleResponse(c, role, err)
+	return nil
 }
 
 // HandleChangeInfo xử lý thay đổi thông tin cá nhân
@@ -424,43 +306,23 @@ func (h *FiberAuthUserHandler) HandleGetMyRoles(c fiber.Ctx) error {
 //   - 400: Dữ liệu không hợp lệ
 //   - 401: Chưa đăng nhập
 //   - 500: Lỗi server
-func (h *FiberAuthUserHandler) HandleChangeInfo(c fiber.Ctx) error {
+func (h *UserHandler) HandleChangeInfo(c fiber.Ctx) error {
 	userID := c.Locals("userId")
 	if userID == nil {
-		return c.Status(utility.StatusUnauthorized).JSON(fiber.Map{
-			"code":    utility.ErrCodeAuthCredentials,
-			"message": utility.MsgUnauthorized,
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuthCredentials, utility.MsgUnauthorized, utility.StatusUnauthorized, nil))
+		return nil
 	}
 
 	input := new(models.UserChangeInfoInput)
 	if err := c.Bind().Body(input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": utility.MsgValidationError,
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, utility.MsgValidationError, utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	user := models.User{
 		Name: input.Name,
 	}
 	data, err := h.UserService.UpdateById(c.Context(), utility.String2ObjectID(userID.(string)), user)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }

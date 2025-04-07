@@ -5,7 +5,7 @@ import (
 	"meta_commerce/app/services"
 )
 
-// FiberRoleHandler xử lý các route liên quan đến vai trò cho Fiber
+// RoleHandler xử lý các route liên quan đến vai trò cho Fiber
 // Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
 // Các phương thức của FiberBaseHandler đã có sẵn:
 // - InsertOne: Thêm mới một vai trò
@@ -28,16 +28,16 @@ import (
 // - Upsert: Thêm mới hoặc cập nhật một vai trò
 // - UpsertMany: Thêm mới hoặc cập nhật nhiều vai trò
 // - DocumentExists: Kiểm tra vai trò có tồn tại không
-type FiberRoleHandler struct {
-	FiberBaseHandler[models.Role, models.RoleCreateInput, models.Role]
+type RoleHandler struct {
+	BaseHandler[models.Role, models.RoleCreateInput, models.Role]
 	RoleService *services.RoleService
 }
 
-// NewFiberRoleHandler tạo một instance mới của FiberRoleHandler
+// NewRoleHandler tạo một instance mới của FiberRoleHandler
 // Returns:
 //   - *FiberRoleHandler: Instance mới của FiberRoleHandler đã được khởi tạo với RoleService
-func NewFiberRoleHandler() *FiberRoleHandler {
-	handler := &FiberRoleHandler{
+func NewRoleHandler() *RoleHandler {
+	handler := &RoleHandler{
 		RoleService: services.NewRoleService(),
 	}
 	handler.Service = handler.RoleService

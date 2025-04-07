@@ -5,12 +5,10 @@ import (
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
 
-	"strconv"
-
 	"github.com/gofiber/fiber/v3"
 )
 
-// FiberPermissionHandler xử lý các route liên quan đến permission cho Fiber
+// PermissionHandler xử lý các route liên quan đến permission cho Fiber
 // Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
 // Các phương thức của FiberBaseHandler đã có sẵn:
 // - InsertOne: Thêm mới một permission
@@ -33,27 +31,25 @@ import (
 // - Upsert: Thêm mới hoặc cập nhật một permission
 // - UpsertMany: Thêm mới hoặc cập nhật nhiều permission
 // - DocumentExists: Kiểm tra permission có tồn tại không
-type FiberPermissionHandler struct {
-	FiberBaseHandler[models.Permission, models.PermissionCreateInput, models.PermissionUpdateInput]
+type PermissionHandler struct {
+	BaseHandler[models.Permission, models.PermissionCreateInput, models.PermissionUpdateInput]
 }
 
-// NewFiberPermissionHandler tạo một instance mới của FiberPermissionHandler
+// NewPermissionHandler tạo một instance mới của FiberPermissionHandler
 // Returns:
 //   - *FiberPermissionHandler: Instance mới của FiberPermissionHandler đã được khởi tạo với PermissionService
-func NewFiberPermissionHandler() *FiberPermissionHandler {
-	handler := &FiberPermissionHandler{}
+func NewPermissionHandler() *PermissionHandler {
+	handler := &PermissionHandler{}
 	handler.Service = services.NewPermissionService()
 	return handler
 }
 
 // HandleCreatePermission xử lý tạo mới permission
-func (h *FiberPermissionHandler) HandleCreatePermission(c fiber.Ctx) error {
+func (h *PermissionHandler) HandleCreatePermission(c fiber.Ctx) error {
 	input := new(models.PermissionCreateInput)
-	if err := c.Bind().Body(input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": utility.MsgValidationError,
-		})
+	if err := h.ParseRequestBody(c, input); err != nil {
+		h.HandleResponse(c, nil, err)
+		return nil
 	}
 
 	// Chuyển đổi từ PermissionCreateInput sang Permission
@@ -65,42 +61,22 @@ func (h *FiberPermissionHandler) HandleCreatePermission(c fiber.Ctx) error {
 	}
 
 	data, err := h.Service.InsertOne(c.Context(), permission)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }
 
 // HandleUpdatePermission xử lý cập nhật permission
-func (h *FiberPermissionHandler) HandleUpdatePermission(c fiber.Ctx) error {
-	id := c.Params("id")
+func (h *PermissionHandler) HandleUpdatePermission(c fiber.Ctx) error {
+	id := h.GetIDFromContext(c)
 	if id == "" {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": "ID không hợp lệ",
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	input := new(models.PermissionUpdateInput)
-	if err := c.Bind().Body(input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": utility.MsgValidationError,
-		})
+	if err := h.ParseRequestBody(c, input); err != nil {
+		h.HandleResponse(c, nil, err)
+		return nil
 	}
 
 	// Chuyển đổi từ PermissionUpdateInput sang Permission
@@ -112,158 +88,58 @@ func (h *FiberPermissionHandler) HandleUpdatePermission(c fiber.Ctx) error {
 	}
 
 	data, err := h.Service.UpdateById(c.Context(), utility.String2ObjectID(id), permission)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }
 
 // HandleGetPermissionById xử lý lấy thông tin permission theo ID
-func (h *FiberPermissionHandler) HandleGetPermissionById(c fiber.Ctx) error {
-	id := c.Params("id")
+func (h *PermissionHandler) HandleGetPermissionById(c fiber.Ctx) error {
+	id := h.GetIDFromContext(c)
 	if id == "" {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": "ID không hợp lệ",
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	data, err := h.Service.FindOneById(c.Context(), utility.String2ObjectID(id))
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }
 
 // HandleGetPermissions xử lý lấy danh sách permission với phân trang
-func (h *FiberPermissionHandler) HandleGetPermissions(c fiber.Ctx) error {
+func (h *PermissionHandler) HandleGetPermissions(c fiber.Ctx) error {
+	// Parse filter từ query params
 	var filter map[string]interface{}
 	if err := c.Bind().Query(&filter); err != nil {
 		filter = make(map[string]interface{})
 	}
 
-	// Parse page và limit từ query string
-	page, err := strconv.ParseInt(c.Query("page", "1"), 10, 64)
-	if err != nil || page < 1 {
-		page = 1
-	}
-	limit, err := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
-	if err != nil || limit < 1 {
-		limit = 10
-	}
+	// Lấy thông tin phân trang
+	page, limit := h.ParsePagination(c)
 
 	data, err := h.Service.FindWithPagination(c.Context(), filter, page, limit)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }
 
 // HandleDeletePermission xử lý xóa permission
-func (h *FiberPermissionHandler) HandleDeletePermission(c fiber.Ctx) error {
-	id := c.Params("id")
+func (h *PermissionHandler) HandleDeletePermission(c fiber.Ctx) error {
+	id := h.GetIDFromContext(c)
 	if id == "" {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": "ID không hợp lệ",
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	err := h.Service.DeleteById(c.Context(), utility.String2ObjectID(id))
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-	})
+	h.HandleResponse(c, nil, err)
+	return nil
 }
 
 // HandleGetPermissionsByCategory xử lý lấy danh sách permission theo category
-// Parameters:
-//   - c: Context của Fiber chứa thông tin request
-//   - category: Tên category cần tìm (lấy từ params)
-//
-// Returns:
-//   - error: Lỗi nếu có
-//
-// Response:
-//   - 200: Thành công
-//     {
-//     "message": "Thành công",
-//     "data": [
-//     {
-//     "id": "...",
-//     "name": "...",
-//     "describe": "...",
-//     "category": "...",
-//     "group": "...",
-//     "createdAt": 123,
-//     "updatedAt": 123
-//     }
-//     ]
-//     }
-//   - 400: Category không hợp lệ
-//   - 500: Lỗi server
-func (h *FiberPermissionHandler) HandleGetPermissionsByCategory(c fiber.Ctx) error {
+func (h *PermissionHandler) HandleGetPermissionsByCategory(c fiber.Ctx) error {
 	category := c.Params("category")
 	if category == "" {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": "Category không hợp lệ",
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Category không hợp lệ", utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	filter := map[string]interface{}{
@@ -271,59 +147,16 @@ func (h *FiberPermissionHandler) HandleGetPermissionsByCategory(c fiber.Ctx) err
 	}
 
 	data, err := h.Service.Find(c.Context(), filter, nil)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }
 
 // HandleGetPermissionsByGroup xử lý lấy danh sách permission theo group
-// Parameters:
-//   - c: Context của Fiber chứa thông tin request
-//   - group: Tên group cần tìm (lấy từ params)
-//
-// Returns:
-//   - error: Lỗi nếu có
-//
-// Response:
-//   - 200: Thành công
-//     {
-//     "message": "Thành công",
-//     "data": [
-//     {
-//     "id": "...",
-//     "name": "...",
-//     "describe": "...",
-//     "category": "...",
-//     "group": "...",
-//     "createdAt": 123,
-//     "updatedAt": 123
-//     }
-//     ]
-//     }
-//   - 400: Group không hợp lệ
-//   - 500: Lỗi server
-func (h *FiberPermissionHandler) HandleGetPermissionsByGroup(c fiber.Ctx) error {
+func (h *PermissionHandler) HandleGetPermissionsByGroup(c fiber.Ctx) error {
 	group := c.Params("group")
 	if group == "" {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": "Group không hợp lệ",
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Group không hợp lệ", utility.StatusBadRequest, nil))
+		return nil
 	}
 
 	filter := map[string]interface{}{
@@ -331,22 +164,6 @@ func (h *FiberPermissionHandler) HandleGetPermissionsByGroup(c fiber.Ctx) error 
 	}
 
 	data, err := h.Service.Find(c.Context(), filter, nil)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }

@@ -3,10 +3,10 @@ package middleware
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"meta_commerce/app/global"
@@ -16,19 +16,33 @@ import (
 	"meta_commerce/app/utility"
 )
 
-// FiberJwtToken là middleware xử lý xác thực và phân quyền người dùng thông qua JWT cho Fiber
-type FiberJwtToken struct {
+// AuthManager quản lý xác thực và phân quyền người dùng
+type AuthManager struct {
 	UserCRUD           services.BaseServiceMongo[models.User]
 	RoleCRUD           services.BaseServiceMongo[models.Role]
 	PermissionCRUD     services.BaseServiceMongo[models.Permission]
 	RolePermissionCRUD services.BaseServiceMongo[models.RolePermission]
 	UserRoleCRUD       services.BaseServiceMongo[models.UserRole]
 	Cache              *utility.Cache
+	responseHandler    *handler.BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]
 }
 
-// NewFiberJwtToken khởi tạo một instance mới của FiberJwtToken middleware
-func NewFiberJwtToken() *FiberJwtToken {
-	newHandler := new(FiberJwtToken)
+var (
+	authManagerInstance *AuthManager
+	authManagerOnce     sync.Once
+)
+
+// GetAuthManager trả về instance duy nhất của AuthManager (singleton pattern)
+func GetAuthManager() *AuthManager {
+	authManagerOnce.Do(func() {
+		authManagerInstance = newAuthManager()
+	})
+	return authManagerInstance
+}
+
+// newAuthManager khởi tạo một instance mới của AuthManager (private constructor)
+func newAuthManager() *AuthManager {
+	newManager := new(AuthManager)
 
 	// Khởi tạo các collection từ registry
 	userCol := global.MongoDB_Session.Database(global.MongoDB_ServerConfig.MongoDB_DBNameAuth).Collection(global.MongoDB_ColNames.Users)
@@ -38,23 +52,28 @@ func NewFiberJwtToken() *FiberJwtToken {
 	userRoleCol := global.MongoDB_Session.Database(global.MongoDB_ServerConfig.MongoDB_DBNameAuth).Collection(global.MongoDB_ColNames.UserRoles)
 
 	// Khởi tạo các service với BaseService để thực hiện các thao tác CRUD
-	newHandler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
-	newHandler.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
-	newHandler.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
-	newHandler.RolePermissionCRUD = services.NewBaseServiceMongo[models.RolePermission](rolePermissionCol)
-	newHandler.UserRoleCRUD = services.NewBaseServiceMongo[models.UserRole](userRoleCol)
+	newManager.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
+	newManager.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
+	newManager.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
+	newManager.RolePermissionCRUD = services.NewBaseServiceMongo[models.RolePermission](rolePermissionCol)
+	newManager.UserRoleCRUD = services.NewBaseServiceMongo[models.UserRole](userRoleCol)
 
 	// Khởi tạo cache với thời gian sống 5 phút và thời gian dọn dẹp 10 phút
-	newHandler.Cache = utility.NewCache(5*time.Minute, 10*time.Minute)
+	newManager.Cache = utility.NewCache(5*time.Minute, 10*time.Minute)
 
-	return newHandler
+	// Khởi tạo response handler một lần duy nhất
+	newManager.responseHandler = &handler.BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]{
+		Service: newManager.UserCRUD,
+	}
+
+	return newManager
 }
 
 // getUserPermissions lấy danh sách permissions của user từ cache hoặc database
-func (jt *FiberJwtToken) getUserPermissions(userID string) (map[string]byte, error) {
+func (am *AuthManager) getUserPermissions(userID string) (map[string]byte, error) {
 	// Kiểm tra cache trước để tối ưu hiệu suất
 	cacheKey := "user_permissions:" + userID
-	if cached, found := jt.Cache.Get(cacheKey); found {
+	if cached, found := am.Cache.Get(cacheKey); found {
 		return cached.(map[string]byte), nil
 	}
 
@@ -62,22 +81,22 @@ func (jt *FiberJwtToken) getUserPermissions(userID string) (map[string]byte, err
 	permissions := make(map[string]byte)
 
 	// Lấy danh sách vai trò của user
-	findRoles, err := jt.UserRoleCRUD.Find(context.TODO(), bson.M{"userId": utility.String2ObjectID(userID)}, nil)
+	findRoles, err := am.UserRoleCRUD.Find(context.TODO(), bson.M{"userId": utility.String2ObjectID(userID)}, nil)
 	if err != nil {
-		return nil, err
+		return nil, utility.ConvertMongoError(err)
 	}
 
 	// Duyệt qua từng vai trò để lấy permissions
 	for _, userRole := range findRoles {
 		// Lấy danh sách permissions của vai trò
-		findRolePermissions, err := jt.RolePermissionCRUD.Find(context.TODO(), bson.M{"roleId": userRole.RoleID}, nil)
+		findRolePermissions, err := am.RolePermissionCRUD.Find(context.TODO(), bson.M{"roleId": userRole.RoleID}, nil)
 		if err != nil {
 			continue
 		}
 
 		// Lấy thông tin chi tiết của từng permission
 		for _, rolePermission := range findRolePermissions {
-			permission, err := jt.PermissionCRUD.FindOneById(context.TODO(), rolePermission.PermissionID)
+			permission, err := am.PermissionCRUD.FindOneById(context.TODO(), rolePermission.PermissionID)
 			if err != nil {
 				continue
 			}
@@ -86,50 +105,48 @@ func (jt *FiberJwtToken) getUserPermissions(userID string) (map[string]byte, err
 	}
 
 	// Lưu vào cache để sử dụng cho các lần sau
-	jt.Cache.Set(cacheKey, permissions)
+	am.Cache.Set(cacheKey, permissions)
 	return permissions, nil
 }
 
-// FiberAuthMiddleware middleware xác thực cho Fiber
-func FiberAuthMiddleware(requirePermission string) fiber.Handler {
-	h := &handler.FiberBaseHandler[interface{}, interface{}, interface{}]{}
-	jt := NewFiberJwtToken()
+// AuthMiddleware middleware xác thực cho Fiber
+func AuthMiddleware(requirePermission string) fiber.Handler {
+	// Sử dụng singleton instance của AuthManager
+	authManager := GetAuthManager()
 
 	return func(c fiber.Ctx) error {
+
 		// Lấy token từ header
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
-			h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Không tìm thấy token xác thực", utility.StatusUnauthorized, nil))
+			authManager.responseHandler.HandleResponse(c, nil, utility.ErrTokenMissing)
 			return nil
 		}
 
 		// Kiểm tra định dạng token
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Token không hợp lệ", utility.StatusUnauthorized, nil))
+			authManager.responseHandler.HandleResponse(c, nil, utility.ErrTokenInvalid)
 			return nil
 		}
 
 		token := parts[1]
 
 		// Tìm user có token
-		user, err := jt.UserCRUD.FindOne(context.Background(), bson.M{"tokens.jwtToken": token}, nil)
+		user, err := authManager.UserCRUD.FindOne(context.Background(), bson.M{"tokens.jwtToken": token}, nil)
 		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"token": token,
-				"error": err.Error(),
-			}).Error("Không tìm thấy user với token")
-			h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Token không hợp lệ hoặc đã hết hạn", utility.StatusUnauthorized, nil))
+			authManager.responseHandler.HandleResponse(c, nil, utility.ErrTokenInvalid)
 			return nil
 		}
 
 		// Kiểm tra user có bị block không
 		if user.IsBlock {
-			logrus.WithFields(logrus.Fields{
-				"userId": user.ID.Hex(),
-				"reason": user.BlockNote,
-			}).Warn("User bị block truy cập hệ thống")
-			h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Tài khoản đã bị khóa: "+user.BlockNote, utility.StatusForbidden, nil))
+			authManager.responseHandler.HandleResponse(c, nil, utility.NewError(
+				utility.ErrCodeAuthCredentials,
+				"Tài khoản đã bị khóa: "+user.BlockNote,
+				utility.StatusForbidden,
+				nil,
+			))
 			return nil
 		}
 
@@ -143,65 +160,31 @@ func FiberAuthMiddleware(requirePermission string) fiber.Handler {
 		}
 
 		// Kiểm tra permission của user
-		permissions, err := jt.getUserPermissions(user.ID.Hex())
+		permissions, err := authManager.getUserPermissions(user.ID.Hex())
 		if err != nil {
-			h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Không thể lấy thông tin quyền", utility.StatusForbidden, nil))
+			authManager.responseHandler.HandleResponse(c, nil, utility.NewError(
+				utility.ErrCodeAuthRole,
+				"Không thể lấy thông tin quyền",
+				utility.StatusForbidden,
+				nil,
+			))
 			return nil
 		}
 
 		// Kiểm tra user có permission cần thiết không
 		scope, hasPermission := permissions[requirePermission]
 		if !hasPermission {
-			h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Không có quyền truy cập", utility.StatusForbidden, nil))
+			authManager.responseHandler.HandleResponse(c, nil, utility.NewError(
+				utility.ErrCodeAuthRole,
+				"Không có quyền truy cập",
+				utility.StatusForbidden,
+				nil,
+			))
 			return nil
 		}
 
 		// Lưu scope tối thiểu vào context để sử dụng trong handler
 		c.Locals("minScope", scope)
-		return c.Next()
-	}
-}
-
-// FiberRoleMiddleware middleware kiểm tra quyền cho Fiber
-func FiberRoleMiddleware(requiredRoles ...string) fiber.Handler {
-	h := &handler.FiberBaseHandler[interface{}, interface{}, interface{}]{}
-	return func(c fiber.Ctx) error {
-		// Lấy user từ context
-		user, ok := c.Locals("user").(models.User)
-		if !ok {
-			h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Không tìm thấy thông tin người dùng", utility.StatusUnauthorized, nil))
-			return nil
-		}
-
-		// Kiểm tra token
-		if user.Token == "" {
-			h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Không có quyền truy cập", utility.StatusUnauthorized, nil))
-			return nil
-		}
-
-		// Lấy role từ token
-		collection := global.MongoDB_Session.Database(global.MongoDB_ServerConfig.MongoDB_DBNameAuth).Collection(global.MongoDB_ColNames.Roles)
-		var role models.Role
-		err := collection.FindOne(context.Background(), bson.M{"_id": utility.String2ObjectID(user.Token)}).Decode(&role)
-		if err != nil {
-			h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Không tìm thấy thông tin quyền", utility.StatusUnauthorized, nil))
-			return nil
-		}
-
-		// Kiểm tra role có trong danh sách yêu cầu không
-		hasRole := false
-		for _, requiredRole := range requiredRoles {
-			if role.Name == requiredRole {
-				hasRole = true
-				break
-			}
-		}
-
-		if !hasRole {
-			h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Không có quyền truy cập", utility.StatusForbidden, nil))
-			return nil
-		}
-
 		return c.Next()
 	}
 }

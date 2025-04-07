@@ -4,26 +4,25 @@ import (
 	"context"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
-	"meta_commerce/app/utility"
 
 	"github.com/gofiber/fiber/v3"
 )
 
-// FiberFbPostHandler là cấu trúc xử lý các yêu cầu liên quan đến Facebook Post cho Fiber
+// FbPostHandler là cấu trúc xử lý các yêu cầu liên quan đến Facebook Post cho Fiber
 // Kế thừa từ FiberBaseHandler với các type parameter:
 // - Model: models.FbPost
 // - CreateInput: models.FbPostCreateInput
 // - UpdateInput: models.FbPostCreateInput
-type FiberFbPostHandler struct {
-	FiberBaseHandler[models.FbPost, models.FbPostCreateInput, models.FbPostCreateInput]
+type FbPostHandler struct {
+	BaseHandler[models.FbPost, models.FbPostCreateInput, models.FbPostCreateInput]
 	FbPostService *services.FbPostService
 }
 
-// NewFiberFbPostHandler khởi tạo một FiberFbPostHandler mới
+// NewFbPostHandler khởi tạo một FiberFbPostHandler mới
 // Returns:
 //   - *FiberFbPostHandler: Instance mới của FiberFbPostHandler đã được khởi tạo với các service cần thiết
-func NewFiberFbPostHandler() *FiberFbPostHandler {
-	handler := &FiberFbPostHandler{}
+func NewFbPostHandler() *FbPostHandler {
+	handler := &FbPostHandler{}
 	handler.FbPostService = services.NewFbPostService()
 	handler.Service = handler.FbPostService
 	return handler
@@ -42,27 +41,11 @@ func NewFiberFbPostHandler() *FiberFbPostHandler {
 //   - 200: Tìm thấy FbPost
 //   - 404: Không tìm thấy FbPost
 //   - 500: Lỗi server
-func (h *FiberFbPostHandler) HandleFindOneByPostID(c fiber.Ctx) error {
+func (h *FbPostHandler) HandleFindOneByPostID(c fiber.Ctx) error {
 	id := h.GetIDFromContext(c)
 	data, err := h.FbPostService.FindOneByPostID(context.Background(), id)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }
 
 // HandleUpdateToken cập nhật access token của một FbPost
@@ -80,32 +63,14 @@ func (h *FiberFbPostHandler) HandleFindOneByPostID(c fiber.Ctx) error {
 //   - 400: Dữ liệu đầu vào không hợp lệ
 //   - 404: Không tìm thấy FbPost
 //   - 500: Lỗi server
-func (h *FiberFbPostHandler) HandleUpdateToken(c fiber.Ctx) error {
+func (h *FbPostHandler) HandleUpdateToken(c fiber.Ctx) error {
 	input := new(models.FbPostUpdateTokenInput)
-	if response := h.ParseRequestBody(c, input); response != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationInput,
-			"message": "Dữ liệu đầu vào không hợp lệ",
-		})
+	if err := h.ParseRequestBody(c, input); err != nil {
+		h.HandleResponse(c, nil, err)
+		return nil
 	}
 
 	data, err := h.FbPostService.UpdateToken(context.Background(), input)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, err)
+	return nil
 }

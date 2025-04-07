@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// FiberRolePermissionHandler xử lý các route liên quan đến phân quyền cho Fiber
+// RolePermissionHandler xử lý các route liên quan đến phân quyền cho Fiber
 // Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
 // Các phương thức của FiberBaseHandler đã có sẵn:
 // - InsertOne: Thêm mới một role permission
@@ -34,16 +34,16 @@ import (
 // - Upsert: Thêm mới hoặc cập nhật một role permission
 // - UpsertMany: Thêm mới hoặc cập nhật nhiều role permission
 // - DocumentExists: Kiểm tra role permission có tồn tại không
-type FiberRolePermissionHandler struct {
-	FiberBaseHandler[models.RolePermission, models.RolePermissionCreateInput, models.RolePermission]
+type RolePermissionHandler struct {
+	BaseHandler[models.RolePermission, models.RolePermissionCreateInput, models.RolePermission]
 	RolePermissionService *services.RolePermissionService
 }
 
-// NewFiberRolePermissionHandler tạo một instance mới của FiberRolePermissionHandler
+// NewRolePermissionHandler tạo một instance mới của FiberRolePermissionHandler
 // Returns:
 //   - *FiberRolePermissionHandler: Instance mới của FiberRolePermissionHandler đã được khởi tạo với RolePermissionService
-func NewFiberRolePermissionHandler() *FiberRolePermissionHandler {
-	handler := &FiberRolePermissionHandler{
+func NewRolePermissionHandler() *RolePermissionHandler {
+	handler := &RolePermissionHandler{
 		RolePermissionService: services.NewRolePermissionService(),
 	}
 	handler.Service = handler.RolePermissionService
@@ -78,44 +78,32 @@ func NewFiberRolePermissionHandler() *FiberRolePermissionHandler {
 //     }
 //   - 400: Dữ liệu không hợp lệ
 //   - 500: Lỗi server
-func (h *FiberRolePermissionHandler) HandleUpdateRolePermissions(c fiber.Ctx) error {
+func (h *RolePermissionHandler) HandleUpdateRolePermissions(c fiber.Ctx) error {
 	// Parse input từ request body
 	input := new(models.RolePermissionUpdateInput)
-	if err := c.Bind().Body(input); err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": utility.MsgValidationError,
-		})
+	if err := h.ParseRequestBody(c, input); err != nil {
+		h.HandleResponse(c, nil, err)
+		return nil
 	}
 
 	// Chuyển đổi roleId từ string sang ObjectID
 	roleId, err := primitive.ObjectIDFromHex(input.RoleId)
 	if err != nil {
-		return c.Status(utility.StatusBadRequest).JSON(fiber.Map{
-			"code":    utility.ErrCodeValidationFormat,
-			"message": "ID vai trò không hợp lệ",
-		})
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID vai trò không hợp lệ", utility.StatusBadRequest, err))
+		return nil
 	}
 
 	// Xóa tất cả role permission cũ của role
 	filter := bson.M{"roleId": roleId}
-	_, err = h.RolePermissionService.DeleteMany(c.Context(), filter)
-	if err != nil {
-		if customErr, ok := err.(*utility.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-			"code":    utility.ErrCodeDatabase,
-			"message": err.Error(),
-		})
+	if _, err := h.RolePermissionService.DeleteMany(c.Context(), filter); err != nil {
+		h.HandleResponse(c, nil, err)
+		return nil
 	}
 
 	// Tạo danh sách role permission mới
 	var rolePermissions []models.RolePermission
+	now := time.Now().Unix()
+
 	for _, permissionId := range input.PermissionIds {
 		permissionIdObj, err := primitive.ObjectIDFromHex(permissionId)
 		if err != nil {
@@ -126,32 +114,21 @@ func (h *FiberRolePermissionHandler) HandleUpdateRolePermissions(c fiber.Ctx) er
 			RoleID:       roleId,
 			PermissionID: permissionIdObj,
 			Scope:        0,
-			CreatedAt:    time.Now().Unix(),
-			UpdatedAt:    time.Now().Unix(),
+			CreatedAt:    now,
+			UpdatedAt:    now,
 		}
 		rolePermissions = append(rolePermissions, rolePermission)
 	}
 
-	// Thêm các role permission mới
-	for _, rolePermission := range rolePermissions {
-		_, err = h.RolePermissionService.InsertOne(c.Context(), rolePermission)
+	// Thêm các role permission mới bằng InsertMany thay vì InsertOne
+	if len(rolePermissions) > 0 {
+		_, err = h.RolePermissionService.InsertMany(c.Context(), rolePermissions)
 		if err != nil {
-			if customErr, ok := err.(*utility.Error); ok {
-				return c.Status(customErr.StatusCode).JSON(fiber.Map{
-					"code":    customErr.Code,
-					"message": customErr.Message,
-					"details": customErr.Details,
-				})
-			}
-			return c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-				"code":    utility.ErrCodeDatabase,
-				"message": err.Error(),
-			})
+			h.HandleResponse(c, nil, err)
+			return nil
 		}
 	}
 
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    rolePermissions,
-	})
+	h.HandleResponse(c, rolePermissions, nil)
+	return nil
 }

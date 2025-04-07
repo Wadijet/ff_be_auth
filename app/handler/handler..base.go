@@ -1,7 +1,13 @@
 package handler
 
+// Package handler chứa các handler xử lý request HTTP trong ứng dụng.
+// Package này cung cấp các chức năng CRUD cơ bản và các tiện ích để xử lý request/response.
+
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
+	"meta_commerce/app/global"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
 	"strconv"
@@ -10,72 +16,146 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// FiberBaseHandler là base handler cho các Fiber handler
-type FiberBaseHandler[T any, CreateInput any, UpdateInput any] struct {
-	Service services.BaseServiceMongo[T]
+// BaseHandler là base handler cho các Fiber handler, cung cấp các chức năng CRUD cơ bản.
+// Struct này sử dụng Generic Type để có thể tái sử dụng cho nhiều loại model khác nhau.
+//
+// Type parameters:
+// - T: Kiểu dữ liệu của model
+// - CreateInput: Kiểu dữ liệu của input khi tạo mới
+// - UpdateInput: Kiểu dữ liệu của input khi cập nhật
+type BaseHandler[T any, CreateInput any, UpdateInput any] struct {
+	Service services.BaseServiceMongo[T] // Service xử lý logic nghiệp vụ với MongoDB
 }
 
-// HandleError xử lý lỗi và trả về response cho client
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) HandleError(c fiber.Ctx, err error) {
-	// Kiểm tra nếu là Error từ utility
-	if customErr, ok := err.(*utility.Error); ok {
-		c.Status(customErr.StatusCode).JSON(fiber.Map{
-			"code":    customErr.Code,
-			"message": customErr.Message,
-			"details": customErr.Details,
+// HandleResponse xử lý và chuẩn hóa response trả về cho client.
+// Phương thức này đảm bảo format response thống nhất trong toàn bộ ứng dụng.
+//
+// Parameters:
+// - c: Fiber context
+// - data: Dữ liệu trả về cho client (có thể là nil nếu chỉ trả về lỗi)
+// - err: Lỗi nếu có (nil nếu không có lỗi)
+func (h *BaseHandler[T, CreateInput, UpdateInput]) HandleResponse(c fiber.Ctx, data interface{}, err error) {
+	if err != nil {
+		var customErr *utility.Error
+		if errors.As(err, &customErr) {
+			c.Status(customErr.StatusCode).JSON(fiber.Map{
+				"code":    customErr.Code.Code,
+				"message": customErr.Message,
+				"details": customErr.Details,
+				"status":  "error",
+			})
+			return
+		}
+		// Nếu không phải custom error, trả về internal server error
+		c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
+			"code":    utility.ErrCodeDatabase.Code,
+			"message": err.Error(),
+			"status":  "error",
 		})
 		return
 	}
 
-	// Nếu không phải Error từ utility, trả về lỗi mặc định
-	c.Status(utility.StatusInternalServerError).JSON(fiber.Map{
-		"code":    utility.ErrCodeDatabase,
-		"message": err.Error(),
-	})
-}
-
-// HandleResponse xử lý response thành công và trả về cho client
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) HandleResponse(c fiber.Ctx, data interface{}, err error) {
-	if err != nil {
-		h.HandleError(c, err)
-		return
-	}
-
+	// Trường hợp thành công
 	c.Status(utility.StatusOK).JSON(fiber.Map{
+		"code":    utility.StatusOK,
 		"message": utility.MsgSuccess,
 		"data":    data,
+		"status":  "success",
 	})
 }
 
-// ParseRequestBody parse request body thành struct
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) ParseRequestBody(c fiber.Ctx, input interface{}) error {
-	if err := c.Bind().Body(input); err != nil {
-		return utility.NewError(utility.ErrCodeValidationFormat, utility.MsgValidationError, utility.StatusBadRequest, nil)
+// ParseRequestBody parse và validate dữ liệu từ request body.
+// Sử dụng json.Decoder với UseNumber() để xử lý chính xác các số.
+//
+// Parameters:
+// - c: Fiber context
+// - input: Con trỏ tới struct sẽ chứa dữ liệu được parse
+//
+// Returns:
+// - error: Lỗi nếu có trong quá trình parse hoặc validate
+func (h *BaseHandler[T, CreateInput, UpdateInput]) ParseRequestBody(c fiber.Ctx, input interface{}) error {
+	// Parse body thành struct T
+	body := c.Body()
+	reader := bytes.NewReader(body)
+	decoder := json.NewDecoder(reader)
+	decoder.UseNumber()
+	if err := decoder.Decode(input); err != nil {
+		return utility.NewError(utility.ErrCodeValidationFormat, utility.MsgValidationError, utility.StatusBadRequest, err)
 	}
+
+	// Validate struct input xem có hợp lệ không
+	if err := global.Validate.Struct(input); err != nil {
+		return utility.NewError(utility.ErrCodeValidationInput, utility.MsgValidationError, utility.StatusBadRequest, err)
+	}
+
 	return nil
 }
 
-// ParseRequestQuery parse request query thành struct
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) ParseRequestQuery(c fiber.Ctx, input interface{}) error {
-	if err := c.Bind().Query(input); err != nil {
-		return utility.NewError(utility.ErrCodeValidationFormat, "Dữ liệu không hợp lệ", utility.StatusBadRequest, nil)
+// ParseRequestQuery parse và validate dữ liệu từ query string.
+// Query string phải được encode dưới dạng JSON.
+//
+// Parameters:
+// - c: Fiber context
+// - input: Con trỏ tới struct sẽ chứa dữ liệu được parse
+//
+// Returns:
+// - error: Lỗi nếu có trong quá trình parse hoặc validate
+func (h *BaseHandler[T, CreateInput, UpdateInput]) ParseRequestQuery(c fiber.Ctx, input interface{}) error {
+	query := c.Query("query", "")
+
+	// Parse query
+	reader := bytes.NewReader([]byte(query))
+	decoder := json.NewDecoder(reader)
+	decoder.UseNumber()
+	if err := decoder.Decode(input); err != nil {
+		return utility.NewError(utility.ErrCodeValidationFormat, utility.MsgValidationError, utility.StatusBadRequest, err)
 	}
+
+	// Validate struct
+	if err := global.Validate.Struct(input); err != nil {
+		return utility.NewError(utility.ErrCodeValidationInput, utility.MsgValidationError, utility.StatusBadRequest, err)
+	}
+
 	return nil
 }
 
-// ParseRequestParams parse request params thành struct
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) ParseRequestParams(c fiber.Ctx, input interface{}) error {
+// ParseRequestParams parse và validate các tham số từ URI.
+// Sử dụng Fiber's URI binding để parse các tham số.
+//
+// Parameters:
+// - c: Fiber context
+// - input: Con trỏ tới struct sẽ chứa dữ liệu được parse
+//
+// Returns:
+// - error: Lỗi nếu có trong quá trình parse hoặc validate
+func (h *BaseHandler[T, CreateInput, UpdateInput]) ParseRequestParams(c fiber.Ctx, input interface{}) error {
+	// Parse URI params
 	if err := c.Bind().URI(input); err != nil {
-		return utility.NewError(utility.ErrCodeValidationFormat, "Dữ liệu không hợp lệ", utility.StatusBadRequest, nil)
+		return utility.NewError(utility.ErrCodeValidationFormat, utility.MsgValidationError, utility.StatusBadRequest, err)
 	}
+
+	// Validate struct
+	if err := global.Validate.Struct(input); err != nil {
+		return utility.NewError(utility.ErrCodeValidationInput, utility.MsgValidationError, utility.StatusBadRequest, err)
+	}
+
 	return nil
 }
 
-// InsertOne thêm mới một document
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) InsertOne(c fiber.Ctx) error {
+// InsertOne thêm mới một document vào database.
+// Dữ liệu được parse từ request body và validate trước khi thêm vào DB.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertOne(c fiber.Ctx) error {
+
+	// Parse request body thành struct T
 	input := new(T)
 	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleError(c, err)
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -84,11 +164,18 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) InsertOne(c fiber.Ctx) e
 	return nil
 }
 
-// InsertMany thêm mới nhiều document
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) InsertMany(c fiber.Ctx) error {
+// InsertMany thêm nhiều document vào database.
+// Dữ liệu được parse từ request body dưới dạng mảng và validate trước khi thêm vào DB.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertMany(c fiber.Ctx) error {
 	var inputs []T
 	if err := h.ParseRequestBody(c, &inputs); err != nil {
-		h.HandleError(c, err)
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -97,11 +184,18 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) InsertMany(c fiber.Ctx) 
 	return nil
 }
 
-// FindOne tìm một document theo điều kiện
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindOne(c fiber.Ctx) error {
+// FindOne tìm một document theo điều kiện filter.
+// Filter được truyền qua query string dưới dạng JSON.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOne(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -110,11 +204,18 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindOne(c fiber.Ctx) err
 	return nil
 }
 
-// FindOneById tìm một document theo ID
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindOneById(c fiber.Ctx) error {
+// FindOneById tìm một document theo ID.
+// ID được truyền qua URI params.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneById(c fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -123,11 +224,18 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindOneById(c fiber.Ctx)
 	return nil
 }
 
-// FindManyByIds tìm nhiều document theo danh sách ID
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindManyByIds(c fiber.Ctx) error {
+// FindManyByIds tìm nhiều document theo danh sách ID.
+// Danh sách ID được truyền qua query string dưới dạng mảng JSON.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) FindManyByIds(c fiber.Ctx) error {
 	var ids []string
 	if err := json.Unmarshal([]byte(c.Query("ids", "[]")), &ids); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Danh sách ID không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Danh sách ID không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -141,11 +249,22 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindManyByIds(c fiber.Ct
 	return nil
 }
 
-// FindWithPagination tìm nhiều document với phân trang
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ctx) error {
+// FindWithPagination tìm nhiều document với phân trang.
+// Hỗ trợ filter và phân trang với page và limit.
+//
+// Parameters:
+// - c: Fiber context
+// Query params:
+// - filter: Điều kiện tìm kiếm (JSON)
+// - page: Số trang (mặc định: 1)
+// - limit: Số lượng item trên một trang (mặc định: 10)
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, utility.MsgValidationError, utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, utility.MsgValidationError, utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -164,11 +283,18 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fib
 	return nil
 }
 
-// Find tìm nhiều document theo điều kiện
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error {
+// Find tìm nhiều document theo điều kiện filter.
+// Filter được truyền qua query string dưới dạng JSON.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -177,17 +303,24 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error 
 	return nil
 }
 
-// UpdateOne cập nhật một document theo điều kiện
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) UpdateOne(c fiber.Ctx) error {
+// UpdateOne cập nhật một document theo điều kiện filter.
+// Filter được truyền qua query string, dữ liệu cập nhật trong request body.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateOne(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
 	input := new(T)
 	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleError(c, err)
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -196,17 +329,24 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) UpdateOne(c fiber.Ctx) e
 	return nil
 }
 
-// UpdateMany cập nhật nhiều document theo điều kiện
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) UpdateMany(c fiber.Ctx) error {
+// UpdateMany cập nhật nhiều document theo điều kiện filter.
+// Filter được truyền qua query string, dữ liệu cập nhật trong request body.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateMany(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
 	input := new(T)
 	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleError(c, err)
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -215,17 +355,24 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) UpdateMany(c fiber.Ctx) 
 	return nil
 }
 
-// UpdateById cập nhật một document theo ID
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) error {
+// UpdateById cập nhật một document theo ID.
+// ID được truyền qua URI params, dữ liệu cập nhật trong request body.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
 	input := new(T)
 	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleError(c, err)
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -234,11 +381,18 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) 
 	return nil
 }
 
-// DeleteOne xóa một document theo điều kiện
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) DeleteOne(c fiber.Ctx) error {
+// DeleteOne xóa một document theo điều kiện filter.
+// Filter được truyền qua query string dưới dạng JSON.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteOne(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -247,11 +401,18 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) DeleteOne(c fiber.Ctx) e
 	return nil
 }
 
-// DeleteMany xóa nhiều document theo điều kiện
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) DeleteMany(c fiber.Ctx) error {
+// DeleteMany xóa nhiều document theo điều kiện filter.
+// Filter được truyền qua query string dưới dạng JSON.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có và số lượng document đã xóa
+func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteMany(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -260,11 +421,18 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) DeleteMany(c fiber.Ctx) 
 	return nil
 }
 
-// DeleteById xóa một document theo ID
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) DeleteById(c fiber.Ctx) error {
+// DeleteById xóa một document theo ID.
+// ID được truyền qua URI params.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteById(c fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -273,17 +441,25 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) DeleteById(c fiber.Ctx) 
 	return nil
 }
 
-// FindOneAndUpdate tìm và cập nhật một document
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindOneAndUpdate(c fiber.Ctx) error {
+// FindOneAndUpdate tìm và cập nhật một document.
+// Filter được truyền qua query string, dữ liệu cập nhật trong request body.
+// Trả về document sau khi cập nhật.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneAndUpdate(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
 	input := new(T)
 	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleError(c, err)
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -292,11 +468,19 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindOneAndUpdate(c fiber
 	return nil
 }
 
-// FindOneAndDelete tìm và xóa một document
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindOneAndDelete(c fiber.Ctx) error {
+// FindOneAndDelete tìm và xóa một document.
+// Filter được truyền qua query string.
+// Trả về document đã xóa.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneAndDelete(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -305,11 +489,18 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) FindOneAndDelete(c fiber
 	return nil
 }
 
-// CountDocuments đếm số lượng document theo điều kiện
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) CountDocuments(c fiber.Ctx) error {
+// CountDocuments đếm số lượng document theo điều kiện filter.
+// Filter được truyền qua query string dưới dạng JSON.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) CountDocuments(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -318,17 +509,24 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) CountDocuments(c fiber.C
 	return nil
 }
 
-// Distinct lấy danh sách giá trị duy nhất của một trường
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) Distinct(c fiber.Ctx) error {
+// Distinct lấy danh sách giá trị duy nhất của một trường.
+// Tên trường được truyền qua URI params, filter qua query string.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) Distinct(c fiber.Ctx) error {
 	field := c.Params("field")
 	if field == "" {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Tên trường không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Tên trường không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -337,17 +535,25 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) Distinct(c fiber.Ctx) er
 	return nil
 }
 
-// Upsert thêm mới hoặc cập nhật một document
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) error {
+// Upsert thêm mới hoặc cập nhật một document.
+// Filter được truyền qua query string, dữ liệu trong request body.
+// Nếu không tìm thấy document thỏa mãn filter sẽ tạo mới, ngược lại sẽ cập nhật.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
 	input := new(T)
 	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleError(c, err)
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -356,17 +562,25 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) erro
 	return nil
 }
 
-// UpsertMany thêm mới hoặc cập nhật nhiều document
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) UpsertMany(c fiber.Ctx) error {
+// UpsertMany thêm mới hoặc cập nhật nhiều document.
+// Filter được truyền qua query string, dữ liệu trong request body dưới dạng mảng.
+// Với mỗi item trong mảng: nếu không tìm thấy document thỏa mãn filter sẽ tạo mới, ngược lại sẽ cập nhật.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) UpsertMany(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
 	var inputs []T
 	if err := h.ParseRequestBody(c, &inputs); err != nil {
-		h.HandleError(c, err)
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -375,11 +589,18 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) UpsertMany(c fiber.Ctx) 
 	return nil
 }
 
-// DocumentExists kiểm tra document có tồn tại không
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) DocumentExists(c fiber.Ctx) error {
+// DocumentExists kiểm tra document có tồn tại không.
+// Filter được truyền qua query string dưới dạng JSON.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) DocumentExists(c fiber.Ctx) error {
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleError(c, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Filter không hợp lệ", utility.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -388,28 +609,58 @@ func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) DocumentExists(c fiber.C
 	return nil
 }
 
-// ParsePagination xử lý việc parse thông tin phân trang từ request
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) ParsePagination(c fiber.Ctx) (int, int) {
-	page, err := strconv.Atoi(c.Query("page", "1"))
-	if err != nil || page <= 0 {
+// ParsePagination xử lý việc parse thông tin phân trang từ request.
+// Hỗ trợ các tham số:
+// - page: Số trang (mặc định: 1)
+// - limit: Số lượng item trên một trang (mặc định: 10)
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - page: Số trang
+// - limit: Số lượng item trên một trang
+func (h *BaseHandler[T, CreateInput, UpdateInput]) ParsePagination(c fiber.Ctx) (int64, int64) {
+	page := utility.P2Int64(c.Query("page", "1"))
+	if page <= 0 {
 		page = 1
 	}
-	limit, err := strconv.Atoi(c.Query("limit", "10"))
-	if err != nil || limit <= 0 {
+
+	limit := utility.P2Int64(c.Query("limit", "10"))
+	if limit <= 0 {
 		limit = 10
 	}
+
 	return page, limit
 }
 
-// GetIDFromContext lấy ID từ context của request
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) GetIDFromContext(c fiber.Ctx) string {
+// GetIDFromContext lấy ID từ URI params của request.
+//
+// Parameters:
+// - c: Fiber context
+//
+// Returns:
+// - string: ID từ params
+func (h *BaseHandler[T, CreateInput, UpdateInput]) GetIDFromContext(c fiber.Ctx) string {
 	return c.Params("id")
 }
 
-// GenericHandler xử lý request theo một flow chung
-func (h *FiberBaseHandler[T, CreateInput, UpdateInput]) GenericHandler(c fiber.Ctx, input interface{}, handler func(c fiber.Ctx, input interface{}) (interface{}, error)) error {
+// GenericHandler xử lý request theo một flow chung.
+// Flow bao gồm:
+// 1. Parse và validate input từ request body
+// 2. Gọi handler function với input đã parse
+// 3. Xử lý response
+//
+// Parameters:
+// - c: Fiber context
+// - input: Struct chứa dữ liệu input
+// - handler: Function xử lý logic chính
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) GenericHandler(c fiber.Ctx, input interface{}, handler func(c fiber.Ctx, input interface{}) (interface{}, error)) error {
 	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleError(c, err)
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 

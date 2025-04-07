@@ -67,6 +67,18 @@ func Payload(isSuccess bool, data interface{}, message string, statusCode ...int
 	return result
 }
 
+// FinalResponse tạo phản hồi cuối cùng dựa trên kết quả và lỗi
+func FinalResponse(result interface{}, err error) map[string]interface{} {
+	if err != nil {
+		if customErr, ok := err.(*Error); ok {
+			return Payload(false, customErr, customErr.Message, customErr.StatusCode)
+		}
+		return Payload(false, NewError(ErrCodeDatabaseConnection, MsgDatabaseError, StatusInternalServerError, err), MsgDatabaseError)
+	} else {
+		return Payload(true, result, MsgSuccess, StatusOK)
+	}
+}
+
 // Convert2Struct chuyển đổi dữ liệu JSON thành struct
 func Convert2Struct(data []byte, myStruct interface{}) map[string]interface{} {
 	reader := bytes.NewReader(data)
@@ -100,18 +112,6 @@ func CreateChangeMap(myStruct interface{}, myChange *map[string]interface{}) map
 
 	*myChange = change
 	return nil
-}
-
-// FinalResponse tạo phản hồi cuối cùng dựa trên kết quả và lỗi
-func FinalResponse(result interface{}, err error) map[string]interface{} {
-	if err != nil {
-		if customErr, ok := err.(*Error); ok {
-			return Payload(false, customErr, customErr.Message, customErr.StatusCode)
-		}
-		return Payload(false, NewError(ErrCodeDatabaseConnection, MsgDatabaseError, StatusInternalServerError, err), MsgDatabaseError)
-	} else {
-		return Payload(true, result, MsgSuccess, StatusOK)
-	}
 }
 
 // ==========================================================================

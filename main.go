@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/contrib/monitor"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/logger"
@@ -14,9 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 	validator "gopkg.in/go-playground/validator.v9"
 
-	"meta_commerce/app/database/registry"
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
+	"meta_commerce/app/registry"
 	"meta_commerce/app/router"
 	"meta_commerce/app/services"
 	"meta_commerce/config"
@@ -171,266 +170,36 @@ func initFiberApp() *fiber.App {
 	// =========================================
 
 	// 1. Recover Middleware
-	// Mục đích: Phục hồi từ panic, tránh crash server
-	// Nên bật: LUÔN LUÔN, đây là middleware quan trọng nhất
 	app.Use(recover.New(recover.Config{
-		EnableStackTrace: true, // Hiển thị stack trace khi panic
+		EnableStackTrace: true,
 		Next: func(c fiber.Ctx) bool {
-			return false // Luôn xử lý panic
+			return false
 		},
 	}))
 
 	// 2. Logger Middleware
-	// Mục đích: Ghi log mọi request để debug và monitor
-	// Nên bật: Môi trường development và staging
 	app.Use(logger.New(logger.Config{
 		Format:     "${time} | ${ip} | ${status} | ${latency} | ${method} | ${path} | ${error}\n",
 		TimeFormat: "2006-01-02 15:04:05",
 		TimeZone:   "Asia/Ho_Chi_Minh",
 		Output:     os.Stdout,
 		Next: func(c fiber.Ctx) bool {
-			return c.Path() == "/health" // Bỏ qua health check
+			return c.Path() == "/health"
 		},
 	}))
 
 	// 3. CORS Middleware
-	// Mục đích: Cho phép request từ domain khác
-	// Nên bật: Khi cần cho phép frontend từ domain khác gọi API
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:  strings.Split("*", ","),                                                         // Domain được phép gọi API
-		AllowMethods:  strings.Split("GET,POST,PUT,DELETE,OPTIONS,PATCH", ","),                         // Method được phép
-		AllowHeaders:  strings.Split("Origin,Content-Type,Accept,Authorization,X-Requested-With", ","), // Header được phép
-		ExposeHeaders: strings.Split("Content-Length,Content-Range", ","),                              // Header được phép client đọc
-		//AllowCredentials: true,                                                                            // Cho phép gửi cookie
-		MaxAge: 24 * 60 * 60, // Cache preflight request
+		AllowOrigins: strings.Split("*", ","),                                                       // Cho phép tất cả origins, trong thực tế nên giới hạn domain cụ thể
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"},                     // Các HTTP methods được phép
+		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Request-ID"}, // Các headers được phép
+		//AllowCredentials: true,                                                                          // Cho phép gửi credentials (cookies, auth headers)
+		ExposeHeaders: []string{"Content-Length", "Content-Range"}, // Headers cho phép client đọc từ response
+		MaxAge:        24 * 60 * 60,                                // Thời gian cache preflight requests (24 giờ)
 	}))
 
-	// 4. Compress Middleware
-	// Mục đích: Nén response để giảm bandwidth
-	// Nên bật: Khi cần tối ưu performance
-	/*app.Use(compress.New(compress.Config{
-		Level: compress.LevelBestSpeed, // Mức độ nén (1-9)
-		Next: func(c fiber.Ctx) bool {
-			return strings.Contains(c.Path(), "/ws") // Không nén WebSocket
-		},
-	}))*/
-
-	// 5. Cache Middleware
-	// Mục đích: Cache response để tăng tốc độ
-	// Nên bật: Với các endpoint ít thay đổi data
-	/*app.Use(cache.New(cache.Config{
-		Next: func(c fiber.Ctx) bool {
-			return c.Query("refresh") == "true" // Bỏ qua cache nếu có query refresh
-		},
-		KeyGenerator: func(c fiber.Ctx) string {
-			return c.Path() // Key là path
-		},
-		CacheControl:         true,             // Thêm header Cache-Control
-		StoreResponseHeaders: true,             // Cache cả response header
-		MaxBytes:             10 * 1024 * 1024, // Max size cache (10MB)
-	}))*/
-
-	// 6. BasicAuth Middleware
-	// Mục đích: Bảo vệ API bằng username/password
-	// Nên bật: Khi cần xác thực đơn giản
-	/*app.Use(basicauth.New(basicauth.Config{
-		Users: map[string]string{
-			"admin": "123456", // Username/password
-		},
-		Realm: "Restricted Area",
-		Unauthorized: func(c fiber.Ctx) error {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Unauthorized",
-			})
-		},
-	}))*/
-
-	// 7. CSRF Middleware
-	// Mục đích: Bảo vệ khỏi tấn công CSRF
-	// Nên bật: Khi có form submission
-	/*app.Use(csrf.New(csrf.Config{
-		KeyLookup:      "header:X-CSRF-Token", // Vị trí lưu token
-		CookieName:     "csrf_",               // Tên cookie
-		CookieSameSite: "Strict",              // SameSite policy
-		CookieSecure:   true,                  // Chỉ gửi qua HTTPS
-		CookieHTTPOnly: true,                  // Không cho JS đọc cookie
-		KeyGenerator: func() string {
-			return fmt.Sprintf("%d", time.Now().UnixNano()) // Tạo token ngẫu nhiên
-		},
-	}))*/
-
-	// 8. Limiter Middleware
-	// Mục đích: Giới hạn số request
-	// Nên bật: Chống tấn công DDoS
-	/*app.Use(limiter.New(limiter.Config{
-		Max:        100,             // Số request tối đa
-		Expiration: 1 * time.Minute, // Thời gian reset
-		KeyGenerator: func(c fiber.Ctx) string {
-			return c.IP() // Dùng IP làm key
-		},
-		LimitReached: func(c fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error": "Rate limit exceeded",
-			})
-		},
-		SkipFailedRequests:     false, // Tính cả request lỗi
-		SkipSuccessfulRequests: false, // Tính cả request thành công
-	}))*/
-
-	// 9. RequestID Middleware
-	// Mục đích: Gắn ID cho mỗi request
-	// Nên bật: Khi cần track request
-	/*app.Use(requestid.New(requestid.Config{
-		Header: "X-Request-ID",
-		Generator: func() string {
-			return fmt.Sprintf("%d", time.Now().UnixNano())
-		},
-		Next: func(c fiber.Ctx) bool {
-			return false // Luôn tạo request ID
-		},
-	}))*/
-
-	// 10. Helmet Middleware
-	// Mục đích: Thêm security headers
-	// Nên bật: Trên môi trường production
-	/*app.Use(helmet.New(helmet.Config{
-		ContentSecurityPolicy: "default-src 'self';",
-		XSSProtection:         "1; mode=block",
-		ContentTypeNosniff:    "nosniff",
-		XFrameOptions:         "SAMEORIGIN",
-		HSTSMaxAge:            31536000,
-		ReferrerPolicy:        "same-origin",
-	}))*/
-
-	// 11. EncryptCookie Middleware
-	// Mục đích: Mã hóa cookie
-	// Nên bật: Khi lưu thông tin nhạy cảm
-	/*app.Use(encryptcookie.New(encryptcookie.Config{
-		Key:    "secret-thirty-2-character-string", // Key mã hóa 32 ký tự
-		Except: []string{"non_encrypted_cookie"},   // Cookie không cần mã hóa
-	}))*/
-
-	// 12. ETag Middleware
-	// Mục đích: Tối ưu cache bằng ETag
-	// Nên bật: Khi muốn tiết kiệm bandwidth
-	/*app.Use(etag.New(etag.Config{
-		Weak: false, // Dùng strong ETag
-		Next: func(c fiber.Ctx) bool {
-			return c.Method() != "GET" // Chỉ tạo ETag cho GET
-		},
-	}))*/
-
-	// 13. Favicon Middleware
-	// Mục đích: Xử lý request favicon
-	// Nên bật: Khi muốn tối ưu log
-	//app.Use(favicon.New(favicon.Config{
-	//	File:         "./favicon.ico", // Path tới file favicon
-	//	CacheControl: "public, max-age=31536000",
-	//}))
-
-	// 14. Adaptor Middleware
-	// Mục đích: Chuyển đổi net/http handlers sang/từ Fiber handlers
-	// Nên bật: Khi cần tích hợp với các handler net/http có sẵn
-	/*app.Use("/legacy", adaptor.HTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello from net/http handler")
-	})))*/
-
-	// 15. EarlyData Middleware
-	// Mục đích: Hỗ trợ tính năng early data ("0-RTT") của TLS 1.3
-	// Nên bật: Khi cần tối ưu hiệu suất với TLS 1.3
-	/*app.Use(earlydata.New())*/
-
-	// 16. EnvVar Middleware
-	// Mục đích: Expose biến môi trường với cấu hình tùy chọn
-	// Nên bật: Khi cần expose biến môi trường an toàn
-	/*app.Use(envvar.New(envvar.Config{
-		ExportVars: map[string]string{
-			"APP_NAME":    os.Getenv("APP_NAME"),
-			"APP_VERSION": os.Getenv("APP_VERSION"),
-		},
-	}))*/
-
-	// 17. ExpVar Middleware
-	// Mục đích: Phục vụ các biến runtime qua HTTP server dưới dạng JSON
-	// Nên bật: Khi cần monitor runtime variables
-	/*app.Use(expvar.New())*/
-
-	// 18. Healthcheck Middleware
-	// Mục đích: Kiểm tra health của server
-	// Nên bật: Khi triển khai trong môi trường container/kubernetes
-	app.Get("/health", func(c fiber.Ctx) error {
-		return c.SendString("OK")
-	})
-
-	// 19. Idempotency Middleware
-	// Mục đích: Cho phép API chịu lỗi khi có request trùng lặp
-	// Nên bật: Khi cần đảm bảo request trùng lặp không gây lỗi
-	/*app.Use(idempotency.New(idempotency.Config{
-		Lifetime:  24 * time.Hour, // Thời gian lưu key
-		KeyHeader: "X-Idempotency-Key",
-	}))*/
-
-	// 20. Keyauth Middleware
-	// Mục đích: Hỗ trợ xác thực dựa trên key
-	// Nên bật: Khi cần xác thực API key
-	/*app.Use(keyauth.New(keyauth.Config{
-		KeyLookup: "header:X-API-Key",
-		Validator: func(c fiber.Ctx, key string) (bool, error) {
-			return key == "valid-api-key", nil
-		},
-		ErrorHandler: func(c fiber.Ctx, err error) error {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid API Key",
-			})
-		},
-	}))*/
-
-	// 21. Pprof Middleware
-	// Mục đích: Phục vụ dữ liệu profiling runtime dưới dạng pprof
-	// Nên bật: Khi cần debug performance
-	/*app.Use(pprof.New())*/
-
-	// 22. Proxy Middleware
-	// Mục đích: Cho phép proxy requests tới nhiều server
-	// Nên bật: Khi cần load balancing
-	/*app.Get("/proxy/:server", func(c fiber.Ctx) error {
-		server := c.Params("server")
-		url := fmt.Sprintf("http://localhost:300%s", server)
-
-		// Forward request
-		if resp, err := http.Get(url); err == nil {
-			return c.Status(resp.StatusCode).SendString("Proxied")
-		}
-		return c.SendStatus(fiber.StatusBadGateway)
-	})*/
-
-	// 23. Redirect Middleware
-	// Mục đích: Middleware chuyển hướng
-	// Nên bật: Khi cần chuyển hướng URL
-	/*app.Use(redirect.New(redirect.Config{
-		Rules: map[string]string{
-			"/old":       "/new",
-			"/old-api/*": "/api/$1",
-		},
-		StatusCode: 301,
-	}))*/
-
-	// 24. Rewrite Middleware
-	// Mục đích: Viết lại đường dẫn URL dựa trên rules
-	// Nên bật: Khi cần viết lại URL cho backward compatibility
-	/*app.Use(rewrite.New(rewrite.Config{
-		Rules: map[string]string{
-			"/api/v1/*":   "/api/v2/$1",
-			"/blog/:post": "/blog/:post/comments",
-		},
-	}))*/
-
-	// 25. Monitor Middleware
-	// Mục đích: Hiển thị metrics của server như CPU, Memory, số request, v.v.
-	// Nên bật: Khi cần monitor hiệu năng server
-	app.Get("/metrics", monitor.New(monitor.Config{
-		Title: "Meta Commerce Metrics",
-	}))
+	// Khởi tạo routes trước khi đăng ký response middleware
+	router.SetupRoutes(app)
 
 	return app
 }
@@ -439,9 +208,6 @@ func initFiberApp() *fiber.App {
 func main_thread() {
 	// Khởi tạo app với cấu hình
 	app := initFiberApp()
-
-	// Thiết lập routes
-	router.SetupFiberRoutes(app)
 
 	// Khởi động server với cấu hình listen
 	logrus.Info("Starting Fiber server...")

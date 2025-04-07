@@ -22,143 +22,148 @@ func NewRoutePrefix() RoutePrefix {
 	}
 }
 
-// registerFiberCRUDRoutes đăng ký các route CRUD cơ bản cho một handler
-func registerFiberCRUDRoutes(router fiber.Router, prefix string, handler interface{}, permission string) {
+// registerCRUDRoutes đăng ký các route CRUD cơ bản cho một handler
+func registerCRUDRoutes(router fiber.Router, prefix string, handler interface{}, permission string) {
 	// Tạo group với prefix
 	group := router.Group(prefix)
 
 	// Create operations
 	if h, ok := handler.(interface{ InsertOne(c fiber.Ctx) error }); ok {
-		group.Post("/", middleware.FiberAuthMiddleware(permission+".Create"), h.InsertOne)
+		group.Use(middleware.AuthMiddleware(permission+".Insert")).Post("/", h.InsertOne)
 	}
 	if h, ok := handler.(interface{ InsertMany(c fiber.Ctx) error }); ok {
-		group.Post("/batch", middleware.FiberAuthMiddleware(permission+".Create"), h.InsertMany)
+		group.Use(middleware.AuthMiddleware(permission+".Insert")).Post("/batch", h.InsertMany)
 	}
 
 	// Read operations
 	if h, ok := handler.(interface{ FindOne(c fiber.Ctx) error }); ok {
-		group.Get("/find-one", middleware.FiberAuthMiddleware(permission+".Read"), h.FindOne)
+		group.Use(middleware.AuthMiddleware(permission+".Read")).Get("/find-one", h.FindOne)
 	}
 	if h, ok := handler.(interface{ FindOneById(c fiber.Ctx) error }); ok {
-		group.Get("/:id", middleware.FiberAuthMiddleware(permission+".Read"), h.FindOneById)
+		group.Use(middleware.AuthMiddleware(permission+".Read")).Get("/:id", h.FindOneById)
 	}
 	if h, ok := handler.(interface{ FindManyByIds(c fiber.Ctx) error }); ok {
-		group.Get("/by-ids", middleware.FiberAuthMiddleware(permission+".Read"), h.FindManyByIds)
+		group.Use(middleware.AuthMiddleware(permission+".Read")).Get("/by-ids", h.FindManyByIds)
 	}
 	if h, ok := handler.(interface{ FindWithPagination(c fiber.Ctx) error }); ok {
-		group.Get("/paginate", middleware.FiberAuthMiddleware(permission+".Read"), h.FindWithPagination)
+		group.Use(middleware.AuthMiddleware(permission+".Read")).Get("/paginate", h.FindWithPagination)
 	}
 	if h, ok := handler.(interface{ Find(c fiber.Ctx) error }); ok {
-		group.Get("/", middleware.FiberAuthMiddleware(permission+".Read"), h.Find)
+		group.Use(middleware.AuthMiddleware(permission+".Read")).Get("/", h.Find)
 	}
 
 	// Update operations
 	if h, ok := handler.(interface{ UpdateOne(c fiber.Ctx) error }); ok {
-		group.Put("/update-one", middleware.FiberAuthMiddleware(permission+".Update"), h.UpdateOne)
+		group.Use(middleware.AuthMiddleware(permission+".Update")).Put("/update-one", h.UpdateOne)
 	}
 	if h, ok := handler.(interface{ UpdateMany(c fiber.Ctx) error }); ok {
-		group.Put("/batch", middleware.FiberAuthMiddleware(permission+".Update"), h.UpdateMany)
+		group.Use(middleware.AuthMiddleware(permission+".Update")).Put("/batch", h.UpdateMany)
 	}
 	if h, ok := handler.(interface{ UpdateById(c fiber.Ctx) error }); ok {
-		group.Put("/:id", middleware.FiberAuthMiddleware(permission+".Update"), h.UpdateById)
+		group.Use(middleware.AuthMiddleware(permission+".Update")).Put("/:id", h.UpdateById)
 	}
 	if h, ok := handler.(interface{ FindOneAndUpdate(c fiber.Ctx) error }); ok {
-		group.Put("/find-and-update", middleware.FiberAuthMiddleware(permission+".Update"), h.FindOneAndUpdate)
+		group.Use(middleware.AuthMiddleware(permission+".Update")).Put("/find-and-update", h.FindOneAndUpdate)
 	}
 
 	// Delete operations
 	if h, ok := handler.(interface{ DeleteOne(c fiber.Ctx) error }); ok {
-		group.Delete("/delete-one", middleware.FiberAuthMiddleware(permission+".Delete"), h.DeleteOne)
+		group.Use(middleware.AuthMiddleware(permission+".Delete")).Delete("/delete-one", h.DeleteOne)
 	}
 	if h, ok := handler.(interface{ DeleteMany(c fiber.Ctx) error }); ok {
-		group.Delete("/batch", middleware.FiberAuthMiddleware(permission+".Delete"), h.DeleteMany)
+		group.Use(middleware.AuthMiddleware(permission+".Delete")).Delete("/batch", h.DeleteMany)
 	}
 	if h, ok := handler.(interface{ DeleteById(c fiber.Ctx) error }); ok {
-		group.Delete("/:id", middleware.FiberAuthMiddleware(permission+".Delete"), h.DeleteById)
+		group.Use(middleware.AuthMiddleware(permission+".Delete")).Delete("/:id", h.DeleteById)
 	}
 	if h, ok := handler.(interface{ FindOneAndDelete(c fiber.Ctx) error }); ok {
-		group.Delete("/find-and-delete", middleware.FiberAuthMiddleware(permission+".Delete"), h.FindOneAndDelete)
+		group.Use(middleware.AuthMiddleware(permission+".Delete")).Delete("/find-and-delete", h.FindOneAndDelete)
 	}
 
 	// Other operations
 	if h, ok := handler.(interface{ CountDocuments(c fiber.Ctx) error }); ok {
-		group.Get("/count", middleware.FiberAuthMiddleware(permission+".Read"), h.CountDocuments)
+		group.Use(middleware.AuthMiddleware(permission+".Read")).Get("/count", h.CountDocuments)
 	}
 	if h, ok := handler.(interface{ Distinct(c fiber.Ctx) error }); ok {
-		group.Get("/distinct/:field", middleware.FiberAuthMiddleware(permission+".Read"), h.Distinct)
+		group.Use(middleware.AuthMiddleware(permission+".Read")).Get("/distinct/:field", h.Distinct)
 	}
 	if h, ok := handler.(interface{ Upsert(c fiber.Ctx) error }); ok {
-		group.Post("/upsert", middleware.FiberAuthMiddleware(permission+".Create"), h.Upsert)
+		group.Use(middleware.AuthMiddleware(permission+".Insert")).Post("/upsert", h.Upsert)
 	}
 	if h, ok := handler.(interface{ UpsertMany(c fiber.Ctx) error }); ok {
-		group.Post("/upsert/batch", middleware.FiberAuthMiddleware(permission+".Create"), h.UpsertMany)
+		group.Use(middleware.AuthMiddleware(permission+".Insert")).Post("/upsert/batch", h.UpsertMany)
 	}
 	if h, ok := handler.(interface{ DocumentExists(c fiber.Ctx) error }); ok {
-		group.Get("/exists", middleware.FiberAuthMiddleware(permission+".Read"), h.DocumentExists)
+		group.Use(middleware.AuthMiddleware(permission+".Read")).Get("/exists", h.DocumentExists)
 	}
 }
 
-// registerFiberAuthRoutes đăng ký các route cho authentication
-func registerFiberAuthRoutes(router fiber.Router) {
+// registerAuthRoutes đăng ký các route cho authentication
+func registerAuthRoutes(router fiber.Router) {
 	// Khởi tạo các handler
-	permissionHandler := handler.NewFiberPermissionHandler()
-	roleHandler := handler.NewFiberRoleHandler()
-	rolePermissionHandler := handler.NewFiberRolePermissionHandler()
-	userRoleHandler := handler.NewFiberUserRoleHandler()
-	userHandler := handler.NewFiberAuthUserHandler()
-
-	// Đăng ký route cho từng handler
-	registerFiberCRUDRoutes(router, "/permission", permissionHandler, "Permission")
-	registerFiberCRUDRoutes(router, "/role", roleHandler, "Role")
-	registerFiberCRUDRoutes(router, "/role-permission", rolePermissionHandler, "RolePermission")
-	registerFiberCRUDRoutes(router, "/user-role", userRoleHandler, "UserRole")
-	registerFiberCRUDRoutes(router, "/user", userHandler, "User")
+	permissionHandler := handler.NewPermissionHandler()
+	roleHandler := handler.NewRoleHandler()
+	rolePermissionHandler := handler.NewRolePermissionHandler()
+	userRoleHandler := handler.NewUserRoleHandler()
+	userHandler := handler.NewUserHandler()
 
 	// Route đặc biệt cho user
-	userGroup := router.Group("/user")
+	userGroup := router.Group("/users")
+	// Route không cần xác thực
 	userGroup.Post("/login", userHandler.HandleLogin)
 	userGroup.Post("/register", userHandler.HandleRegister)
-	userGroup.Post("/logout", middleware.FiberAuthMiddleware("User.Logout"), userHandler.HandleLogout)
-	userGroup.Get("/profile", middleware.FiberAuthMiddleware("User.Profile"), userHandler.HandleGetMyInfo)
-	userGroup.Put("/profile", middleware.FiberAuthMiddleware("User.Profile"), userHandler.HandleChangeInfo)
-	userGroup.Put("/change-password", middleware.FiberAuthMiddleware("User.ChangePassword"), userHandler.HandleChangePassword)
+	// Route cần xác thực
+	userGroup.Use(middleware.AuthMiddleware("")).Post("/logout", userHandler.HandleLogout)
+	userGroup.Use(middleware.AuthMiddleware("")).Get("/profile", userHandler.HandleGetMyInfo)
+	userGroup.Use(middleware.AuthMiddleware("")).Put("/profile", userHandler.HandleChangeInfo)
+	userGroup.Use(middleware.AuthMiddleware("")).Put("/change-password", userHandler.HandleChangePassword)
+
+	// Tạo group riêng cho các route CRUD
+	crudGroup := router.Group("/crud")
+	// Đăng ký route CRUD cho từng handler
+	registerCRUDRoutes(crudGroup, "/permissions", permissionHandler, "Permission")
+	registerCRUDRoutes(crudGroup, "/roles", roleHandler, "Role")
+	registerCRUDRoutes(crudGroup, "/role-permissions", rolePermissionHandler, "RolePermission")
+	registerCRUDRoutes(crudGroup, "/user-roles", userRoleHandler, "UserRole")
+	registerCRUDRoutes(crudGroup, "/users", userHandler, "User")
 }
 
-// SetupFiberRoutes thiết lập tất cả các route cho ứng dụng
-func SetupFiberRoutes(app *fiber.App) {
+// SetupRoutes thiết lập tất cả các route cho ứng dụng
+func SetupRoutes(app *fiber.App) {
 	// Khởi tạo route prefix
 	prefix := NewRoutePrefix()
 
 	// Khởi tạo các handler
-	staticHandler := handler.NewFiberStaticHandler()
-	fbConversationHandler := handler.NewFiberFbConversationHandler()
-	fbPostHandler := handler.NewFiberFbPostHandler()
-	fbPageHandler := handler.NewFiberFbPageHandler()
-	adminInitHandler := handler.NewFiberInitHandler()
+	staticHandler := handler.NewStaticHandler()
+	fbConversationHandler := handler.NewFbConversationHandler()
+	fbPostHandler := handler.NewFbPostHandler()
+	fbPageHandler := handler.NewFbPageHandler()
+	adminInitHandler := handler.NewInitHandler()
 
 	// API v1 routes
 	v1 := app.Group(prefix.V1)
-
-	// Static routes
-	v1.Get("/static/test", staticHandler.HandleTestApi)
-	v1.Get("/static/system", staticHandler.HandleGetSystemStatic)
-	v1.Get("/static/api", staticHandler.HandleGetApiStatic)
-
-	// Facebook routes
-	registerFiberCRUDRoutes(v1, "/conversation", fbConversationHandler, "Facebook")
-	registerFiberCRUDRoutes(v1, "/post", fbPostHandler, "Facebook")
-	registerFiberCRUDRoutes(v1, "/page", fbPageHandler, "Facebook")
-
-	// Route đặc thù cho Facebook
-	v1.Get("/conversation/newest", middleware.FiberAuthMiddleware("Facebook.Read"), fbConversationHandler.HandleFindAllSortByApiUpdate)
-	v1.Get("/post/:postId", middleware.FiberAuthMiddleware("Facebook.Read"), fbPostHandler.HandleFindOneByPostID)
-	v1.Put("/post/token", middleware.FiberAuthMiddleware("Facebook.Update"), fbPostHandler.HandleUpdateToken)
-	v1.Get("/page/:id", middleware.FiberAuthMiddleware("Facebook.Read"), fbPageHandler.HandleFindOneByPageID)
-	v1.Put("/page/token", middleware.FiberAuthMiddleware("Facebook.Update"), fbPageHandler.HandleUpdateToken)
 
 	// Admin routes
 	v1.Post("/admin/init", adminInitHandler.HandleSetAdministrator)
 
 	// Auth routes
-	registerFiberAuthRoutes(v1)
+	registerAuthRoutes(v1)
+
+	// Static routes
+	v1.Get("/static/test", staticHandler.HandleTestApi)
+	// Sử dụng Use() để đăng ký middleware trước
+	v1.Use(middleware.AuthMiddleware("")).Get("/static/system", staticHandler.HandleGetSystemStatic)
+	v1.Use(middleware.AuthMiddleware("")).Get("/static/api", staticHandler.HandleGetApiStatic)
+
+	// Facebook routes
+	registerCRUDRoutes(v1, "/conversations", fbConversationHandler, "Facebook")
+	registerCRUDRoutes(v1, "/posts", fbPostHandler, "Facebook")
+	registerCRUDRoutes(v1, "/pages", fbPageHandler, "Facebook")
+
+	// Route đặc thù cho Facebook
+	v1.Use(middleware.AuthMiddleware("Facebook.Read")).Get("/conversations/newest", fbConversationHandler.HandleFindAllSortByApiUpdate)
+	v1.Use(middleware.AuthMiddleware("Facebook.Read")).Get("/posts/:postId", fbPostHandler.HandleFindOneByPostID)
+	v1.Use(middleware.AuthMiddleware("Facebook.Update")).Put("/posts/token", fbPostHandler.HandleUpdateToken)
+	v1.Use(middleware.AuthMiddleware("Facebook.Read")).Get("/pages/:id", fbPageHandler.HandleFindOneByPageID)
+	v1.Use(middleware.AuthMiddleware("Facebook.Update")).Put("/pages/token", fbPageHandler.HandleUpdateToken)
 }

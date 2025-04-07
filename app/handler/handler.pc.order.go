@@ -5,21 +5,21 @@ import (
 	"meta_commerce/app/services"
 )
 
-// FiberPcOrderHandler là cấu trúc xử lý các yêu cầu liên quan đến đơn hàng cho Fiber
+// PcOrderHandler là cấu trúc xử lý các yêu cầu liên quan đến đơn hàng cho Fiber
 // Kế thừa từ FiberBaseHandler với các type parameter:
 // - Model: models.PcOrder
 // - CreateInput: models.PcOrderCreateInput
 // - UpdateInput: models.PcOrderCreateInput
-type FiberPcOrderHandler struct {
-	FiberBaseHandler[models.PcOrder, models.PcOrderCreateInput, models.PcOrderCreateInput]
+type PcOrderHandler struct {
+	BaseHandler[models.PcOrder, models.PcOrderCreateInput, models.PcOrderCreateInput]
 	PcOrderService *services.PcOrderService
 }
 
-// NewFiberPcOrderHandler khởi tạo một FiberPcOrderHandler mới
+// NewPcOrderHandler khởi tạo một FiberPcOrderHandler mới
 // Returns:
 //   - *FiberPcOrderHandler: Instance mới của FiberPcOrderHandler đã được khởi tạo với các service cần thiết
-func NewFiberPcOrderHandler() *FiberPcOrderHandler {
-	handler := &FiberPcOrderHandler{}
+func NewPcOrderHandler() *PcOrderHandler {
+	handler := &PcOrderHandler{}
 	handler.PcOrderService = services.NewPcOrderService()
 	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng PcOrderService trực tiếp
 	return handler

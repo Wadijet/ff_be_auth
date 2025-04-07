@@ -5,18 +5,18 @@ import (
 	"meta_commerce/app/services"
 )
 
-// FiberFbMessageHandler là cấu trúc xử lý các yêu cầu liên quan đến Facebook Message cho Fiber
+// FbMessageHandler là cấu trúc xử lý các yêu cầu liên quan đến Facebook Message cho Fiber
 // Kế thừa từ FiberBaseHandler để sử dụng các phương thức xử lý chung
-type FiberFbMessageHandler struct {
-	FiberBaseHandler[models.FbMessage, models.FbMessageCreateInput, models.FbMessageCreateInput]
+type FbMessageHandler struct {
+	BaseHandler[models.FbMessage, models.FbMessageCreateInput, models.FbMessageCreateInput]
 	FbMessageService *services.FbMessageService
 }
 
-// NewFiberFbMessageHandler khởi tạo một FiberFbMessageHandler mới
+// NewFbMessageHandler khởi tạo một FiberFbMessageHandler mới
 // Returns:
 //   - *FiberFbMessageHandler: Instance mới của FiberFbMessageHandler đã được khởi tạo với các service cần thiết
-func NewFiberFbMessageHandler() *FiberFbMessageHandler {
-	handler := &FiberFbMessageHandler{}
+func NewFbMessageHandler() *FbMessageHandler {
+	handler := &FbMessageHandler{}
 	handler.FbMessageService = services.NewFbMessageService()
 	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng FbMessageService trực tiếp
 	return handler

@@ -3,20 +3,22 @@ package handler
 import (
 	"meta_commerce/app/utility"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
 
-// FiberStaticHandler là cấu trúc xử lý các yêu cầu liên quan đến thông tin tĩnh cho Fiber
-type FiberStaticHandler struct {
-	FiberBaseHandler[interface{}, interface{}, interface{}]
+// StaticHandler là cấu trúc xử lý các yêu cầu liên quan đến thông tin tĩnh cho Fiber
+type StaticHandler struct {
+	BaseHandler[interface{}, interface{}, interface{}]
 }
 
-// NewFiberStaticHandler khởi tạo một FiberStaticHandler mới
+// NewStaticHandler khởi tạo một FiberStaticHandler mới
 // Returns:
 //   - *FiberStaticHandler: Instance mới của FiberStaticHandler
-func NewFiberStaticHandler() *FiberStaticHandler {
-	return new(FiberStaticHandler)
+func NewStaticHandler() *StaticHandler {
+	handler := new(StaticHandler)
+	return handler
 }
 
 // ==========================================================================================
@@ -30,14 +32,17 @@ func NewFiberStaticHandler() *FiberStaticHandler {
 //
 // Response:
 //   - 200: API hoạt động bình thường
-func (h *FiberStaticHandler) HandleTestApi(c fiber.Ctx) error {
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-	})
+func (h *StaticHandler) HandleTestApi(c fiber.Ctx) error {
+	data := map[string]interface{}{
+		"status": "ok",
+		"time":   time.Now().Unix(),
+	}
+	h.HandleResponse(c, data, nil)
+	return nil
 }
 
-// FiberSystemStaticResponse là cấu trúc chứa thông tin về tài nguyên hệ thống
-type FiberSystemStaticResponse struct {
+// SystemStaticResponse là cấu trúc chứa thông tin về tài nguyên hệ thống
+type SystemStaticResponse struct {
 	Cpu    interface{} `json:"cpu" bson:"cpu"`       // Thông tin về CPU
 	Memory interface{} `json:"memory" bson:"memory"` // Thông tin về bộ nhớ
 }
@@ -52,15 +57,13 @@ type FiberSystemStaticResponse struct {
 // Response:
 //   - 200: Lấy thông tin thành công
 //   - 500: Lỗi server
-func (h *FiberStaticHandler) HandleGetSystemStatic(c fiber.Ctx) error {
-	result := new(FiberSystemStaticResponse)
+func (h *StaticHandler) HandleGetSystemStatic(c fiber.Ctx) error {
+	result := new(SystemStaticResponse)
 	result.Cpu = utility.GetCpuStatic()
 	result.Memory = utility.GetMemoryStatic()
 
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    result,
-	})
+	h.HandleResponse(c, result, nil)
+	return nil
 }
 
 // HandleGetApiStatic lấy thông tin thống kê về API
@@ -76,7 +79,7 @@ func (h *FiberStaticHandler) HandleGetSystemStatic(c fiber.Ctx) error {
 // Response:
 //   - 200: Lấy thông tin thành công
 //   - 500: Lỗi server
-func (h *FiberStaticHandler) HandleGetApiStatic(c fiber.Ctx) error {
+func (h *StaticHandler) HandleGetApiStatic(c fiber.Ctx) error {
 	inseconds := c.Query("inseconds", "30")
 	insesonds, err := strconv.ParseInt(inseconds, 10, 64)
 	if err != nil {
@@ -84,8 +87,6 @@ func (h *FiberStaticHandler) HandleGetApiStatic(c fiber.Ctx) error {
 	}
 
 	data := utility.GetApiStatic(insesonds)
-	return c.Status(utility.StatusOK).JSON(fiber.Map{
-		"message": utility.MsgSuccess,
-		"data":    data,
-	})
+	h.HandleResponse(c, data, nil)
+	return nil
 }
