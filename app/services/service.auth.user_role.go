@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"meta_commerce/app/global"
@@ -13,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// UserRoleService là cấu trúc chứa các phương thức liên quan đến vai trò người dùng
+// UserRoleService là cấu trúc chứa các phương thức liên quan đến vai trò của người dùng
 type UserRoleService struct {
 	*BaseServiceMongoImpl[models.UserRole]
 	userService *UserService
@@ -21,14 +22,27 @@ type UserRoleService struct {
 }
 
 // NewUserRoleService tạo mới UserRoleService
-func NewUserRoleService() *UserRoleService {
-	userRoleCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.UserRoles)
+func NewUserRoleService() (*UserRoleService, error) {
+	userRoleCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.UserRoles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user_roles collection: %v", err)
+	}
+
+	userService, err := NewUserService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user service: %v", err)
+	}
+
+	roleService, err := NewRoleService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create role service: %v", err)
+	}
 
 	return &UserRoleService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.UserRole](userRoleCollection),
-		userService:          NewUserService(),
-		roleService:          NewRoleService(),
-	}
+		userService:          userService,
+		roleService:          roleService,
+	}, nil
 }
 
 // Create tạo mới một vai trò người dùng

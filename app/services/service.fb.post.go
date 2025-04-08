@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"meta_commerce/app/global"
@@ -18,14 +19,25 @@ import (
 // FbPostService là cấu trúc chứa các phương thức liên quan đến bài viết Facebook
 type FbPostService struct {
 	*BaseServiceMongoImpl[models.FbPost]
+	fbPageService *FbPageService
 }
 
 // NewFbPostService tạo mới FbPostService
-func NewFbPostService() *FbPostService {
-	fbPostCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.FbPosts)
+func NewFbPostService() (*FbPostService, error) {
+	fbPostCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.FbPosts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get fb_posts collection: %v", err)
+	}
+
+	fbPageService, err := NewFbPageService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create fb_page service: %v", err)
+	}
+
 	return &FbPostService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.FbPost](fbPostCollection),
-	}
+		fbPageService:        fbPageService,
+	}, nil
 }
 
 // IsPostExist kiểm tra bài viết có tồn tại hay không

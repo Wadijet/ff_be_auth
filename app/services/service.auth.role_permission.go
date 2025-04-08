@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"meta_commerce/app/global"
@@ -21,14 +22,27 @@ type RolePermissionService struct {
 }
 
 // NewRolePermissionService tạo mới RolePermissionService
-func NewRolePermissionService() *RolePermissionService {
-	rolePermissionCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.RolePermissions)
+func NewRolePermissionService() (*RolePermissionService, error) {
+	rolePermissionCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.RolePermissions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get role_permissions collection: %v", err)
+	}
+
+	roleService, err := NewRoleService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create role service: %v", err)
+	}
+
+	permissionService, err := NewPermissionService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create permission service: %v", err)
+	}
 
 	return &RolePermissionService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.RolePermission](rolePermissionCollection),
-		roleService:          NewRoleService(),
-		permissionService:    NewPermissionService(),
-	}
+		roleService:          roleService,
+		permissionService:    permissionService,
+	}, nil
 }
 
 // Create tạo mới một quyền cho vai trò

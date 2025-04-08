@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"meta_commerce/app/global"
@@ -20,11 +21,15 @@ type AccessTokenService struct {
 }
 
 // NewAccessTokenService tạo mới AccessTokenService
-func NewAccessTokenService() *AccessTokenService {
-	accessTokenCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.AccessTokens)
+func NewAccessTokenService() (*AccessTokenService, error) {
+	accessTokenCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.AccessTokens)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get access_tokens collection: %v", err)
+	}
+
 	return &AccessTokenService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.AccessToken](accessTokenCollection),
-	}
+	}, nil
 }
 
 // IsNameExist kiểm tra tên access token có tồn tại hay không

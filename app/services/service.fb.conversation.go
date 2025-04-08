@@ -15,17 +15,35 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// FbConversationService là cấu trúc chứa các phương thức liên quan đến cuộc trò chuyện Facebook
+// FbConversationService là cấu trúc chứa các phương thức liên quan đến Facebook conversation
 type FbConversationService struct {
 	*BaseServiceMongoImpl[models.FbConversation]
+	fbPageService    *FbPageService
+	fbMessageService *FbMessageService
 }
 
 // NewFbConversationService tạo mới FbConversationService
-func NewFbConversationService() *FbConversationService {
-	fbConversationCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.FbConvesations)
+func NewFbConversationService() (*FbConversationService, error) {
+	fbConversationCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.FbConvesations)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get fb_conversations collection: %v", err)
+	}
+
+	fbPageService, err := NewFbPageService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create fb_page service: %v", err)
+	}
+
+	fbMessageService, err := NewFbMessageService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create fb_message service: %v", err)
+	}
+
 	return &FbConversationService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.FbConversation](fbConversationCollection),
-	}
+		fbPageService:        fbPageService,
+		fbMessageService:     fbMessageService,
+	}, nil
 }
 
 // IsConversationIdExist kiểm tra ID cuộc trò chuyện có tồn tại hay không

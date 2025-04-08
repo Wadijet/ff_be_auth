@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 
@@ -21,11 +22,19 @@ type FbPostHandler struct {
 // NewFbPostHandler khởi tạo một FiberFbPostHandler mới
 // Returns:
 //   - *FiberFbPostHandler: Instance mới của FiberFbPostHandler đã được khởi tạo với các service cần thiết
-func NewFbPostHandler() *FbPostHandler {
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewFbPostHandler() (*FbPostHandler, error) {
 	handler := &FbPostHandler{}
-	handler.FbPostService = services.NewFbPostService()
+
+	// Khởi tạo FbPostService và xử lý error
+	service, err := services.NewFbPostService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create post service: %v", err)
+	}
+	handler.FbPostService = service
 	handler.Service = handler.FbPostService
-	return handler
+
+	return handler, nil
 }
 
 // OTHER FUNCTIONS ==========================================================================

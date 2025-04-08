@@ -99,10 +99,20 @@ func initDatabase_MongoDB() {
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.FbPosts), models.FbPost{})
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcOrders), models.PcOrder{})
 
-	// gọi hàm khởi tạo các quyền mặc định
-	InitService := services.NewInitService()
-	InitService.InitPermission()
-	InitService.CheckPermissionForAdministrator()
+	// Khởi tạo InitService và xử lý error
+	initService, err := services.NewInitService()
+	if err != nil {
+		logrus.Fatalf("Failed to create init service: %v", err)
+	}
+
+	// Gọi hàm khởi tạo các quyền mặc định
+	if err := initService.InitPermission(); err != nil {
+		logrus.Fatalf("Failed to initialize permissions: %v", err)
+	}
+
+	if err := initService.CheckPermissionForAdministrator(); err != nil {
+		logrus.Fatalf("Failed to check administrator permissions: %v", err)
+	}
 }
 
 // initFiberApp khởi tạo ứng dụng Fiber với các middleware cần thiết

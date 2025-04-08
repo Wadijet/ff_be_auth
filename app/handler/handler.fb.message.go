@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 )
@@ -15,11 +16,19 @@ type FbMessageHandler struct {
 // NewFbMessageHandler khởi tạo một FiberFbMessageHandler mới
 // Returns:
 //   - *FiberFbMessageHandler: Instance mới của FiberFbMessageHandler đã được khởi tạo với các service cần thiết
-func NewFbMessageHandler() *FbMessageHandler {
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewFbMessageHandler() (*FbMessageHandler, error) {
 	handler := &FbMessageHandler{}
-	handler.FbMessageService = services.NewFbMessageService()
+
+	// Khởi tạo FbMessageService và xử lý error
+	service, err := services.NewFbMessageService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create message service: %v", err)
+	}
+	handler.FbMessageService = service
+
 	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng FbMessageService trực tiếp
-	return handler
+	return handler, nil
 }
 
 // Các phương thức được kế thừa từ FiberBaseHandler:

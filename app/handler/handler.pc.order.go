@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 )
@@ -18,11 +19,19 @@ type PcOrderHandler struct {
 // NewPcOrderHandler khởi tạo một FiberPcOrderHandler mới
 // Returns:
 //   - *FiberPcOrderHandler: Instance mới của FiberPcOrderHandler đã được khởi tạo với các service cần thiết
-func NewPcOrderHandler() *PcOrderHandler {
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewPcOrderHandler() (*PcOrderHandler, error) {
 	handler := &PcOrderHandler{}
-	handler.PcOrderService = services.NewPcOrderService()
+
+	// Khởi tạo PcOrderService và xử lý error
+	service, err := services.NewPcOrderService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create order service: %v", err)
+	}
+	handler.PcOrderService = service
+
 	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng PcOrderService trực tiếp
-	return handler
+	return handler, nil
 }
 
 // Các phương thức được kế thừa từ FiberBaseHandler:

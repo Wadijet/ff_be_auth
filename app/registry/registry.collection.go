@@ -1,3 +1,4 @@
+// Package registry cung cấp implementation của registry pattern cho MongoDB collections.
 package registry
 
 import (
@@ -7,6 +8,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// Collections là registry dùng để quản lý MongoDB collections
+var Collections = NewRegistry[*mongo.Collection]()
+
 // InitCollections khởi tạo và đăng ký tất cả các collection cần thiết
 // Parameters:
 //   - db: Client MongoDB
@@ -15,8 +19,6 @@ import (
 // Returns:
 //   - error: Lỗi nếu có
 func InitCollections(db *mongo.Client, cfg *config.Configuration) error {
-	registry := GetRegistry()
-
 	// Lấy database
 	database := db.Database(cfg.MongoDB_DBNameAuth)
 
@@ -39,7 +41,9 @@ func InitCollections(db *mongo.Client, cfg *config.Configuration) error {
 	// Đăng ký từng collection
 	for _, name := range collections {
 		collection := database.Collection(name)
-		registry.RegisterCollection(name, collection)
+		if err := Collections.Register(name, collection); err != nil {
+			return err
+		}
 	}
 
 	return nil

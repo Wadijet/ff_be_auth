@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"meta_commerce/app/global"
@@ -20,11 +21,15 @@ type AgentService struct {
 }
 
 // NewAgentService tạo mới AgentService
-func NewAgentService() *AgentService {
-	agentCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Agents)
+func NewAgentService() (*AgentService, error) {
+	agentCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.Agents)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agents collection: %v", err)
+	}
+
 	return &AgentService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.Agent](agentCollection),
-	}
+	}, nil
 }
 
 // CheckOnlineStatus kiểm tra tình trạng Online của tất cả các trợ lý

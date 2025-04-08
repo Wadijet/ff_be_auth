@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/registry"
@@ -12,9 +13,13 @@ type RoleService struct {
 }
 
 // NewRoleService tạo mới RoleService
-func NewRoleService() *RoleService {
-	roleCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Roles)
+func NewRoleService() (*RoleService, error) {
+	roleCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.Roles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get roles collection: %v", err)
+	}
+
 	return &RoleService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.Role](roleCollection),
-	}
+	}, nil
 }

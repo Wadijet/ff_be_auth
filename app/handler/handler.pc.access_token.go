@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 )
@@ -18,11 +19,19 @@ type AccessTokenHandler struct {
 // NewAccessTokenHandler tạo một instance mới của FiberAccessTokenHandler
 // Returns:
 //   - *FiberAccessTokenHandler: Instance mới của FiberAccessTokenHandler đã được khởi tạo với các service cần thiết
-func NewAccessTokenHandler() *AccessTokenHandler {
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewAccessTokenHandler() (*AccessTokenHandler, error) {
 	handler := &AccessTokenHandler{}
-	handler.AccessTokenService = services.NewAccessTokenService()
+
+	// Khởi tạo AccessTokenService và xử lý error
+	service, err := services.NewAccessTokenService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create access token service: %v", err)
+	}
+	handler.AccessTokenService = service
 	handler.Service = handler.AccessTokenService // Gán service cho BaseHandler
-	return handler
+
+	return handler, nil
 }
 
 // Các hàm đặc thù của AccessToken (nếu có) sẽ được thêm vào đây

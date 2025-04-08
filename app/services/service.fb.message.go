@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"meta_commerce/app/global"
@@ -18,14 +19,25 @@ import (
 // FbMessageService là cấu trúc chứa các phương thức liên quan đến tin nhắn Facebook
 type FbMessageService struct {
 	*BaseServiceMongoImpl[models.FbMessage]
+	fbPageService *FbPageService
 }
 
 // NewFbMessageService tạo mới FbMessageService
-func NewFbMessageService() *FbMessageService {
-	fbMessageCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.FbMessages)
+func NewFbMessageService() (*FbMessageService, error) {
+	fbMessageCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.FbMessages)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get fb_messages collection: %v", err)
+	}
+
+	fbPageService, err := NewFbPageService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create fb_page service: %v", err)
+	}
+
 	return &FbMessageService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.FbMessage](fbMessageCollection),
-	}
+		fbPageService:        fbPageService,
+	}, nil
 }
 
 // IsMessageExist kiểm tra tin nhắn có tồn tại hay không

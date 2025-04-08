@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
@@ -25,15 +26,22 @@ type UserService struct {
 }
 
 // NewUserService tạo mới UserService
-func NewUserService() *UserService {
-	// Lấy collections từ registry
-	userCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
-	userRoleCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.UserRoles)
+func NewUserService() (*UserService, error) {
+	// Lấy collections từ registry mới
+	userCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.Users)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users collection: %v", err)
+	}
+
+	userRoleCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.UserRoles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user_roles collection: %v", err)
+	}
 
 	return &UserService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.User](userCollection),
 		userRoleService:      NewBaseServiceMongo[models.UserRole](userRoleCollection),
-	}
+	}, nil
 }
 
 // IsEmailExist kiểm tra email có tồn tại hay không

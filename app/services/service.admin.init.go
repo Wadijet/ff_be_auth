@@ -23,14 +23,43 @@ type InitService struct {
 
 // NewInitService tạo mới một đối tượng InitService
 // Khởi tạo các service con cần thiết để xử lý các tác vụ liên quan
-func NewInitService() *InitService {
-	return &InitService{
-		userService:           NewUserService(),
-		roleService:           NewRoleService(),
-		permissionService:     NewPermissionService(),
-		rolePermissionService: NewRolePermissionService(),
-		userRoleService:       NewUserRoleService(),
+// Returns:
+//   - *InitService: Instance mới của InitService
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewInitService() (*InitService, error) {
+	// Khởi tạo các services
+	userService, err := NewUserService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user service: %v", err)
 	}
+
+	roleService, err := NewRoleService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create role service: %v", err)
+	}
+
+	permissionService, err := NewPermissionService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create permission service: %v", err)
+	}
+
+	rolePermissionService, err := NewRolePermissionService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create role permission service: %v", err)
+	}
+
+	userRoleService, err := NewUserRoleService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user role service: %v", err)
+	}
+
+	return &InitService{
+		userService:           userService,
+		roleService:           roleService,
+		permissionService:     permissionService,
+		rolePermissionService: rolePermissionService,
+		userRoleService:       userRoleService,
+	}, nil
 }
 
 // InitialPermissions định nghĩa danh sách các quyền mặc định của hệ thống
@@ -117,7 +146,9 @@ var InitialPermissions = []models.Permission{
 
 // InitPermission khởi tạo các quyền mặc định cho hệ thống
 // Chỉ tạo mới các quyền chưa tồn tại trong database
-func (h *InitService) InitPermission() {
+// Returns:
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func (h *InitService) InitPermission() error {
 	// Duyệt qua danh sách quyền mặc định
 	for _, permission := range InitialPermissions {
 		// Kiểm tra quyền đã tồn tại chưa
@@ -131,9 +162,13 @@ func (h *InitService) InitPermission() {
 
 		// Tạo mới quyền nếu chưa tồn tại
 		if err == utility.ErrNotFound {
-			h.permissionService.InsertOne(context.TODO(), permission)
+			_, err = h.permissionService.InsertOne(context.TODO(), permission)
+			if err != nil {
+				return fmt.Errorf("failed to insert permission %s: %v", permission.Name, err)
+			}
 		}
 	}
+	return nil
 }
 
 // InitRole khởi tạo vai trò Administrator mặc định

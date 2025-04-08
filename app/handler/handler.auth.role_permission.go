@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
@@ -42,12 +43,19 @@ type RolePermissionHandler struct {
 // NewRolePermissionHandler tạo một instance mới của FiberRolePermissionHandler
 // Returns:
 //   - *FiberRolePermissionHandler: Instance mới của FiberRolePermissionHandler đã được khởi tạo với RolePermissionService
-func NewRolePermissionHandler() *RolePermissionHandler {
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewRolePermissionHandler() (*RolePermissionHandler, error) {
+	// Khởi tạo RolePermissionService
+	rolePermissionService, err := services.NewRolePermissionService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create role permission service: %v", err)
+	}
+
 	handler := &RolePermissionHandler{
-		RolePermissionService: services.NewRolePermissionService(),
+		RolePermissionService: rolePermissionService,
 	}
 	handler.Service = handler.RolePermissionService
-	return handler
+	return handler, nil
 }
 
 // HandleUpdateRolePermissions xử lý cập nhật quyền cho vai trò

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"meta_commerce/app/global"
@@ -21,11 +22,15 @@ type PcOrderService struct {
 }
 
 // NewPcOrderService tạo mới PcOrderService
-func NewPcOrderService() *PcOrderService {
-	pcOrderCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.PcOrders)
-	return &PcOrderService{
-		BaseServiceMongoImpl: NewBaseServiceMongo[models.PcOrder](pcOrderCollection),
+func NewPcOrderService() (*PcOrderService, error) {
+	orderCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.PcOrders)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pc_orders collection: %v", err)
 	}
+
+	return &PcOrderService{
+		BaseServiceMongoImpl: NewBaseServiceMongo[models.PcOrder](orderCollection),
+	}, nil
 }
 
 // IsPancakeOrderIdExist kiểm tra ID đơn hàng Pancake có tồn tại hay không

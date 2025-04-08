@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/registry"
@@ -24,23 +25,41 @@ type AdminHandler struct {
 // NewAdminHandler tạo một instance mới của FiberAdminHandler
 // Returns:
 //   - *FiberAdminHandler: Instance mới của FiberAdminHandler đã được khởi tạo với các service cần thiết
-func NewAdminHandler() *AdminHandler {
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewAdminHandler() (*AdminHandler, error) {
 	handler := &AdminHandler{}
 
 	// Khởi tạo các collection từ registry
-	userCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
-	permissionCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Permissions)
-	roleCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Roles)
+	userCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Users)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users collection: %v", err)
+	}
+
+	permissionCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Permissions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get permissions collection: %v", err)
+	}
+
+	roleCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Roles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get roles collection: %v", err)
+	}
 
 	// Khởi tạo các service với BaseService
 	handler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
 	handler.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
 	handler.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
-	handler.AdminService = *services.NewAdminService()
+
+	// Khởi tạo AdminService và xử lý error
+	adminService, err := services.NewAdminService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create admin service: %v", err)
+	}
+	handler.AdminService = *adminService
 
 	// Gán UserCRUD cho BaseHandler
 	handler.Service = handler.UserCRUD
-	return handler
+	return handler, nil
 }
 
 // SetRoleInput là cấu trúc dữ liệu đầu vào cho việc thiết lập vai trò người dùng

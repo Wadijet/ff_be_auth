@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/registry"
@@ -10,33 +11,56 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// InitHandler xử lý các route liên quan đến khởi tạo hệ thống cho Fiber
-// Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
+// InitHandler xử lý các route liên quan đến khởi tạo hệ thống
+// Kế thừa từ BaseHandler để có các chức năng CRUD cơ bản
 type InitHandler struct {
-	BaseHandler[interface{}, interface{}, interface{}]
-	UserCRUD       services.BaseServiceMongo[models.User]
-	PermissionCRUD services.BaseServiceMongo[models.Permission]
-	RoleCRUD       services.BaseServiceMongo[models.Role]
-	InitService    services.InitService
+	*BaseHandler[interface{}, interface{}, interface{}]
+	userCRUD       services.BaseServiceMongo[models.User]
+	permissionCRUD services.BaseServiceMongo[models.Permission]
+	roleCRUD       services.BaseServiceMongo[models.Role]
+	initService    *services.InitService
 }
 
-// NewInitHandler tạo một instance mới của FiberInitHandler
+// NewInitHandler tạo một instance mới của InitHandler
 // Returns:
-//   - *FiberInitHandler: Instance mới của FiberInitHandler đã được khởi tạo với các service cần thiết
-func NewInitHandler() *InitHandler {
+//   - *InitHandler: Instance mới của InitHandler
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewInitHandler() (*InitHandler, error) {
 	handler := &InitHandler{}
 
-	// Khởi tạo các collection từ registry
-	userCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Users)
-	permissionCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Permissions)
-	roleCol := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Roles)
+	// Khởi tạo base handler
+	baseHandler := &BaseHandler[interface{}, interface{}, interface{}]{}
+	handler.BaseHandler = baseHandler
 
-	// Khởi tạo các service với BaseService
-	handler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
-	handler.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
-	handler.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
-	handler.InitService = *services.NewInitService()
-	return handler
+	// Lấy các collection từ registry
+	userCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Users)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users collection: %v", err)
+	}
+
+	permissionCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Permissions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get permissions collection: %v", err)
+	}
+
+	roleCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Roles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get roles collection: %v", err)
+	}
+
+	// Khởi tạo các service
+	handler.userCRUD = services.NewBaseServiceMongo[models.User](userCol)
+	handler.permissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
+	handler.roleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
+
+	// Khởi tạo InitService
+	initService, err := services.NewInitService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create init service: %v", err)
+	}
+	handler.initService = initService
+
+	return handler, nil
 }
 
 // HandleSetAdministrator xử lý tạo người dùng quản trị hệ thống
@@ -45,9 +69,6 @@ func NewInitHandler() *InitHandler {
 //
 // Returns:
 //   - error: Lỗi nếu có
-//
-// Path Params:
-//   - id: ID của người dùng cần set làm admin
 //
 // Response:
 //   - 200: Thiết lập admin thành công
@@ -72,7 +93,7 @@ func (h *InitHandler) HandleSetAdministrator(c fiber.Ctx) error {
 		return nil
 	}
 
-	result, err := h.InitService.SetAdministrator(utility.String2ObjectID(id))
+	result, err := h.initService.SetAdministrator(utility.String2ObjectID(id))
 	h.HandleResponse(c, result, err)
 	return nil
 }

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"meta_commerce/app/global"
@@ -15,17 +16,21 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// FbPageService là cấu trúc chứa các phương thức liên quan đến trang Facebook
+// FbPageService là cấu trúc chứa các phương thức liên quan đến Facebook page
 type FbPageService struct {
 	*BaseServiceMongoImpl[models.FbPage]
 }
 
 // NewFbPageService tạo mới FbPageService
-func NewFbPageService() *FbPageService {
-	fbPageCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.FbPages)
+func NewFbPageService() (*FbPageService, error) {
+	fbPageCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.FbPages)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get fb_pages collection: %v", err)
+	}
+
 	return &FbPageService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.FbPage](fbPageCollection),
-	}
+	}, nil
 }
 
 // IsPageExist kiểm tra trang Facebook có tồn tại hay không

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 
@@ -21,11 +22,19 @@ type FbPageHandler struct {
 // NewFbPageHandler khởi tạo một FiberFbPageHandler mới
 // Returns:
 //   - *FiberFbPageHandler: Instance mới của FiberFbPageHandler đã được khởi tạo với các service cần thiết
-func NewFbPageHandler() *FbPageHandler {
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewFbPageHandler() (*FbPageHandler, error) {
 	handler := &FbPageHandler{}
-	handler.FbPageService = services.NewFbPageService()
+
+	// Khởi tạo FbPageService và xử lý error
+	service, err := services.NewFbPageService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create page service: %v", err)
+	}
+	handler.FbPageService = service
 	handler.Service = handler.FbPageService
-	return handler
+
+	return handler, nil
 }
 
 // OTHER FUNCTIONS ==========================================================================

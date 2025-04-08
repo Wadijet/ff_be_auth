@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
@@ -9,21 +10,33 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// AgentHandler xử lý các route liên quan đến đại lý cho Fiber
-// Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
+// AgentHandler xử lý các route liên quan đến đại lý
+// Kế thừa từ BaseHandler để có các chức năng CRUD cơ bản
 type AgentHandler struct {
-	BaseHandler[models.Agent, models.AgentCreateInput, models.AgentUpdateInput]
-	AgentService *services.AgentService
+	*BaseHandler[models.Agent, models.AgentCreateInput, models.AgentUpdateInput]
+	agentService *services.AgentService
 }
 
-// NewAgentHandler tạo một instance mới của FiberAgentHandler
+// NewAgentHandler tạo một instance mới của AgentHandler
 // Returns:
-//   - *FiberAgentHandler: Instance mới của FiberAgentHandler đã được khởi tạo với các service cần thiết
-func NewAgentHandler() *AgentHandler {
+//   - *AgentHandler: Instance mới của AgentHandler
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewAgentHandler() (*AgentHandler, error) {
 	handler := &AgentHandler{}
-	handler.AgentService = services.NewAgentService()
-	handler.Service = handler.AgentService // Gán service cho BaseHandler
-	return handler
+
+	// Khởi tạo base handler
+	baseHandler := &BaseHandler[models.Agent, models.AgentCreateInput, models.AgentUpdateInput]{}
+	handler.BaseHandler = baseHandler
+
+	// Khởi tạo agent service
+	agentService, err := services.NewAgentService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create agent service: %v", err)
+	}
+	handler.agentService = agentService
+	handler.Service = agentService // Gán service cho BaseHandler
+
+	return handler, nil
 }
 
 // HandleCheckIn xử lý check-in cho Agent
@@ -32,9 +45,6 @@ func NewAgentHandler() *AgentHandler {
 //
 // Returns:
 //   - error: Lỗi nếu có
-//
-// Path Params:
-//   - userId: ID của agent cần check-in
 //
 // Response:
 //   - 200: Check-in thành công
@@ -51,14 +61,14 @@ func NewAgentHandler() *AgentHandler {
 //   - 404: Không tìm thấy agent
 //   - 500: Lỗi server
 func (h *AgentHandler) HandleCheckIn(c fiber.Ctx) error {
-	userId := c.Locals("userId")
-	if userId == nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+	userID := c.Locals("user_id")
+	if userID == nil {
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuth, "User not authenticated", utility.StatusUnauthorized, nil))
 		return nil
 	}
 
-	strMyID := userId.(string)
-	result, err := h.AgentService.CheckIn(context.Background(), utility.String2ObjectID(strMyID))
+	objID := utility.String2ObjectID(userID.(string))
+	result, err := h.agentService.CheckIn(context.Background(), objID)
 	h.HandleResponse(c, result, err)
 	return nil
 }
@@ -69,9 +79,6 @@ func (h *AgentHandler) HandleCheckIn(c fiber.Ctx) error {
 //
 // Returns:
 //   - error: Lỗi nếu có
-//
-// Path Params:
-//   - userId: ID của agent cần check-out
 //
 // Response:
 //   - 200: Check-out thành công
@@ -88,14 +95,14 @@ func (h *AgentHandler) HandleCheckIn(c fiber.Ctx) error {
 //   - 404: Không tìm thấy agent
 //   - 500: Lỗi server
 func (h *AgentHandler) HandleCheckOut(c fiber.Ctx) error {
-	userId := c.Locals("userId")
-	if userId == nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+	userID := c.Locals("user_id")
+	if userID == nil {
+		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuth, "User not authenticated", utility.StatusUnauthorized, nil))
 		return nil
 	}
 
-	strMyID := userId.(string)
-	result, err := h.AgentService.CheckOut(context.Background(), utility.String2ObjectID(strMyID))
+	objID := utility.String2ObjectID(userID.(string))
+	result, err := h.agentService.CheckOut(context.Background(), objID)
 	h.HandleResponse(c, result, err)
 	return nil
 }

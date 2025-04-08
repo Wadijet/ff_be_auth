@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
@@ -38,10 +39,18 @@ type PermissionHandler struct {
 // NewPermissionHandler tạo một instance mới của FiberPermissionHandler
 // Returns:
 //   - *FiberPermissionHandler: Instance mới của FiberPermissionHandler đã được khởi tạo với PermissionService
-func NewPermissionHandler() *PermissionHandler {
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewPermissionHandler() (*PermissionHandler, error) {
 	handler := &PermissionHandler{}
-	handler.Service = services.NewPermissionService()
-	return handler
+
+	// Khởi tạo PermissionService
+	permissionService, err := services.NewPermissionService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create permission service: %v", err)
+	}
+
+	handler.Service = permissionService
+	return handler, nil
 }
 
 // HandleCreatePermission xử lý tạo mới permission

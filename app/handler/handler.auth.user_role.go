@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
 )
@@ -36,12 +37,19 @@ type UserRoleHandler struct {
 // NewUserRoleHandler tạo một instance mới của FiberUserRoleHandler
 // Returns:
 //   - *FiberUserRoleHandler: Instance mới của FiberUserRoleHandler đã được khởi tạo với UserRoleService
-func NewUserRoleHandler() *UserRoleHandler {
+//   - error: Lỗi nếu có trong quá trình khởi tạo
+func NewUserRoleHandler() (*UserRoleHandler, error) {
+	// Khởi tạo UserRoleService
+	userRoleService, err := services.NewUserRoleService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user role service: %v", err)
+	}
+
 	handler := &UserRoleHandler{
-		UserRoleService: services.NewUserRoleService(),
+		UserRoleService: userRoleService,
 	}
 	handler.Service = handler.UserRoleService
-	return handler
+	return handler, nil
 }
 
 // Các hàm đặc thù của UserRole (nếu có) sẽ được thêm vào đây

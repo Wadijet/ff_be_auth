@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"meta_commerce/app/handler"
 	"meta_commerce/app/middleware"
 
@@ -99,13 +100,32 @@ func registerCRUDRoutes(router fiber.Router, prefix string, handler interface{},
 }
 
 // registerAuthRoutes đăng ký các route cho authentication
-func registerAuthRoutes(router fiber.Router) {
+func registerAuthRoutes(router fiber.Router) error {
 	// Khởi tạo các handler
-	permissionHandler := handler.NewPermissionHandler()
-	roleHandler := handler.NewRoleHandler()
-	rolePermissionHandler := handler.NewRolePermissionHandler()
-	userRoleHandler := handler.NewUserRoleHandler()
-	userHandler := handler.NewUserHandler()
+	permissionHandler, err := handler.NewPermissionHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create permission handler: %v", err)
+	}
+
+	roleHandler, err := handler.NewRoleHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create role handler: %v", err)
+	}
+
+	rolePermissionHandler, err := handler.NewRolePermissionHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create role permission handler: %v", err)
+	}
+
+	userRoleHandler, err := handler.NewUserRoleHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create user role handler: %v", err)
+	}
+
+	userHandler, err := handler.NewUserHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create user handler: %v", err)
+	}
 
 	// Route đặc biệt cho user
 	userGroup := router.Group("/users")
@@ -114,8 +134,8 @@ func registerAuthRoutes(router fiber.Router) {
 	userGroup.Post("/register", userHandler.HandleRegister)
 	// Route cần xác thực
 	userGroup.Use(middleware.AuthMiddleware("")).Post("/logout", userHandler.HandleLogout)
-	userGroup.Use(middleware.AuthMiddleware("")).Get("/profile", userHandler.HandleGetMyInfo)
-	userGroup.Use(middleware.AuthMiddleware("")).Put("/profile", userHandler.HandleChangeInfo)
+	userGroup.Use(middleware.AuthMiddleware("")).Get("/profile", userHandler.HandleGetProfile)
+	userGroup.Use(middleware.AuthMiddleware("")).Put("/profile", userHandler.HandleUpdateProfile)
 	userGroup.Use(middleware.AuthMiddleware("")).Put("/change-password", userHandler.HandleChangePassword)
 
 	// Tạo group riêng cho các route CRUD
@@ -126,19 +146,37 @@ func registerAuthRoutes(router fiber.Router) {
 	registerCRUDRoutes(crudGroup, "/role-permissions", rolePermissionHandler, "RolePermission")
 	registerCRUDRoutes(crudGroup, "/user-roles", userRoleHandler, "UserRole")
 	registerCRUDRoutes(crudGroup, "/users", userHandler, "User")
+
+	return nil
 }
 
 // SetupRoutes thiết lập tất cả các route cho ứng dụng
-func SetupRoutes(app *fiber.App) {
+func SetupRoutes(app *fiber.App) error {
 	// Khởi tạo route prefix
 	prefix := NewRoutePrefix()
 
 	// Khởi tạo các handler
 	staticHandler := handler.NewStaticHandler()
-	fbConversationHandler := handler.NewFbConversationHandler()
-	fbPostHandler := handler.NewFbPostHandler()
-	fbPageHandler := handler.NewFbPageHandler()
-	adminInitHandler := handler.NewInitHandler()
+
+	fbConversationHandler, err := handler.NewFbConversationHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create conversation handler: %v", err)
+	}
+
+	fbPostHandler, err := handler.NewFbPostHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create post handler: %v", err)
+	}
+
+	fbPageHandler, err := handler.NewFbPageHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create page handler: %v", err)
+	}
+
+	adminInitHandler, err := handler.NewInitHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create init handler: %v", err)
+	}
 
 	// API v1 routes
 	v1 := app.Group(prefix.V1)
@@ -147,7 +185,9 @@ func SetupRoutes(app *fiber.App) {
 	v1.Post("/admin/init", adminInitHandler.HandleSetAdministrator)
 
 	// Auth routes
-	registerAuthRoutes(v1)
+	if err := registerAuthRoutes(v1); err != nil {
+		return fmt.Errorf("failed to register auth routes: %v", err)
+	}
 
 	// Static routes
 	v1.Get("/static/test", staticHandler.HandleTestApi)
@@ -166,4 +206,6 @@ func SetupRoutes(app *fiber.App) {
 	v1.Use(middleware.AuthMiddleware("Facebook.Update")).Put("/posts/token", fbPostHandler.HandleUpdateToken)
 	v1.Use(middleware.AuthMiddleware("Facebook.Read")).Get("/pages/:id", fbPageHandler.HandleFindOneByPageID)
 	v1.Use(middleware.AuthMiddleware("Facebook.Update")).Put("/pages/token", fbPageHandler.HandleUpdateToken)
+
+	return nil
 }

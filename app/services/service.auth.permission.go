@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/registry"
@@ -12,9 +13,13 @@ type PermissionService struct {
 }
 
 // NewPermissionService tạo mới PermissionService
-func NewPermissionService() *PermissionService {
-	permissionCollection := registry.GetRegistry().MustGetCollection(global.MongoDB_ColNames.Permissions)
+func NewPermissionService() (*PermissionService, error) {
+	permissionCollection, err := registry.Collections.MustGet(global.MongoDB_ColNames.Permissions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get permissions collection: %v", err)
+	}
+
 	return &PermissionService{
 		BaseServiceMongoImpl: NewBaseServiceMongo[models.Permission](permissionCollection),
-	}
+	}, nil
 }
