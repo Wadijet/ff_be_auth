@@ -1,0 +1,127 @@
+# Pipeline Definitions
+pipelines:
+  user_sync:
+    name: "User Sync Pipeline"
+    description: "Đồng bộ dữ liệu user từ external system"
+    version: "1.0"
+    owner: "team_auth"
+    
+    # Cấu hình Source
+    source:
+      type: "rest_api"
+      config:
+        url: "https://api.example.com/users"
+        method: "GET"
+        headers:
+          Authorization: "Bearer ${ENV_EXTERNAL_API_TOKEN}"
+        timeout: "30s"
+        retry:
+          max_attempts: 3
+          backoff: "5s"
+    
+    # Cấu hình Transform
+    transform:
+      - name: "validate_input"
+        type: "json_schema"
+        config:
+          required: ["id", "name", "email"]
+          properties:
+            id:
+              type: "string"
+            name:
+              type: "string"
+              minLength: 2
+            email:
+              type: "string"
+              format: "email"
+      
+      - name: "map_fields"
+        type: "field_mapper"
+        config:
+          mappings:
+            - source: "id"
+              target: "external_id"
+              type: "string"
+            - source: "name"
+              target: "full_name"
+              type: "string"
+            - source: "email"
+              target: "email"
+              type: "string"
+            - source: "age"
+              target: "age"
+              type: "number"
+            - source: "is_active"
+              target: "active"
+              type: "boolean"
+      
+      - name: "enrich_data"
+        type: "custom"
+        config:
+          add_fields:
+            - name: "sync_timestamp"
+              value: "${NOW}"
+            - name: "source_system"
+              value: "external_api"
+    
+    # Cấu hình Destination
+    destination:
+      type: "internal_api"
+      config:
+        url: "http://localhost:8080/api/users/sync"
+        method: "POST"
+        headers:
+          X-API-Key: "${ENV_INTERNAL_API_KEY}"
+          Content-Type: "application/json"
+        timeout: "30s"
+        batch_size: 100
+    
+    # Cấu hình Schedule
+    schedule:
+      - name: "frequent_sync"
+        cron: "*/5 * * * *"  # Mỗi 5 phút
+        enabled: true
+        timeout: "10m"
+      - name: "daily_full_sync"
+        cron: "0 0 * * *"    # 00:00 mỗi ngày
+        enabled: true
+        timeout: "30m"
+    
+    # Cấu hình Error Handling
+    error_handling:
+      retry:
+        max_attempts: 3
+        backoff: "1m"
+      on_error:
+        - action: "log"
+          level: "error"
+        - action: "notify"
+          channel: "slack"
+          template: "Pipeline {{.Name}} failed: {{.Error}}"
+    
+    # Cấu hình Validation
+    validation:
+      pre_conditions:
+        - check: "source_available"
+          timeout: "5s"
+        - check: "destination_available"
+          timeout: "5s"
+      post_conditions:
+        - check: "record_count_match"
+          params:
+            min_records: 1
+        - check: "required_fields_present"
+          params:
+            fields: ["external_id", "full_name", "email"]
+    
+    # Cấu hình Monitoring
+    monitoring:
+      metrics:
+        - name: "records_processed"
+          type: "counter"
+        - name: "processing_time"
+          type: "histogram"
+      alerts:
+        - name: "high_error_rate"
+          condition: "error_rate > 0.1"
+          channels: ["slack"] 
