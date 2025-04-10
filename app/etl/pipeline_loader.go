@@ -1,252 +1,198 @@
 package etl
 
 import (
-	"fmt"
-	"io/ioutil"
 	"meta_commerce/app/etl/dest"
 	"meta_commerce/app/etl/source"
 	"meta_commerce/app/etl/transform"
-	"meta_commerce/app/etl/types"
-	"os"
-	"strings"
-	"time"
-
 	"meta_commerce/app/registry"
-
-	"gopkg.in/yaml.v3"
+	"time"
 )
 
-// PipelineConfig chứa cấu hình đầy đủ cho một pipeline
-type PipelineConfig struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
-	Version     string `yaml:"version"`
-	Owner       string `yaml:"owner"`
-
-	Source      SourceConfig      `yaml:"source"`
-	Transform   []TransformConfig `yaml:"transform"`
-	Destination DestConfig        `yaml:"destination"`
-	Schedule    []ScheduleConfig  `yaml:"schedule"`
-	Validation  ValidationConfig  `yaml:"validation"`
+// PipelineBuilder giúp tạo pipeline một cách dễ dàng
+type PipelineBuilder struct {
+	registry *registry.ETLRegistry
 }
 
-// SourceConfig cấu hình cho source
-type SourceConfig struct {
-	Type   string                 `yaml:"type"`
-	Config map[string]interface{} `yaml:"config"`
-}
-
-// TransformConfig cấu hình cho một bước transform
-type TransformConfig struct {
-	Name   string                 `yaml:"name"`
-	Type   string                 `yaml:"type"`
-	Config map[string]interface{} `yaml:"config"`
-}
-
-// DestConfig cấu hình cho destination
-type DestConfig struct {
-	Type   string                 `yaml:"type"`
-	Config map[string]interface{} `yaml:"config"`
-}
-
-// ScheduleConfig cấu hình lịch chạy
-type ScheduleConfig struct {
-	Name    string        `yaml:"name"`
-	Cron    string        `yaml:"cron"`
-	Enabled bool          `yaml:"enabled"`
-	Timeout time.Duration `yaml:"timeout"`
-}
-
-// ValidationConfig cấu hình validation
-type ValidationConfig struct {
-	PreConditions  []ValidationCheck `yaml:"pre_conditions"`
-	PostConditions []ValidationCheck `yaml:"post_conditions"`
-}
-
-// ValidationCheck cấu hình một validation check
-type ValidationCheck struct {
-	Check   string                 `yaml:"check"`
-	Timeout string                 `yaml:"timeout"`
-	Params  map[string]interface{} `yaml:"params"`
-}
-
-// PipelineLoader load và khởi tạo pipeline từ config
-type PipelineLoader struct {
-	configPath string
-	registry   *registry.ETLRegistry
-}
-
-// NewPipelineLoader tạo một instance mới của PipelineLoader
-func NewPipelineLoader(configPath string) *PipelineLoader {
-	return &PipelineLoader{
-		configPath: configPath,
-		registry:   registry.GetETLRegistry(),
+// NewPipelineBuilder tạo một instance mới của PipelineBuilder
+func NewPipelineBuilder() *PipelineBuilder {
+	return &PipelineBuilder{
+		registry: registry.GetETLRegistry(),
 	}
 }
 
-// LoadPipeline load pipeline từ file config
-func (l *PipelineLoader) LoadPipeline(name string) (*Pipeline, error) {
-	// Đọc file config
-	data, err := ioutil.ReadFile(l.configPath)
+// BuildAllPipelines tạo tất cả các pipelines được định nghĩa
+func (b *PipelineBuilder) BuildAllPipelines() ([]*Pipeline, error) {
+	var pipelines []*Pipeline
+
+	// 1. User Sync Pipeline
+	userPipeline, err := b.BuildUserSyncPipeline()
 	if err != nil {
-		return nil, fmt.Errorf("lỗi đọc file config: %v", err)
+		return nil, err
 	}
+	pipelines = append(pipelines, userPipeline)
 
-	// Parse YAML
-	var config struct {
-		Pipelines map[string]PipelineConfig `yaml:"pipelines"`
-	}
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("lỗi parse YAML: %v", err)
-	}
-
-	// Lấy config của pipeline cần load
-	pipelineConfig, exists := config.Pipelines[name]
-	if !exists {
-		return nil, fmt.Errorf("không tìm thấy pipeline %s", name)
-	}
-
-	// 1. Tạo source từ registry
-	src, err := l.registry.CreateSource(pipelineConfig.Source.Type, pipelineConfig.Source.Config)
+	// 2. Order Sync Pipeline
+	orderPipeline, err := b.BuildOrderSyncPipeline()
 	if err != nil {
-		return nil, fmt.Errorf("lỗi tạo source: %v", err)
+		return nil, err
 	}
+	pipelines = append(pipelines, orderPipeline)
 
-	// 2. Tạo transformer từ registry
-	var transformer types.Transformer
-	for _, config := range pipelineConfig.Transform {
-		if config.Type == "field_mapper" {
-			transformer, err = l.registry.CreateTransformer(config.Type, config.Config)
-			if err != nil {
-				return nil, fmt.Errorf("lỗi tạo transformer: %v", err)
-			}
-			break
-		}
-	}
-	if transformer == nil {
-		return nil, fmt.Errorf("không tìm thấy field mapper trong config")
-	}
-
-	// 3. Tạo destination từ registry
-	dst, err := l.registry.CreateDestination(pipelineConfig.Destination.Type, pipelineConfig.Destination.Config)
+	// 3. Product Sync Pipeline
+	productPipeline, err := b.BuildProductSyncPipeline()
 	if err != nil {
-		return nil, fmt.Errorf("lỗi tạo destination: %v", err)
+		return nil, err
 	}
+	pipelines = append(pipelines, productPipeline)
 
-	// 4. Tạo pipeline
-	pipeline, err := NewPipeline(src, transformer, dst)
-	if err != nil {
-		return nil, fmt.Errorf("lỗi tạo pipeline: %v", err)
-	}
-
-	return pipeline, nil
+	return pipelines, nil
 }
 
-// createSource tạo source component từ config
-func (l *PipelineLoader) createSource(config SourceConfig) (types.DataSource, error) {
-	switch config.Type {
-	case "rest_api":
-		// Parse config
-		url := config.Config["url"].(string)
-		timeout := config.Config["timeout"].(string)
-		timeoutDuration, err := time.ParseDuration(timeout)
-		if err != nil {
-			return nil, fmt.Errorf("lỗi parse timeout: %v", err)
-		}
-
-		// Xử lý environment variables trong headers
-		headers := make(map[string]string)
-		if headersConfig, ok := config.Config["headers"].(map[string]interface{}); ok {
-			for k, v := range headersConfig {
-				value := v.(string)
-				if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
-					envVar := strings.TrimSuffix(strings.TrimPrefix(value, "${"), "}")
-					value = os.Getenv(envVar)
-				}
-				headers[k] = value
-			}
-		}
-
-		// Tạo source config
-		sourceConfig := source.RestConfig{
-			URL:     url,
-			Method:  config.Config["method"].(string),
-			Headers: headers,
-			Timeout: timeoutDuration,
-		}
-
-		return source.NewRestApiSource(sourceConfig)
-
-	default:
-		return nil, fmt.Errorf("không hỗ trợ source type: %s", config.Type)
+// BuildUserSyncPipeline tạo một pipeline đồng bộ user
+func (b *PipelineBuilder) BuildUserSyncPipeline() (*Pipeline, error) {
+	// 1. Tạo REST API source
+	sourceConfig := source.RestConfig{
+		URL: "https://api.example.com/users",
+		Headers: map[string]string{
+			"Authorization": "Bearer your-token",
+		},
+		Method:  "GET",
+		Timeout: 30 * time.Second,
 	}
+	src, err := b.registry.CreateSource("rest_api", sourceConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Tạo Field Mapper transformer
+	transformConfig := transform.MapperConfig{
+		Mappings: []transform.FieldMapping{
+			{Source: "id", Target: "external_id", Type: "string"},
+			{Source: "name", Target: "full_name", Type: "string"},
+			{Source: "email", Target: "email", Type: "string"},
+		},
+	}
+	transformer, err := b.registry.CreateTransformer("field_mapper", transformConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Tạo Internal API destination
+	destConfig := dest.InternalAPIConfig{
+		URL: "http://localhost:8080/api/users/sync",
+		Headers: map[string]string{
+			"X-API-Key":    "your-internal-key",
+			"Content-Type": "application/json",
+		},
+		Method:  "POST",
+		Timeout: 30 * time.Second,
+	}
+	dst, err := b.registry.CreateDestination("internal_api", destConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Tạo và trả về pipeline
+	return NewPipeline(src, transformer, dst)
 }
 
-// createTransformer tạo transformer từ config
-func (l *PipelineLoader) createTransformer(configs []TransformConfig) (types.Transformer, error) {
-	// Hiện tại chỉ hỗ trợ field mapper
-	for _, config := range configs {
-		if config.Type == "field_mapper" {
-			// Parse mappings
-			var mappings []transform.FieldMapping
-			mappingsConfig := config.Config["mappings"].([]interface{})
-			for _, m := range mappingsConfig {
-				mapping := m.(map[string]interface{})
-				mappings = append(mappings, transform.FieldMapping{
-					Source: mapping["source"].(string),
-					Target: mapping["target"].(string),
-					Type:   mapping["type"].(string),
-				})
-			}
-
-			// Tạo transformer config
-			transformerConfig := transform.MapperConfig{
-				Mappings: mappings,
-			}
-
-			return transform.NewFieldMapper(transformerConfig)
-		}
+// BuildOrderSyncPipeline tạo một pipeline đồng bộ order
+func (b *PipelineBuilder) BuildOrderSyncPipeline() (*Pipeline, error) {
+	// 1. Tạo REST API source
+	sourceConfig := source.RestConfig{
+		URL: "https://api.example.com/orders",
+		Headers: map[string]string{
+			"Authorization": "Bearer your-token",
+		},
+		Method:  "GET",
+		Timeout: 30 * time.Second,
+	}
+	src, err := b.registry.CreateSource("rest_api", sourceConfig)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("không tìm thấy field mapper trong config")
+	// 2. Tạo Field Mapper transformer
+	transformConfig := transform.MapperConfig{
+		Mappings: []transform.FieldMapping{
+			{Source: "id", Target: "external_id", Type: "string"},
+			{Source: "order_number", Target: "order_number", Type: "string"},
+			{Source: "total_amount", Target: "amount", Type: "float"},
+			{Source: "status", Target: "status", Type: "string"},
+			{Source: "created_at", Target: "order_date", Type: "datetime"},
+		},
+	}
+	transformer, err := b.registry.CreateTransformer("field_mapper", transformConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Tạo Internal API destination
+	destConfig := dest.InternalAPIConfig{
+		URL: "http://localhost:8080/api/orders/sync",
+		Headers: map[string]string{
+			"X-API-Key":    "your-internal-key",
+			"Content-Type": "application/json",
+		},
+		Method:  "POST",
+		Timeout: 30 * time.Second,
+	}
+	dst, err := b.registry.CreateDestination("internal_api", destConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Tạo và trả về pipeline
+	return NewPipeline(src, transformer, dst)
 }
 
-// createDestination tạo destination từ config
-func (l *PipelineLoader) createDestination(config DestConfig) (types.Destination, error) {
-	switch config.Type {
-	case "internal_api":
-		// Parse config
-		url := config.Config["url"].(string)
-		timeout := config.Config["timeout"].(string)
-		timeoutDuration, err := time.ParseDuration(timeout)
-		if err != nil {
-			return nil, fmt.Errorf("lỗi parse timeout: %v", err)
-		}
-
-		// Xử lý environment variables trong headers
-		headers := make(map[string]string)
-		if headersConfig, ok := config.Config["headers"].(map[string]interface{}); ok {
-			for k, v := range headersConfig {
-				value := v.(string)
-				if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
-					envVar := strings.TrimSuffix(strings.TrimPrefix(value, "${"), "}")
-					value = os.Getenv(envVar)
-				}
-				headers[k] = value
-			}
-		}
-
-		// Tạo destination config
-		destConfig := dest.InternalAPIConfig{
-			URL:     url,
-			Method:  config.Config["method"].(string),
-			Headers: headers,
-			Timeout: timeoutDuration,
-		}
-
-		return dest.NewInternalAPIDestination(destConfig)
-
-	default:
-		return nil, fmt.Errorf("không hỗ trợ destination type: %s", config.Type)
+// BuildProductSyncPipeline tạo một pipeline đồng bộ product
+func (b *PipelineBuilder) BuildProductSyncPipeline() (*Pipeline, error) {
+	// 1. Tạo REST API source
+	sourceConfig := source.RestConfig{
+		URL: "https://api.example.com/products",
+		Headers: map[string]string{
+			"Authorization": "Bearer your-token",
+		},
+		Method:  "GET",
+		Timeout: 30 * time.Second,
 	}
+	src, err := b.registry.CreateSource("rest_api", sourceConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Tạo Field Mapper transformer
+	transformConfig := transform.MapperConfig{
+		Mappings: []transform.FieldMapping{
+			{Source: "id", Target: "external_id", Type: "string"},
+			{Source: "name", Target: "product_name", Type: "string"},
+			{Source: "description", Target: "description", Type: "string"},
+			{Source: "price", Target: "price", Type: "float"},
+			{Source: "stock", Target: "quantity", Type: "integer"},
+			{Source: "category", Target: "category", Type: "string"},
+		},
+	}
+	transformer, err := b.registry.CreateTransformer("field_mapper", transformConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Tạo Internal API destination
+	destConfig := dest.InternalAPIConfig{
+		URL: "http://localhost:8080/api/products/sync",
+		Headers: map[string]string{
+			"X-API-Key":    "your-internal-key",
+			"Content-Type": "application/json",
+		},
+		Method:  "POST",
+		Timeout: 30 * time.Second,
+	}
+	dst, err := b.registry.CreateDestination("internal_api", destConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Tạo và trả về pipeline
+	return NewPipeline(src, transformer, dst)
 }

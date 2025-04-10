@@ -9,45 +9,74 @@ import (
 	"syscall"
 )
 
-// ExampleConfigPipeline demo việc chạy pipeline từ config
+// ExampleConfigPipeline demo việc chạy pipeline từ code
 func ExampleConfigPipeline() {
-	// 1. Khởi tạo pipeline loader
-	loader := etl.NewPipelineLoader("app/etl/pipeline_config.yaml")
+	// 1. Khởi tạo pipeline builder
+	builder := etl.NewPipelineBuilder()
 
-	// 2. Load pipeline từ config
-	pipeline, err := loader.LoadPipeline("user_sync")
+	// 2. Build tất cả pipelines
+	pipelines, err := builder.BuildAllPipelines()
 	if err != nil {
-		log.Fatalf("Lỗi load pipeline: %v", err)
+		log.Fatalf("Lỗi build pipelines: %v", err)
 	}
 
 	// 3. Khởi tạo scheduler
 	sch := scheduler.NewScheduler()
 
-	// 4. Thêm các jobs từ config
-	jobConfigs := []scheduler.JobConfig{
-		{
-			Name:     "user_sync_5m",
-			Schedule: "*/5 * * * *",
-			Enabled:  true,
+	// 4. Thêm các jobs cho từng pipeline
+	jobConfigs := map[string][]scheduler.JobConfig{
+		"user_sync": {
+			{
+				Name:     "user_sync_5m",
+				Schedule: "*/5 * * * *",
+				Enabled:  true,
+			},
+			{
+				Name:     "user_sync_daily",
+				Schedule: "0 0 * * *",
+				Enabled:  true,
+			},
 		},
-		{
-			Name:     "user_sync_daily",
-			Schedule: "0 0 * * *",
-			Enabled:  true,
+		"order_sync": {
+			{
+				Name:     "order_sync_15m",
+				Schedule: "*/15 * * * *",
+				Enabled:  true,
+			},
+		},
+		"product_sync": {
+			{
+				Name:     "product_sync_hourly",
+				Schedule: "0 * * * *",
+				Enabled:  true,
+			},
 		},
 	}
 
 	// Thêm các jobs vào scheduler
-	for _, config := range jobConfigs {
-		if err := sch.AddJob(config, pipeline); err != nil {
-			log.Fatalf("Lỗi thêm job %s: %v", config.Name, err)
+	for i, pipeline := range pipelines {
+		var pipelineType string
+		switch i {
+		case 0:
+			pipelineType = "user_sync"
+		case 1:
+			pipelineType = "order_sync"
+		case 2:
+			pipelineType = "product_sync"
+		}
+
+		configs := jobConfigs[pipelineType]
+		for _, config := range configs {
+			if err := sch.AddJob(config, pipeline); err != nil {
+				log.Fatalf("Lỗi thêm job %s: %v", config.Name, err)
+			}
 		}
 	}
 
 	// 5. Khởi động scheduler
 	sch.Start()
 	log.Println("Pipeline scheduler đã được khởi động")
-	log.Printf("Đang chạy pipeline '%s' với các jobs:\n", "user_sync")
+	log.Println("Danh sách các jobs đang chạy:")
 	for name, config := range sch.GetJobs() {
 		log.Printf("- Job %s: %s (enabled: %v)\n", name, config.Schedule, config.Enabled)
 	}
@@ -73,9 +102,7 @@ export ENV_INTERNAL_API_KEY=your_internal_key
 go run main.go
 
 3. Pipeline sẽ:
-- Load cấu hình từ file YAML
-- Tự động xử lý các biến môi trường
-- Validate cấu hình
+- Build các pipelines từ code
 - Khởi tạo các components
 - Chạy theo lịch đã cấu hình
 - Xử lý lỗi và retry
