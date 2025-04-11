@@ -1,23 +1,20 @@
 package etl
 
 import (
+	"fmt"
 	"meta_commerce/app/etl/dest"
-	"meta_commerce/app/etl/source"
 	"meta_commerce/app/etl/transform"
+	"meta_commerce/app/etl/types"
 	"meta_commerce/app/registry"
 	"time"
 )
 
 // PipelineBuilder giúp tạo pipeline một cách dễ dàng
-type PipelineBuilder struct {
-	registry *registry.ETLRegistry
-}
+type PipelineBuilder struct{}
 
 // NewPipelineBuilder tạo một instance mới của PipelineBuilder
 func NewPipelineBuilder() *PipelineBuilder {
-	return &PipelineBuilder{
-		registry: registry.GetETLRegistry(),
-	}
+	return &PipelineBuilder{}
 }
 
 // BuildAllPipelines tạo tất cả các pipelines được định nghĩa
@@ -51,15 +48,24 @@ func (b *PipelineBuilder) BuildAllPipelines() ([]*Pipeline, error) {
 // BuildUserSyncPipeline tạo một pipeline đồng bộ user
 func (b *PipelineBuilder) BuildUserSyncPipeline() (*Pipeline, error) {
 	// 1. Tạo REST API source
-	sourceConfig := source.RestConfig{
-		URL: "https://api.example.com/users",
-		Headers: map[string]string{
-			"Authorization": "Bearer your-token",
+	sourceConfig := &types.SourceConfig{
+		BaseConfig: types.BaseConfig{
+			Type: types.SourceREST,
 		},
-		Method:  "GET",
-		Timeout: 30 * time.Second,
+		Request: &types.RequestConfig{
+			URL: "https://api.example.com/users",
+			Headers: map[string]string{
+				"Authorization": "Bearer your-token",
+			},
+			Method:  "GET",
+			Timeout: 30 * time.Second,
+		},
 	}
-	src, err := b.registry.CreateSource("rest_api", sourceConfig)
+	creator, exists := registry.Sources.Get("rest_api")
+	if !exists {
+		return nil, fmt.Errorf("source type rest_api not registered")
+	}
+	src, err := creator(sourceConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +78,11 @@ func (b *PipelineBuilder) BuildUserSyncPipeline() (*Pipeline, error) {
 			{Source: "email", Target: "email", Type: "string"},
 		},
 	}
-	transformer, err := b.registry.CreateTransformer("field_mapper", transformConfig)
+	tCreator, exists := registry.Transformers.Get("field_mapper")
+	if !exists {
+		return nil, fmt.Errorf("transformer type field_mapper not registered")
+	}
+	transformer, err := tCreator(transformConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +97,11 @@ func (b *PipelineBuilder) BuildUserSyncPipeline() (*Pipeline, error) {
 		Method:  "POST",
 		Timeout: 30 * time.Second,
 	}
-	dst, err := b.registry.CreateDestination("internal_api", destConfig)
+	dCreator, exists := registry.Destinations.Get("internal_api")
+	if !exists {
+		return nil, fmt.Errorf("destination type internal_api not registered")
+	}
+	dst, err := dCreator(destConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -99,15 +113,24 @@ func (b *PipelineBuilder) BuildUserSyncPipeline() (*Pipeline, error) {
 // BuildOrderSyncPipeline tạo một pipeline đồng bộ order
 func (b *PipelineBuilder) BuildOrderSyncPipeline() (*Pipeline, error) {
 	// 1. Tạo REST API source
-	sourceConfig := source.RestConfig{
-		URL: "https://api.example.com/orders",
-		Headers: map[string]string{
-			"Authorization": "Bearer your-token",
+	sourceConfig := &types.SourceConfig{
+		BaseConfig: types.BaseConfig{
+			Type: types.SourceREST,
 		},
-		Method:  "GET",
-		Timeout: 30 * time.Second,
+		Request: &types.RequestConfig{
+			URL: "https://api.example.com/orders",
+			Headers: map[string]string{
+				"Authorization": "Bearer your-token",
+			},
+			Method:  "GET",
+			Timeout: 30 * time.Second,
+		},
 	}
-	src, err := b.registry.CreateSource("rest_api", sourceConfig)
+	creator, exists := registry.Sources.Get("rest_api")
+	if !exists {
+		return nil, fmt.Errorf("source type rest_api not registered")
+	}
+	src, err := creator(sourceConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +145,11 @@ func (b *PipelineBuilder) BuildOrderSyncPipeline() (*Pipeline, error) {
 			{Source: "created_at", Target: "order_date", Type: "datetime"},
 		},
 	}
-	transformer, err := b.registry.CreateTransformer("field_mapper", transformConfig)
+	tCreator, exists := registry.Transformers.Get("field_mapper")
+	if !exists {
+		return nil, fmt.Errorf("transformer type field_mapper not registered")
+	}
+	transformer, err := tCreator(transformConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +164,11 @@ func (b *PipelineBuilder) BuildOrderSyncPipeline() (*Pipeline, error) {
 		Method:  "POST",
 		Timeout: 30 * time.Second,
 	}
-	dst, err := b.registry.CreateDestination("internal_api", destConfig)
+	dCreator, exists := registry.Destinations.Get("internal_api")
+	if !exists {
+		return nil, fmt.Errorf("destination type internal_api not registered")
+	}
+	dst, err := dCreator(destConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -149,15 +180,24 @@ func (b *PipelineBuilder) BuildOrderSyncPipeline() (*Pipeline, error) {
 // BuildProductSyncPipeline tạo một pipeline đồng bộ product
 func (b *PipelineBuilder) BuildProductSyncPipeline() (*Pipeline, error) {
 	// 1. Tạo REST API source
-	sourceConfig := source.RestConfig{
-		URL: "https://api.example.com/products",
-		Headers: map[string]string{
-			"Authorization": "Bearer your-token",
+	sourceConfig := &types.SourceConfig{
+		BaseConfig: types.BaseConfig{
+			Type: types.SourceREST,
 		},
-		Method:  "GET",
-		Timeout: 30 * time.Second,
+		Request: &types.RequestConfig{
+			URL: "https://api.example.com/products",
+			Headers: map[string]string{
+				"Authorization": "Bearer your-token",
+			},
+			Method:  "GET",
+			Timeout: 30 * time.Second,
+		},
 	}
-	src, err := b.registry.CreateSource("rest_api", sourceConfig)
+	creator, exists := registry.Sources.Get("rest_api")
+	if !exists {
+		return nil, fmt.Errorf("source type rest_api not registered")
+	}
+	src, err := creator(sourceConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +213,11 @@ func (b *PipelineBuilder) BuildProductSyncPipeline() (*Pipeline, error) {
 			{Source: "category", Target: "category", Type: "string"},
 		},
 	}
-	transformer, err := b.registry.CreateTransformer("field_mapper", transformConfig)
+	tCreator, exists := registry.Transformers.Get("field_mapper")
+	if !exists {
+		return nil, fmt.Errorf("transformer type field_mapper not registered")
+	}
+	transformer, err := tCreator(transformConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +232,11 @@ func (b *PipelineBuilder) BuildProductSyncPipeline() (*Pipeline, error) {
 		Method:  "POST",
 		Timeout: 30 * time.Second,
 	}
-	dst, err := b.registry.CreateDestination("internal_api", destConfig)
+	dCreator, exists := registry.Destinations.Get("internal_api")
+	if !exists {
+		return nil, fmt.Errorf("destination type internal_api not registered")
+	}
+	dst, err := dCreator(destConfig)
 	if err != nil {
 		return nil, err
 	}
