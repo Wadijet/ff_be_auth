@@ -32,7 +32,7 @@ func NewFbPostHandler() (*FbPostHandler, error) {
 		return nil, fmt.Errorf("failed to create post service: %v", err)
 	}
 	handler.FbPostService = service
-	handler.Service = handler.FbPostService
+	handler.BaseService = handler.FbPostService
 
 	return handler, nil
 }

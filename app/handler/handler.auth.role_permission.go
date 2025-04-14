@@ -54,7 +54,7 @@ func NewRolePermissionHandler() (*RolePermissionHandler, error) {
 	handler := &RolePermissionHandler{
 		RolePermissionService: rolePermissionService,
 	}
-	handler.Service = handler.RolePermissionService
+	handler.BaseService = handler.RolePermissionService
 	return handler, nil
 }
 

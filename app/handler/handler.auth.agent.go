@@ -34,7 +34,7 @@ func NewAgentHandler() (*AgentHandler, error) {
 		return nil, fmt.Errorf("failed to create agent service: %v", err)
 	}
 	handler.agentService = agentService
-	handler.Service = agentService // Gán service cho BaseHandler
+	handler.BaseService = agentService // Gán service cho BaseHandler
 
 	return handler, nil
 }

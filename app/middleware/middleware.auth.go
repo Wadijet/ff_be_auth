@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -9,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson"
 
-	"meta_commerce/app/global"
 	"meta_commerce/app/handler"
 	models "meta_commerce/app/models/mongodb"
 	"meta_commerce/app/services"
@@ -18,11 +18,11 @@ import (
 
 // AuthManager quản lý xác thực và phân quyền người dùng
 type AuthManager struct {
-	UserCRUD           services.BaseServiceMongo[models.User]
-	RoleCRUD           services.BaseServiceMongo[models.Role]
-	PermissionCRUD     services.BaseServiceMongo[models.Permission]
-	RolePermissionCRUD services.BaseServiceMongo[models.RolePermission]
-	UserRoleCRUD       services.BaseServiceMongo[models.UserRole]
+	UserCRUD           *services.UserService
+	RoleCRUD           *services.RoleService
+	PermissionCRUD     *services.PermissionService
+	RolePermissionCRUD *services.RolePermissionService
+	UserRoleCRUD       *services.UserRoleService
 	Cache              *utility.Cache
 	responseHandler    *handler.BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]
 }
@@ -35,38 +35,59 @@ var (
 // GetAuthManager trả về instance duy nhất của AuthManager (singleton pattern)
 func GetAuthManager() *AuthManager {
 	authManagerOnce.Do(func() {
-		authManagerInstance = newAuthManager()
+		var err error
+		authManagerInstance, err = newAuthManager()
+		if err != nil {
+			panic(err)
+		}
 	})
 	return authManagerInstance
 }
 
 // newAuthManager khởi tạo một instance mới của AuthManager (private constructor)
-func newAuthManager() *AuthManager {
+func newAuthManager() (*AuthManager, error) {
 	newManager := new(AuthManager)
 
-	// Khởi tạo các collection từ registry
-	userCol := global.MongoDB_Session.Database(global.MongoDB_ServerConfig.MongoDB_DBNameAuth).Collection(global.MongoDB_ColNames.Users)
-	roleCol := global.MongoDB_Session.Database(global.MongoDB_ServerConfig.MongoDB_DBNameAuth).Collection(global.MongoDB_ColNames.Roles)
-	permissionCol := global.MongoDB_Session.Database(global.MongoDB_ServerConfig.MongoDB_DBNameAuth).Collection(global.MongoDB_ColNames.Permissions)
-	rolePermissionCol := global.MongoDB_Session.Database(global.MongoDB_ServerConfig.MongoDB_DBNameAuth).Collection(global.MongoDB_ColNames.RolePermissions)
-	userRoleCol := global.MongoDB_Session.Database(global.MongoDB_ServerConfig.MongoDB_DBNameAuth).Collection(global.MongoDB_ColNames.UserRoles)
-
 	// Khởi tạo các service với BaseService để thực hiện các thao tác CRUD
-	newManager.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
-	newManager.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
-	newManager.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
-	newManager.RolePermissionCRUD = services.NewBaseServiceMongo[models.RolePermission](rolePermissionCol)
-	newManager.UserRoleCRUD = services.NewBaseServiceMongo[models.UserRole](userRoleCol)
+	userService, err := services.NewUserService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user service: %v", err)
+	}
+	newManager.UserCRUD = userService
+
+	roleService, err := services.NewRoleService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create role service: %v", err)
+	}
+	newManager.RoleCRUD = roleService
+
+	permissionService, err := services.NewPermissionService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create permission service: %v", err)
+	}
+	newManager.PermissionCRUD = permissionService
+
+	rolePermissionService, err := services.NewRolePermissionService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create role permission service: %v", err)
+	}
+	newManager.RolePermissionCRUD = rolePermissionService
+
+	userRoleService, err := services.NewUserRoleService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user role service: %v", err)
+	}
+	newManager.UserRoleCRUD = userRoleService
 
 	// Khởi tạo cache với thời gian sống 5 phút và thời gian dọn dẹp 10 phút
 	newManager.Cache = utility.NewCache(5*time.Minute, 10*time.Minute)
 
 	// Khởi tạo response handler một lần duy nhất
 	newManager.responseHandler = &handler.BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]{
-		Service: newManager.UserCRUD,
+		BaseService: newManager.UserCRUD,
 	}
 
-	return newManager
+	return newManager, nil
 }
 
 // getUserPermissions lấy danh sách permissions của user từ cache hoặc database

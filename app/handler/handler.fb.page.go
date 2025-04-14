@@ -32,7 +32,7 @@ func NewFbPageHandler() (*FbPageHandler, error) {
 		return nil, fmt.Errorf("failed to create page service: %v", err)
 	}
 	handler.FbPageService = service
-	handler.Service = handler.FbPageService
+	handler.BaseService = handler.FbPageService
 
 	return handler, nil
 }

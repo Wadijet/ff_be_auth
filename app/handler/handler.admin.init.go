@@ -2,9 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"meta_commerce/app/global"
-	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/app/registry"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
 
@@ -15,9 +12,9 @@ import (
 // Kế thừa từ BaseHandler để có các chức năng CRUD cơ bản
 type InitHandler struct {
 	*BaseHandler[interface{}, interface{}, interface{}]
-	userCRUD       services.BaseServiceMongo[models.User]
-	permissionCRUD services.BaseServiceMongo[models.Permission]
-	roleCRUD       services.BaseServiceMongo[models.Role]
+	userCRUD       *services.UserService
+	permissionCRUD *services.PermissionService
+	roleCRUD       *services.RoleService
 	initService    *services.InitService
 }
 
@@ -32,26 +29,24 @@ func NewInitHandler() (*InitHandler, error) {
 	baseHandler := &BaseHandler[interface{}, interface{}, interface{}]{}
 	handler.BaseHandler = baseHandler
 
-	// Lấy các collection từ registry
-	userCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Users)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get users collection: %v", err)
-	}
-
-	permissionCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Permissions)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get permissions collection: %v", err)
-	}
-
-	roleCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Roles)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get roles collection: %v", err)
-	}
-
 	// Khởi tạo các service
-	handler.userCRUD = services.NewBaseServiceMongo[models.User](userCol)
-	handler.permissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
-	handler.roleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
+	userService, err := services.NewUserService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user service: %v", err)
+	}
+	handler.userCRUD = userService
+
+	permissionService, err := services.NewPermissionService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create permission service: %v", err)
+	}
+	handler.permissionCRUD = permissionService
+
+	roleService, err := services.NewRoleService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create role service: %v", err)
+	}
+	handler.roleCRUD = roleService
 
 	// Khởi tạo InitService
 	initService, err := services.NewInitService()
@@ -59,6 +54,9 @@ func NewInitHandler() (*InitHandler, error) {
 		return nil, fmt.Errorf("failed to create init service: %v", err)
 	}
 	handler.initService = initService
+
+	// Gán UserCRUD cho BaseHandler
+	handler.BaseService = nil
 
 	return handler, nil
 }

@@ -24,7 +24,7 @@ import (
 // - CreateInput: Kiểu dữ liệu của input khi tạo mới
 // - UpdateInput: Kiểu dữ liệu của input khi cập nhật
 type BaseHandler[T any, CreateInput any, UpdateInput any] struct {
-	Service services.BaseServiceMongo[T] // Service xử lý logic nghiệp vụ với MongoDB
+	BaseService services.BaseServiceMongo[T] // Service xử lý logic nghiệp vụ với MongoDB
 }
 
 // HandleResponse xử lý và chuẩn hóa response trả về cho client.
@@ -159,7 +159,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertOne(c fiber.Ctx) error 
 		return nil
 	}
 
-	data, err := h.Service.InsertOne(c.Context(), *input)
+	data, err := h.BaseService.InsertOne(c.Context(), *input)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -179,7 +179,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertMany(c fiber.Ctx) error
 		return nil
 	}
 
-	data, err := h.Service.InsertMany(c.Context(), inputs)
+	data, err := h.BaseService.InsertMany(c.Context(), inputs)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -199,7 +199,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOne(c fiber.Ctx) error {
 		return nil
 	}
 
-	data, err := h.Service.FindOne(c.Context(), filter, nil)
+	data, err := h.BaseService.FindOne(c.Context(), filter, nil)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -219,7 +219,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneById(c fiber.Ctx) erro
 		return nil
 	}
 
-	data, err := h.Service.FindOneById(c.Context(), utility.String2ObjectID(id))
+	data, err := h.BaseService.FindOneById(c.Context(), utility.String2ObjectID(id))
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -244,7 +244,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindManyByIds(c fiber.Ctx) er
 		objectIds[i] = utility.String2ObjectID(id)
 	}
 
-	data, err := h.Service.FindManyByIds(c.Context(), objectIds)
+	data, err := h.BaseService.FindManyByIds(c.Context(), objectIds)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -278,7 +278,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ct
 		limit = 10
 	}
 
-	data, err := h.Service.FindWithPagination(c.Context(), filter, page, limit)
+	data, err := h.BaseService.FindWithPagination(c.Context(), filter, page, limit)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -298,7 +298,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error {
 		return nil
 	}
 
-	data, err := h.Service.Find(c.Context(), filter, nil)
+	data, err := h.BaseService.Find(c.Context(), filter, nil)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -324,7 +324,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateOne(c fiber.Ctx) error 
 		return nil
 	}
 
-	data, err := h.Service.UpdateOne(c.Context(), filter, input, nil)
+	data, err := h.BaseService.UpdateOne(c.Context(), filter, input, nil)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -350,7 +350,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateMany(c fiber.Ctx) error
 		return nil
 	}
 
-	count, err := h.Service.UpdateMany(c.Context(), filter, input, nil)
+	count, err := h.BaseService.UpdateMany(c.Context(), filter, input, nil)
 	h.HandleResponse(c, count, err)
 	return nil
 }
@@ -376,7 +376,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) error
 		return nil
 	}
 
-	data, err := h.Service.UpdateById(c.Context(), utility.String2ObjectID(id), *input)
+	data, err := h.BaseService.UpdateById(c.Context(), utility.String2ObjectID(id), *input)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -396,7 +396,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteOne(c fiber.Ctx) error 
 		return nil
 	}
 
-	err := h.Service.DeleteOne(c.Context(), filter)
+	err := h.BaseService.DeleteOne(c.Context(), filter)
 	h.HandleResponse(c, nil, err)
 	return nil
 }
@@ -416,7 +416,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteMany(c fiber.Ctx) error
 		return nil
 	}
 
-	count, err := h.Service.DeleteMany(c.Context(), filter)
+	count, err := h.BaseService.DeleteMany(c.Context(), filter)
 	h.HandleResponse(c, count, err)
 	return nil
 }
@@ -436,7 +436,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteById(c fiber.Ctx) error
 		return nil
 	}
 
-	err := h.Service.DeleteById(c.Context(), utility.String2ObjectID(id))
+	err := h.BaseService.DeleteById(c.Context(), utility.String2ObjectID(id))
 	h.HandleResponse(c, nil, err)
 	return nil
 }
@@ -463,7 +463,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneAndUpdate(c fiber.Ctx)
 		return nil
 	}
 
-	data, err := h.Service.FindOneAndUpdate(c.Context(), filter, input, nil)
+	data, err := h.BaseService.FindOneAndUpdate(c.Context(), filter, input, nil)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -484,7 +484,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneAndDelete(c fiber.Ctx)
 		return nil
 	}
 
-	data, err := h.Service.FindOneAndDelete(c.Context(), filter, nil)
+	data, err := h.BaseService.FindOneAndDelete(c.Context(), filter, nil)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -504,7 +504,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) CountDocuments(c fiber.Ctx) e
 		return nil
 	}
 
-	count, err := h.Service.CountDocuments(c.Context(), filter)
+	count, err := h.BaseService.CountDocuments(c.Context(), filter)
 	h.HandleResponse(c, count, err)
 	return nil
 }
@@ -530,7 +530,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Distinct(c fiber.Ctx) error {
 		return nil
 	}
 
-	data, err := h.Service.Distinct(c.Context(), field, filter)
+	data, err := h.BaseService.Distinct(c.Context(), field, filter)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -557,7 +557,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) error {
 		return nil
 	}
 
-	data, err := h.Service.Upsert(c.Context(), filter, *input)
+	data, err := h.BaseService.Upsert(c.Context(), filter, *input)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -584,7 +584,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpsertMany(c fiber.Ctx) error
 		return nil
 	}
 
-	data, err := h.Service.UpsertMany(c.Context(), filter, inputs)
+	data, err := h.BaseService.UpsertMany(c.Context(), filter, inputs)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -604,7 +604,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DocumentExists(c fiber.Ctx) e
 		return nil
 	}
 
-	exists, err := h.Service.DocumentExists(c.Context(), filter)
+	exists, err := h.BaseService.DocumentExists(c.Context(), filter)
 	h.HandleResponse(c, exists, err)
 	return nil
 }

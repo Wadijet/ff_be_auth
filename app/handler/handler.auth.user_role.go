@@ -48,7 +48,7 @@ func NewUserRoleHandler() (*UserRoleHandler, error) {
 	handler := &UserRoleHandler{
 		UserRoleService: userRoleService,
 	}
-	handler.Service = handler.UserRoleService
+	handler.BaseService = handler.UserRoleService
 	return handler, nil
 }
 

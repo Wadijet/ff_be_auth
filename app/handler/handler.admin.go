@@ -2,9 +2,7 @@ package handler
 
 import (
 	"fmt"
-	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/app/registry"
 	"meta_commerce/app/services"
 	"meta_commerce/app/utility"
 
@@ -16,10 +14,10 @@ import (
 // Kế thừa từ FiberBaseHandler để có các chức năng CRUD cơ bản
 type AdminHandler struct {
 	BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]
-	UserCRUD       services.BaseServiceMongo[models.User]
-	PermissionCRUD services.BaseServiceMongo[models.Permission]
-	RoleCRUD       services.BaseServiceMongo[models.Role]
-	AdminService   services.AdminService
+	UserCRUD       *services.UserService
+	PermissionCRUD *services.PermissionService
+	RoleCRUD       *services.RoleService
+	AdminService   *services.AdminService
 }
 
 // NewAdminHandler tạo một instance mới của FiberAdminHandler
@@ -29,36 +27,34 @@ type AdminHandler struct {
 func NewAdminHandler() (*AdminHandler, error) {
 	handler := &AdminHandler{}
 
-	// Khởi tạo các collection từ registry
-	userCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Users)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get users collection: %v", err)
-	}
-
-	permissionCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Permissions)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get permissions collection: %v", err)
-	}
-
-	roleCol, err := registry.Collections.MustGet(global.MongoDB_ColNames.Roles)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get roles collection: %v", err)
-	}
-
 	// Khởi tạo các service với BaseService
-	handler.UserCRUD = services.NewBaseServiceMongo[models.User](userCol)
-	handler.PermissionCRUD = services.NewBaseServiceMongo[models.Permission](permissionCol)
-	handler.RoleCRUD = services.NewBaseServiceMongo[models.Role](roleCol)
+	userService, err := services.NewUserService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user service: %v", err)
+	}
+	handler.UserCRUD = userService
+
+	permissionService, err := services.NewPermissionService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create permission service: %v", err)
+	}
+	handler.PermissionCRUD = permissionService
+
+	roleService, err := services.NewRoleService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create role service: %v", err)
+	}
+	handler.RoleCRUD = roleService
 
 	// Khởi tạo AdminService và xử lý error
 	adminService, err := services.NewAdminService()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create admin service: %v", err)
 	}
-	handler.AdminService = *adminService
+	handler.AdminService = adminService
 
 	// Gán UserCRUD cho BaseHandler
-	handler.Service = handler.UserCRUD
+	handler.BaseService = nil
 	return handler, nil
 }
 

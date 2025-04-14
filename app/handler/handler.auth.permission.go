@@ -49,7 +49,7 @@ func NewPermissionHandler() (*PermissionHandler, error) {
 		return nil, fmt.Errorf("failed to create permission service: %v", err)
 	}
 
-	handler.Service = permissionService
+	handler.BaseService = permissionService
 	return handler, nil
 }
 
@@ -69,7 +69,7 @@ func (h *PermissionHandler) HandleCreatePermission(c fiber.Ctx) error {
 		Group:    input.Group,
 	}
 
-	data, err := h.Service.InsertOne(c.Context(), permission)
+	data, err := h.BaseService.InsertOne(c.Context(), permission)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -96,7 +96,7 @@ func (h *PermissionHandler) HandleUpdatePermission(c fiber.Ctx) error {
 		Group:    input.Group,
 	}
 
-	data, err := h.Service.UpdateById(c.Context(), utility.String2ObjectID(id), permission)
+	data, err := h.BaseService.UpdateById(c.Context(), utility.String2ObjectID(id), permission)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -109,7 +109,7 @@ func (h *PermissionHandler) HandleGetPermissionById(c fiber.Ctx) error {
 		return nil
 	}
 
-	data, err := h.Service.FindOneById(c.Context(), utility.String2ObjectID(id))
+	data, err := h.BaseService.FindOneById(c.Context(), utility.String2ObjectID(id))
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -125,7 +125,7 @@ func (h *PermissionHandler) HandleGetPermissions(c fiber.Ctx) error {
 	// Lấy thông tin phân trang
 	page, limit := h.ParsePagination(c)
 
-	data, err := h.Service.FindWithPagination(c.Context(), filter, page, limit)
+	data, err := h.BaseService.FindWithPagination(c.Context(), filter, page, limit)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -138,7 +138,7 @@ func (h *PermissionHandler) HandleDeletePermission(c fiber.Ctx) error {
 		return nil
 	}
 
-	err := h.Service.DeleteById(c.Context(), utility.String2ObjectID(id))
+	err := h.BaseService.DeleteById(c.Context(), utility.String2ObjectID(id))
 	h.HandleResponse(c, nil, err)
 	return nil
 }
@@ -155,7 +155,7 @@ func (h *PermissionHandler) HandleGetPermissionsByCategory(c fiber.Ctx) error {
 		"category": category,
 	}
 
-	data, err := h.Service.Find(c.Context(), filter, nil)
+	data, err := h.BaseService.Find(c.Context(), filter, nil)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -172,7 +172,7 @@ func (h *PermissionHandler) HandleGetPermissionsByGroup(c fiber.Ctx) error {
 		"group": group,
 	}
 
-	data, err := h.Service.Find(c.Context(), filter, nil)
+	data, err := h.BaseService.Find(c.Context(), filter, nil)
 	h.HandleResponse(c, data, err)
 	return nil
 }

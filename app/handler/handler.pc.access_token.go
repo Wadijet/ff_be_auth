@@ -29,7 +29,7 @@ func NewAccessTokenHandler() (*AccessTokenHandler, error) {
 		return nil, fmt.Errorf("failed to create access token service: %v", err)
 	}
 	handler.AccessTokenService = service
-	handler.Service = handler.AccessTokenService // Gán service cho BaseHandler
+	handler.BaseService = handler.AccessTokenService // Gán service cho BaseHandler
 
 	return handler, nil
 }
