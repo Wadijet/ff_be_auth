@@ -20,6 +20,8 @@ require (
 	gopkg.in/go-playground/validator.v9 v9.31.0
 )
 
+require github.com/google/go-cmp v0.7.0 // indirect
+
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
