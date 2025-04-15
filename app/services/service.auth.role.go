@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/app/registry"
+	"meta_commerce/registry"
 )
 
 // RoleService là cấu trúc chứa các phương thức liên quan đến vai trò

@@ -32,5 +32,4 @@ var MongoDB_ServerConfig *config.Configuration                                  
 var MongoDB_ColNames MongoDB_Auth_CollectionName = *new(MongoDB_Auth_CollectionName) // Tên các collection
 var MySQL_Session *sql.DB                                                            // Add this line to define MySQLDB
 
-// Metadata chứa thông tin metadata của ứng dụng. Cấu trúc dữ liệu được đọc từ file metadata
-var Metadata map[string]interface{}
+// Các registry

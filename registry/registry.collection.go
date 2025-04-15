@@ -48,23 +48,3 @@ func InitCollections(db *mongo.Client, cfg *config.Configuration) error {
 
 	return nil
 }
-
-// GetCollectionNames trả về danh sách tên các collection đã được định nghĩa
-// Returns:
-//   - []string: Danh sách tên các collection
-func GetCollectionNames() []string {
-	return []string{
-		global.MongoDB_ColNames.Users,
-		global.MongoDB_ColNames.Roles,
-		global.MongoDB_ColNames.Permissions,
-		global.MongoDB_ColNames.RolePermissions,
-		global.MongoDB_ColNames.Agents,
-		global.MongoDB_ColNames.UserRoles,
-		global.MongoDB_ColNames.AccessTokens,
-		global.MongoDB_ColNames.PcOrders,
-		global.MongoDB_ColNames.FbPages,
-		global.MongoDB_ColNames.FbPosts,
-		global.MongoDB_ColNames.FbMessages,
-		global.MongoDB_ColNames.FbConvesations,
-	}
-}

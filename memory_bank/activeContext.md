@@ -1,36 +1,21 @@
-# Active Context - ETL Pipeline Development
+# Active Context
 
-## Current Focus
-- Khởi tạo cấu trúc cơ bản cho ETL pipeline
-- Tập trung vào registry pattern và cấu trúc module
+## Context hiện tại
+- Dự án: FolkForm Backend Authentication (ff_be_auth)
+- Giai đoạn: Khởi tạo Memory Bank
 
-## Active Files
-1. Memory Bank
-   - projectbrief.md: Tổng quan về dự án
-   - techContext.md: Context kỹ thuật
-   - tasks.md: Danh sách tasks
-   - progress.md: Theo dõi tiến độ
+## Các nhiệm vụ ưu tiên
+1. Hoàn thiện cấu trúc Memory Bank
+2. Xem xét và hiểu cấu trúc dự án hiện tại
 
-2. Code Files (Pending)
-   - app/registry/etl.go
-   - app/etl/*
-   - config/etl/*
+## Các file quan trọng
+- `main.go`: File chính của ứng dụng
+- `go.mod` & `go.sum`: Quản lý dependency
 
-## Current Phase
-- Phase 1: Cấu trúc cơ bản
-- Task hiện tại: Khởi tạo Memory Bank
-
-## Dependencies
-- Registry pattern hiện có
-- MongoDB integration
-- Golang backend
-
-## Next Actions
-1. Tạo cấu trúc thư mục
-2. Implement ETL Registry
-3. Định nghĩa interfaces
-
-## Notes
-- Ưu tiên tái sử dụng code hiện có
-- Tập trung vào khả năng cấu hình
-- Đảm bảo tính mở rộng 
+## Lưu ý
+- Dự án viết bằng Go, sử dụng MongoDB làm cơ sở dữ liệu
+- Sử dụng FastHTTP thay vì chuẩn net/http của Go
+- Có sử dụng các middleware cho xử lý request
+- Tuân thủ nguyên tắc phát triển:
+  - Luôn lựa chọn giải pháp tinh, gọn để nhanh chóng đưa dự án vào hoạt động
+  - Luôn đề cao việc tái sử dụng code, tối thiểu hóa lượng code 

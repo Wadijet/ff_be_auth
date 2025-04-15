@@ -15,11 +15,11 @@ import (
 
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/app/registry"
 	"meta_commerce/app/router"
 	"meta_commerce/app/services"
 	"meta_commerce/config"
 	"meta_commerce/database"
+	"meta_commerce/registry"
 )
 
 // Hàm khởi tạo các biến toàn cục

@@ -9,8 +9,8 @@ import (
 
 	"meta_commerce/app/global"
 	models "meta_commerce/app/models/mongodb"
-	"meta_commerce/app/registry"
 	"meta_commerce/app/utility"
+	"meta_commerce/registry"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
