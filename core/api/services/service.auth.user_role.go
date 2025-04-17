@@ -6,9 +6,8 @@ import (
 	"time"
 
 	models "meta_commerce/core/api/models/mongodb"
+	"meta_commerce/core/common"
 	"meta_commerce/core/global"
-	"meta_commerce/core/utility"
-	"meta_commerce/pkg/registry"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -23,9 +22,9 @@ type UserRoleService struct {
 
 // NewUserRoleService tạo mới UserRoleService
 func NewUserRoleService() (*UserRoleService, error) {
-	userRoleCollection, exist := registry.Collections.Get(global.MongoDB_ColNames.UserRoles)
+	userRoleCollection, exist := global.RegistryCollections.Get(global.MongoDB_ColNames.UserRoles)
 	if !exist {
-		return nil, fmt.Errorf("failed to get user_roles collection: %v", utility.ErrNotFound)
+		return nil, fmt.Errorf("failed to get user_roles collection: %v", common.ErrNotFound)
 	}
 
 	userService, err := NewUserService()
@@ -49,12 +48,12 @@ func NewUserRoleService() (*UserRoleService, error) {
 func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCreateInput) (*models.UserRole, error) {
 	// Kiểm tra User có tồn tại không
 	if _, err := s.userService.FindOneById(ctx, input.UserID); err != nil {
-		return nil, utility.ErrNotFound
+		return nil, common.ErrNotFound
 	}
 
 	// Kiểm tra Role có tồn tại không
 	if _, err := s.roleService.FindOneById(ctx, input.RoleID); err != nil {
-		return nil, utility.ErrNotFound
+		return nil, common.ErrNotFound
 	}
 
 	// Kiểm tra UserRole đã tồn tại chưa
@@ -63,7 +62,7 @@ func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCrea
 		return nil, err
 	}
 	if exists {
-		return nil, utility.ErrInvalidInput
+		return nil, common.ErrInvalidInput
 	}
 
 	// Tạo userRole mới
@@ -78,7 +77,7 @@ func (s *UserRoleService) Create(ctx context.Context, input *models.UserRoleCrea
 	// Lưu userRole
 	createdUserRole, err := s.BaseServiceMongoImpl.InsertOne(ctx, *userRole)
 	if err != nil {
-		return nil, utility.ConvertMongoError(err)
+		return nil, common.ConvertMongoError(err)
 	}
 
 	return &createdUserRole, nil
@@ -92,7 +91,7 @@ func (s *UserRoleService) IsExist(ctx context.Context, userID, roleID primitive.
 	}
 	count, err := s.collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return false, utility.ConvertMongoError(err)
+		return false, common.ConvertMongoError(err)
 	}
 	return count > 0, nil
 }

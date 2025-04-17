@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	models "meta_commerce/core/api/models/mongodb"
-	"meta_commerce/core/utility"
+	"meta_commerce/core/common"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -73,9 +73,9 @@ func (s *AdminService) SetRole(ctx context.Context, email string, roleID primiti
 	err = s.userService.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, utility.ErrNotFound
+			return nil, common.ErrNotFound
 		}
-		return nil, utility.ConvertMongoError(err)
+		return nil, common.ConvertMongoError(err)
 	}
 
 	// Cập nhật Role cho User
@@ -99,9 +99,9 @@ func (s *AdminService) BlockUser(ctx context.Context, email string, block bool, 
 	err := s.userService.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, utility.ErrNotFound
+			return nil, common.ErrNotFound
 		}
-		return nil, utility.ConvertMongoError(err)
+		return nil, common.ConvertMongoError(err)
 	}
 
 	// Cập nhật trạng thái Block và ghi chú
@@ -126,9 +126,9 @@ func (s *AdminService) UnBlockUser(ctx context.Context, email string) (*models.U
 	err := s.userService.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, utility.ErrNotFound
+			return nil, common.ErrNotFound
 		}
-		return nil, utility.ConvertMongoError(err)
+		return nil, common.ConvertMongoError(err)
 	}
 
 	// Cập nhật trạng thái Block và ghi chú

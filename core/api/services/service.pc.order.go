@@ -8,9 +8,8 @@ import (
 	"time"
 
 	models "meta_commerce/core/api/models/mongodb"
+	"meta_commerce/core/common"
 	"meta_commerce/core/global"
-	"meta_commerce/core/utility"
-	"meta_commerce/pkg/registry"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -24,9 +23,9 @@ type PcOrderService struct {
 
 // NewPcOrderService tạo mới PcOrderService
 func NewPcOrderService() (*PcOrderService, error) {
-	orderCollection, exist := registry.Collections.Get(global.MongoDB_ColNames.PcOrders)
+	orderCollection, exist := global.RegistryCollections.Get(global.MongoDB_ColNames.PcOrders)
 	if !exist {
-		return nil, fmt.Errorf("failed to get pc_orders collection: %v", utility.ErrNotFound)
+		return nil, fmt.Errorf("failed to get pc_orders collection: %v", common.ErrNotFound)
 	}
 
 	return &PcOrderService{

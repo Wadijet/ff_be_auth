@@ -7,8 +7,9 @@ import (
 
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/global"
+
+	"meta_commerce/core/common"
 	"meta_commerce/core/utility"
-	"meta_commerce/pkg/registry"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,9 +23,9 @@ type AgentService struct {
 
 // NewAgentService tạo mới AgentService
 func NewAgentService() (*AgentService, error) {
-	agentCollection, exist := registry.Collections.Get(global.MongoDB_ColNames.Agents)
+	agentCollection, exist := global.RegistryCollections.Get(global.MongoDB_ColNames.Agents)
 	if !exist {
-		return nil, fmt.Errorf("failed to get agents collection: %v", utility.ErrNotFound)
+		return nil, fmt.Errorf("failed to get agents collection: %v", common.ErrNotFound)
 	}
 
 	return &AgentService{
@@ -38,7 +39,7 @@ func (s *AgentService) CheckOnlineStatus(ctx context.Context) error {
 	opts := options.Find()
 	agents, err := s.BaseServiceMongoImpl.Find(ctx, bson.M{}, opts)
 	if err != nil {
-		return utility.ConvertMongoError(err)
+		return common.ConvertMongoError(err)
 	}
 
 	// Duyệt qua tất cả các agent
@@ -51,7 +52,7 @@ func (s *AgentService) CheckOnlineStatus(ctx context.Context) error {
 
 			_, err := s.BaseServiceMongoImpl.UpdateById(ctx, agent.ID, agent)
 			if err != nil {
-				return utility.ConvertMongoError(err)
+				return common.ConvertMongoError(err)
 			}
 		}
 	}

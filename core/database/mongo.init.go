@@ -25,7 +25,7 @@ import (
 // Trả về:
 // - error: Lỗi nếu có vấn đề xảy ra trong quá trình kiểm tra hoặc tạo cơ sở dữ liệu và collection.
 func EnsureDatabaseAndCollections(client *mongo.Client) error {
-	dbName := global.MongoDB_ServerConfig.MongoDB_DBNameAuth
+	dbName := global.MongoDB_ServerConfig.MongoDB_DBName_Auth
 
 	// Tạo 1 context tổng 30 giây để duyệt tất cả collections
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

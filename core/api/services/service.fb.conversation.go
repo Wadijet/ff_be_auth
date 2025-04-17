@@ -7,9 +7,8 @@ import (
 	"time"
 
 	models "meta_commerce/core/api/models/mongodb"
+	"meta_commerce/core/common"
 	"meta_commerce/core/global"
-	"meta_commerce/core/utility"
-	"meta_commerce/pkg/registry"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,9 +24,9 @@ type FbConversationService struct {
 
 // NewFbConversationService tạo mới FbConversationService
 func NewFbConversationService() (*FbConversationService, error) {
-	fbConversationCollection, exist := registry.Collections.Get(global.MongoDB_ColNames.FbConvesations)
+	fbConversationCollection, exist := global.RegistryCollections.Get(global.MongoDB_ColNames.FbConvesations)
 	if !exist {
-		return nil, fmt.Errorf("failed to get fb_conversations collection: %v", utility.ErrNotFound)
+		return nil, fmt.Errorf("failed to get fb_conversations collection: %v", common.ErrNotFound)
 	}
 
 	fbPageService, err := NewFbPageService()

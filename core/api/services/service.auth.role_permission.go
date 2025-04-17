@@ -6,9 +6,8 @@ import (
 	"time"
 
 	models "meta_commerce/core/api/models/mongodb"
+	"meta_commerce/core/common"
 	"meta_commerce/core/global"
-	"meta_commerce/core/utility"
-	"meta_commerce/pkg/registry"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -23,9 +22,9 @@ type RolePermissionService struct {
 
 // NewRolePermissionService tạo mới RolePermissionService
 func NewRolePermissionService() (*RolePermissionService, error) {
-	rolePermissionCollection, exist := registry.Collections.Get(global.MongoDB_ColNames.RolePermissions)
+	rolePermissionCollection, exist := global.RegistryCollections.Get(global.MongoDB_ColNames.RolePermissions)
 	if !exist {
-		return nil, fmt.Errorf("failed to get role_permissions collection: %v", utility.ErrNotFound)
+		return nil, fmt.Errorf("failed to get role_permissions collection: %v", common.ErrNotFound)
 	}
 
 	roleService, err := NewRoleService()
@@ -49,12 +48,12 @@ func NewRolePermissionService() (*RolePermissionService, error) {
 func (s *RolePermissionService) Create(ctx context.Context, input *models.RolePermissionCreateInput) (*models.RolePermission, error) {
 	// Kiểm tra Role có tồn tại không
 	if _, err := s.roleService.FindOneById(ctx, input.RoleID); err != nil {
-		return nil, utility.ErrNotFound
+		return nil, common.ErrNotFound
 	}
 
 	// Kiểm tra Permission có tồn tại không
 	if _, err := s.permissionService.FindOneById(ctx, input.PermissionID); err != nil {
-		return nil, utility.ErrNotFound
+		return nil, common.ErrNotFound
 	}
 
 	// Kiểm tra RolePermission đã tồn tại chưa
@@ -63,7 +62,7 @@ func (s *RolePermissionService) Create(ctx context.Context, input *models.RolePe
 		return nil, err
 	}
 	if exists {
-		return nil, utility.ErrInvalidInput
+		return nil, common.ErrInvalidInput
 	}
 
 	// Tạo rolePermission mới
@@ -78,7 +77,7 @@ func (s *RolePermissionService) Create(ctx context.Context, input *models.RolePe
 	// Lưu rolePermission
 	createdRolePermission, err := s.BaseServiceMongoImpl.InsertOne(ctx, *rolePermission)
 	if err != nil {
-		return nil, utility.ConvertMongoError(err)
+		return nil, common.ConvertMongoError(err)
 	}
 
 	return &createdRolePermission, nil
@@ -92,7 +91,7 @@ func (s *RolePermissionService) IsExist(ctx context.Context, roleID, permissionI
 	}
 	count, err := s.collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return false, utility.ConvertMongoError(err)
+		return false, common.ConvertMongoError(err)
 	}
 	return count > 0, nil
 }

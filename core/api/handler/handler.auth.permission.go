@@ -4,6 +4,7 @@ import (
 	"fmt"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
+	"meta_commerce/core/common"
 	"meta_commerce/core/utility"
 
 	"github.com/gofiber/fiber/v3"
@@ -78,7 +79,7 @@ func (h *PermissionHandler) HandleCreatePermission(c fiber.Ctx) error {
 func (h *PermissionHandler) HandleUpdatePermission(c fiber.Ctx) error {
 	id := h.GetIDFromContext(c)
 	if id == "" {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "ID không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -105,7 +106,7 @@ func (h *PermissionHandler) HandleUpdatePermission(c fiber.Ctx) error {
 func (h *PermissionHandler) HandleGetPermissionById(c fiber.Ctx) error {
 	id := h.GetIDFromContext(c)
 	if id == "" {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "ID không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -134,7 +135,7 @@ func (h *PermissionHandler) HandleGetPermissions(c fiber.Ctx) error {
 func (h *PermissionHandler) HandleDeletePermission(c fiber.Ctx) error {
 	id := h.GetIDFromContext(c)
 	if id == "" {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "ID không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -147,7 +148,7 @@ func (h *PermissionHandler) HandleDeletePermission(c fiber.Ctx) error {
 func (h *PermissionHandler) HandleGetPermissionsByCategory(c fiber.Ctx) error {
 	category := c.Params("category")
 	if category == "" {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Category không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Category không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -164,7 +165,7 @@ func (h *PermissionHandler) HandleGetPermissionsByCategory(c fiber.Ctx) error {
 func (h *PermissionHandler) HandleGetPermissionsByGroup(c fiber.Ctx) error {
 	group := c.Params("group")
 	if group == "" {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Group không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Group không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 

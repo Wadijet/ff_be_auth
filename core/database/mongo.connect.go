@@ -23,12 +23,12 @@ import (
 // Notes:
 // - This function will log and return an error if there is an issue during connection or connection check.
 func GetInstance(c *config.Configuration) (*mongo.Client, error) {
-	if c.MongoDB_ConnectionURL == "" {
+	if c.MongoDB_ConnectionURI == "" {
 		return nil, fmt.Errorf("database connection URL is empty")
 	}
 
 	// Cài đặt các options cho client
-	clientOptions := options.Client().ApplyURI(c.MongoDB_ConnectionURL).
+	clientOptions := options.Client().ApplyURI(c.MongoDB_ConnectionURI).
 		SetMaxPoolSize(50).                 // Giới hạn tối đa 50 connections
 		SetMinPoolSize(10).                 // Giữ tối thiểu 10 connections trong pool
 		SetConnectTimeout(5 * time.Second). // Timeout khi kết nối

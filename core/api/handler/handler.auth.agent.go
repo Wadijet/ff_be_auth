@@ -5,6 +5,7 @@ import (
 	"fmt"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
+	"meta_commerce/core/common"
 	"meta_commerce/core/utility"
 
 	"github.com/gofiber/fiber/v3"
@@ -63,7 +64,7 @@ func NewAgentHandler() (*AgentHandler, error) {
 func (h *AgentHandler) HandleCheckIn(c fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuth, "User not authenticated", utility.StatusUnauthorized, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeAuth, "User not authenticated", common.StatusUnauthorized, nil))
 		return nil
 	}
 
@@ -97,7 +98,7 @@ func (h *AgentHandler) HandleCheckIn(c fiber.Ctx) error {
 func (h *AgentHandler) HandleCheckOut(c fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuth, "User not authenticated", utility.StatusUnauthorized, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeAuth, "User not authenticated", common.StatusUnauthorized, nil))
 		return nil
 	}
 

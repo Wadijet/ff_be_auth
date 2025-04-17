@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"encoding/json"
+
+	"meta_commerce/core/common"
 )
 
 // GoProtect là một hàm bao bọc (wrapper) giúp bảo vệ một hàm khác khỏi bị panic.
@@ -67,7 +69,7 @@ func LogWarning(msg string, args ...interface{}) {
 func ValidateEmail(email string) error {
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	if !emailRegex.MatchString(email) {
-		return ErrInvalidEmail
+		return common.ErrInvalidEmail
 	}
 	return nil
 }
@@ -75,7 +77,7 @@ func ValidateEmail(email string) error {
 // ValidatePassword kiểm tra độ mạnh của mật khẩu
 func ValidatePassword(password string) error {
 	if len(password) < 8 {
-		return ErrWeakPassword
+		return common.ErrWeakPassword
 	}
 	return nil
 }

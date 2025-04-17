@@ -5,7 +5,7 @@ package registry
 
 import (
 	"fmt"
-	"meta_commerce/core/utility"
+	"meta_commerce/core/common"
 	"sync"
 )
 
@@ -66,7 +66,7 @@ func NewRegistry[T any]() *Registry[T] {
 //	err := registry.Register("counter", 42)
 func (r *Registry[T]) Register(name string, item T) error {
 	if name == "" {
-		return fmt.Errorf("name cannot be empty: %w", utility.ErrRequiredField)
+		return fmt.Errorf("name cannot be empty: %w", common.ErrRequiredField)
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -160,7 +160,7 @@ func (r *Registry[T]) Update(name string, updater func(T) (T, error)) error {
 
 	current, exists := r.items[name]
 	if !exists {
-		return fmt.Errorf("item not found: %s: %w", name, utility.ErrNotFound)
+		return fmt.Errorf("item not found: %s: %w", name, common.ErrNotFound)
 	}
 
 	updated, err := updater(current)

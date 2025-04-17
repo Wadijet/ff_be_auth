@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"meta_commerce/core/api/services"
+	"meta_commerce/core/common"
 	"meta_commerce/core/utility"
 
 	"github.com/gofiber/fiber/v3"
@@ -87,7 +88,7 @@ func NewInitHandler() (*InitHandler, error) {
 func (h *InitHandler) HandleSetAdministrator(c fiber.Ctx) error {
 	id := h.GetIDFromContext(c)
 	if id == "" {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID không hợp lệ", utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "ID không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 

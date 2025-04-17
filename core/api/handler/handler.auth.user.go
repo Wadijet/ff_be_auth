@@ -6,7 +6,7 @@ import (
 	"fmt"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
-	"meta_commerce/core/utility"
+	"meta_commerce/core/common"
 
 	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -107,7 +107,7 @@ func (h *UserHandler) HandleRegister(c fiber.Ctx) error {
 func (h *UserHandler) HandleLogout(c fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuth, "User not authenticated", utility.StatusUnauthorized, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeAuth, "User not authenticated", common.StatusUnauthorized, nil))
 		return nil
 	}
 
@@ -119,7 +119,7 @@ func (h *UserHandler) HandleLogout(c fiber.Ctx) error {
 
 	objID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Invalid user ID", utility.StatusBadRequest, err))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Invalid user ID", common.StatusBadRequest, err))
 		return nil
 	}
 
@@ -136,13 +136,13 @@ func (h *UserHandler) HandleLogout(c fiber.Ctx) error {
 func (h *UserHandler) HandleGetProfile(c fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuth, "User not authenticated", utility.StatusUnauthorized, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeAuth, "User not authenticated", common.StatusUnauthorized, nil))
 		return nil
 	}
 
 	objID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Invalid user ID", utility.StatusBadRequest, err))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Invalid user ID", common.StatusBadRequest, err))
 		return nil
 	}
 
@@ -165,7 +165,7 @@ func (h *UserHandler) HandleGetProfile(c fiber.Ctx) error {
 func (h *UserHandler) HandleUpdateProfile(c fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuth, "User not authenticated", utility.StatusUnauthorized, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeAuth, "User not authenticated", common.StatusUnauthorized, nil))
 		return nil
 	}
 
@@ -177,7 +177,7 @@ func (h *UserHandler) HandleUpdateProfile(c fiber.Ctx) error {
 
 	objID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Invalid user ID", utility.StatusBadRequest, err))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Invalid user ID", common.StatusBadRequest, err))
 		return nil
 	}
 
@@ -205,7 +205,7 @@ func (h *UserHandler) HandleUpdateProfile(c fiber.Ctx) error {
 func (h *UserHandler) HandleChangePassword(c fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeAuth, "User not authenticated", utility.StatusUnauthorized, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeAuth, "User not authenticated", common.StatusUnauthorized, nil))
 		return nil
 	}
 
@@ -217,7 +217,7 @@ func (h *UserHandler) HandleChangePassword(c fiber.Ctx) error {
 
 	objID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "Invalid user ID", utility.StatusBadRequest, err))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Invalid user ID", common.StatusBadRequest, err))
 		return nil
 	}
 

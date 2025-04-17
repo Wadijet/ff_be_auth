@@ -13,6 +13,7 @@ import (
 	"meta_commerce/core/api/handler"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
+	"meta_commerce/core/common"
 	"meta_commerce/core/utility"
 )
 
@@ -104,7 +105,7 @@ func (am *AuthManager) getUserPermissions(userID string) (map[string]byte, error
 	// Lấy danh sách vai trò của user
 	findRoles, err := am.UserRoleCRUD.Find(context.TODO(), bson.M{"userId": utility.String2ObjectID(userID)}, nil)
 	if err != nil {
-		return nil, utility.ConvertMongoError(err)
+		return nil, common.ConvertMongoError(err)
 	}
 
 	// Duyệt qua từng vai trò để lấy permissions
@@ -140,14 +141,14 @@ func AuthMiddleware(requirePermission string) fiber.Handler {
 		// Lấy token từ header
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
-			authManager.responseHandler.HandleResponse(c, nil, utility.ErrTokenMissing)
+			authManager.responseHandler.HandleResponse(c, nil, common.ErrTokenMissing)
 			return nil
 		}
 
 		// Kiểm tra định dạng token
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			authManager.responseHandler.HandleResponse(c, nil, utility.ErrTokenInvalid)
+			authManager.responseHandler.HandleResponse(c, nil, common.ErrTokenInvalid)
 			return nil
 		}
 
@@ -156,16 +157,16 @@ func AuthMiddleware(requirePermission string) fiber.Handler {
 		// Tìm user có token
 		user, err := authManager.UserCRUD.FindOne(context.Background(), bson.M{"tokens.jwtToken": token}, nil)
 		if err != nil {
-			authManager.responseHandler.HandleResponse(c, nil, utility.ErrTokenInvalid)
+			authManager.responseHandler.HandleResponse(c, nil, common.ErrTokenInvalid)
 			return nil
 		}
 
 		// Kiểm tra user có bị block không
 		if user.IsBlock {
-			authManager.responseHandler.HandleResponse(c, nil, utility.NewError(
-				utility.ErrCodeAuthCredentials,
+			authManager.responseHandler.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeAuthCredentials,
 				"Tài khoản đã bị khóa: "+user.BlockNote,
-				utility.StatusForbidden,
+				common.StatusForbidden,
 				nil,
 			))
 			return nil
@@ -183,10 +184,10 @@ func AuthMiddleware(requirePermission string) fiber.Handler {
 		// Kiểm tra permission của user
 		permissions, err := authManager.getUserPermissions(user.ID.Hex())
 		if err != nil {
-			authManager.responseHandler.HandleResponse(c, nil, utility.NewError(
-				utility.ErrCodeAuthRole,
+			authManager.responseHandler.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeAuthRole,
 				"Không thể lấy thông tin quyền",
-				utility.StatusForbidden,
+				common.StatusForbidden,
 				nil,
 			))
 			return nil
@@ -195,10 +196,10 @@ func AuthMiddleware(requirePermission string) fiber.Handler {
 		// Kiểm tra user có permission cần thiết không
 		scope, hasPermission := permissions[requirePermission]
 		if !hasPermission {
-			authManager.responseHandler.HandleResponse(c, nil, utility.NewError(
-				utility.ErrCodeAuthRole,
+			authManager.responseHandler.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeAuthRole,
 				"Không có quyền truy cập",
-				utility.StatusForbidden,
+				common.StatusForbidden,
 				nil,
 			))
 			return nil

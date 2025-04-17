@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	models "meta_commerce/core/api/models/mongodb"
-	"meta_commerce/core/utility"
+	"meta_commerce/core/common"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -156,12 +156,12 @@ func (h *InitService) InitPermission() error {
 		_, err := h.permissionService.FindOne(context.TODO(), filter, nil)
 
 		// Bỏ qua nếu có lỗi khác ErrNotFound
-		if err != nil && err != utility.ErrNotFound {
+		if err != nil && err != common.ErrNotFound {
 			continue
 		}
 
 		// Tạo mới quyền nếu chưa tồn tại
-		if err == utility.ErrNotFound {
+		if err == common.ErrNotFound {
 			_, err = h.permissionService.InsertOne(context.TODO(), permission)
 			if err != nil {
 				return fmt.Errorf("failed to insert permission %s: %v", permission.Name, err)
@@ -176,11 +176,11 @@ func (h *InitService) InitPermission() error {
 func (h *InitService) InitRole() error {
 	// Kiểm tra vai trò Administrator đã tồn tại chưa
 	adminRole, err := h.roleService.FindOne(context.TODO(), bson.M{"name": "Administrator"}, nil)
-	if err != nil && err != utility.ErrNotFound {
+	if err != nil && err != common.ErrNotFound {
 		return err
 	}
 	if err == nil {
-		return utility.ErrInvalidInput
+		return common.ErrInvalidInput
 	}
 
 	// Tạo mới vai trò Administrator
@@ -192,13 +192,13 @@ func (h *InitService) InitRole() error {
 	// Lưu vai trò vào database
 	adminRole, err = h.roleService.InsertOne(context.TODO(), newAdminRole)
 	if err != nil {
-		return utility.ErrInvalidInput
+		return common.ErrInvalidInput
 	}
 
 	// Lấy danh sách tất cả các quyền
 	permissions, err := h.permissionService.Find(context.TODO(), bson.M{}, nil)
 	if err != nil {
-		return utility.ErrInvalidInput
+		return common.ErrInvalidInput
 	}
 
 	// Gán tất cả quyền cho vai trò Administrator
@@ -220,11 +220,11 @@ func (h *InitService) InitRole() error {
 func (h *InitService) CheckPermissionForAdministrator() (err error) {
 	// Kiểm tra vai trò Administrator có tồn tại không
 	role, err := h.roleService.FindOne(context.TODO(), bson.M{"name": "Administrator"}, nil)
-	if err != nil && err != utility.ErrNotFound {
+	if err != nil && err != common.ErrNotFound {
 		return err
 	}
 	// Nếu chưa có vai trò Administrator, tạo mới
-	if err == utility.ErrNotFound {
+	if err == common.ErrNotFound {
 		return h.InitRole()
 	}
 
@@ -233,13 +233,13 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 	bsonBytes, _ := bson.Marshal(role)
 	err = bson.Unmarshal(bsonBytes, &modelRole)
 	if err != nil {
-		return utility.ErrInvalidFormat
+		return common.ErrInvalidFormat
 	}
 
 	// Lấy danh sách tất cả các quyền
 	permissions, err := h.permissionService.Find(context.TODO(), bson.M{}, nil)
 	if err != nil {
-		return utility.ErrInvalidInput
+		return common.ErrInvalidInput
 	}
 
 	// Kiểm tra và cập nhật từng quyền cho vai trò Administrator
@@ -260,12 +260,12 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 		}
 
 		_, err = h.rolePermissionService.FindOne(context.TODO(), filter, nil)
-		if err != nil && err != utility.ErrNotFound {
+		if err != nil && err != common.ErrNotFound {
 			continue
 		}
 
 		// Nếu chưa có quyền, thêm mới
-		if err == utility.ErrNotFound {
+		if err == common.ErrNotFound {
 			rolePermission := models.RolePermission{
 				RoleID:       modelRole.ID,
 				PermissionID: modelPermission.ID,
@@ -293,12 +293,12 @@ func (h *InitService) SetAdministrator(userID primitive.ObjectID) (result interf
 
 	// Kiểm tra role Administrator có tồn tại không
 	role, err := h.roleService.FindOne(context.TODO(), bson.M{"name": "Administrator"}, nil)
-	if err != nil && err != utility.ErrNotFound {
+	if err != nil && err != common.ErrNotFound {
 		return nil, err
 	}
 
 	// Nếu chưa có role Administrator, tạo mới
-	if err == utility.ErrNotFound {
+	if err == common.ErrNotFound {
 		err = h.InitRole()
 		if err != nil {
 			return nil, err
@@ -315,11 +315,11 @@ func (h *InitService) SetAdministrator(userID primitive.ObjectID) (result interf
 	// Kiểm tra nếu userRole đã tồn tại
 	if err == nil {
 		// Nếu không có lỗi, tức là đã tìm thấy userRole, trả về lỗi đã định nghĩa
-		return nil, utility.ErrUserAlreadyAdmin
+		return nil, common.ErrUserAlreadyAdmin
 	}
 
 	// Xử lý các lỗi khác ngoài ErrNotFound
-	if err != utility.ErrNotFound {
+	if err != common.ErrNotFound {
 		return nil, err
 	}
 

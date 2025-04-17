@@ -31,5 +31,3 @@ var MongoDB_Session *mongo.Client                                               
 var MongoDB_ServerConfig *config.Configuration                                       // Cấu hình của server
 var MongoDB_ColNames MongoDB_Auth_CollectionName = *new(MongoDB_Auth_CollectionName) // Tên các collection
 var MySQL_Session *sql.DB                                                            // Add this line to define MySQLDB
-
-// Các registry

@@ -7,6 +7,7 @@ import (
 
 	"github.com/valyala/fasthttp"
 
+	"meta_commerce/core/common"
 	"meta_commerce/core/global"
 )
 
@@ -46,12 +47,12 @@ func Payload(isSuccess bool, data interface{}, message string, statusCode ...int
 		Status:  "error",
 		Data:    data,
 		Message: message,
-		Code:    StatusInternalServerError,
+		Code:    common.StatusInternalServerError,
 	}
 
 	if isSuccess {
 		response.Status = "success"
-		response.Code = StatusOK
+		response.Code = common.StatusOK
 	}
 
 	if len(statusCode) > 0 {
@@ -70,12 +71,12 @@ func Payload(isSuccess bool, data interface{}, message string, statusCode ...int
 // FinalResponse tạo phản hồi cuối cùng dựa trên kết quả và lỗi
 func FinalResponse(result interface{}, err error) map[string]interface{} {
 	if err != nil {
-		if customErr, ok := err.(*Error); ok {
+		if customErr, ok := err.(*common.Error); ok {
 			return Payload(false, customErr, customErr.Message, customErr.StatusCode)
 		}
-		return Payload(false, NewError(ErrCodeDatabaseConnection, MsgDatabaseError, StatusInternalServerError, err), MsgDatabaseError)
+		return Payload(false, common.NewError(common.ErrCodeDatabaseConnection, common.MsgDatabaseError, common.StatusInternalServerError, err), common.MsgDatabaseError)
 	} else {
-		return Payload(true, result, MsgSuccess, StatusOK)
+		return Payload(true, result, common.MsgSuccess, common.StatusOK)
 	}
 }
 
@@ -86,7 +87,7 @@ func Convert2Struct(data []byte, myStruct interface{}) map[string]interface{} {
 	decoder.UseNumber()
 	err := decoder.Decode(&myStruct)
 	if err != nil {
-		return Payload(false, NewError(ErrCodeValidationFormat, MsgInvalidFormat, StatusBadRequest, err), MsgInvalidFormat)
+		return Payload(false, common.NewError(common.ErrCodeValidationFormat, common.MsgInvalidFormat, common.StatusBadRequest, err), common.MsgInvalidFormat)
 	}
 
 	return nil
@@ -96,7 +97,7 @@ func Convert2Struct(data []byte, myStruct interface{}) map[string]interface{} {
 func ValidateStruct(myStruct interface{}) map[string]interface{} {
 	err := global.Validate.Struct(myStruct)
 	if err != nil {
-		return Payload(false, NewError(ErrCodeValidationInput, MsgValidationError, StatusBadRequest, err), MsgValidationError)
+		return Payload(false, common.NewError(common.ErrCodeValidationInput, common.MsgValidationError, common.StatusBadRequest, err), common.MsgValidationError)
 	}
 
 	return nil
@@ -107,7 +108,7 @@ func CreateChangeMap(myStruct interface{}, myChange *map[string]interface{}) map
 	CustomBson := &CustomBson{}
 	change, err := CustomBson.Set(myStruct)
 	if err != nil {
-		return Payload(false, NewError(ErrCodeValidationInput, MsgValidationError, StatusBadRequest, err), MsgValidationError)
+		return Payload(false, common.NewError(common.ErrCodeValidationInput, common.MsgValidationError, common.StatusBadRequest, err), common.MsgValidationError)
 	}
 
 	*myChange = change

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
-	"meta_commerce/core/utility"
+	"meta_commerce/core/common"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -97,7 +97,7 @@ func (h *RolePermissionHandler) HandleUpdateRolePermissions(c fiber.Ctx) error {
 	// Chuyển đổi roleId từ string sang ObjectID
 	roleId, err := primitive.ObjectIDFromHex(input.RoleId)
 	if err != nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, "ID vai trò không hợp lệ", utility.StatusBadRequest, err))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "ID vai trò không hợp lệ", common.StatusBadRequest, err))
 		return nil
 	}
 

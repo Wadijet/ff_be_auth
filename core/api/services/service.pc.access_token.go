@@ -6,9 +6,9 @@ import (
 	"time"
 
 	models "meta_commerce/core/api/models/mongodb"
+	"meta_commerce/core/common"
 	"meta_commerce/core/global"
 	"meta_commerce/core/utility"
-	"meta_commerce/pkg/registry"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,9 +22,9 @@ type AccessTokenService struct {
 
 // NewAccessTokenService tạo mới AccessTokenService
 func NewAccessTokenService() (*AccessTokenService, error) {
-	accessTokenCollection, exist := registry.Collections.Get(global.MongoDB_ColNames.AccessTokens)
+	accessTokenCollection, exist := global.RegistryCollections.Get(global.MongoDB_ColNames.AccessTokens)
 	if !exist {
-		return nil, fmt.Errorf("failed to get access_tokens collection: %v", utility.ErrNotFound)
+		return nil, fmt.Errorf("failed to get access_tokens collection: %v", common.ErrNotFound)
 	}
 
 	return &AccessTokenService{
@@ -41,7 +41,7 @@ func (s *AccessTokenService) IsNameExist(ctx context.Context, name string) (bool
 		if err == mongo.ErrNoDocuments {
 			return false, nil
 		}
-		return false, utility.ConvertMongoError(err)
+		return false, common.ConvertMongoError(err)
 	}
 	return true, nil
 }
@@ -54,7 +54,7 @@ func (s *AccessTokenService) Create(ctx context.Context, input *models.AccessTok
 		return nil, err
 	}
 	if exists {
-		return nil, utility.ErrInvalidInput
+		return nil, common.ErrInvalidInput
 	}
 
 	// Chuyển đổi input.AssignedUsers từ mảng []string sang mảng []ObjectID
@@ -79,7 +79,7 @@ func (s *AccessTokenService) Create(ctx context.Context, input *models.AccessTok
 	// Lưu access token
 	createdAccessToken, err := s.BaseServiceMongoImpl.InsertOne(ctx, *accessToken)
 	if err != nil {
-		return nil, utility.ConvertMongoError(err)
+		return nil, common.ConvertMongoError(err)
 	}
 
 	return &createdAccessToken, nil
@@ -90,7 +90,7 @@ func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, 
 	// Kiểm tra access token tồn tại
 	accessToken, err := s.BaseServiceMongoImpl.FindOneById(ctx, id)
 	if err != nil {
-		return nil, utility.ConvertMongoError(err)
+		return nil, common.ConvertMongoError(err)
 	}
 
 	// Nếu có thay đổi tên, kiểm tra tên mới
@@ -100,7 +100,7 @@ func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, 
 			return nil, err
 		}
 		if exists {
-			return nil, utility.ErrInvalidInput
+			return nil, common.ErrInvalidInput
 		}
 		accessToken.Name = input.Name
 	}
@@ -127,7 +127,7 @@ func (s *AccessTokenService) Update(ctx context.Context, id primitive.ObjectID, 
 	// Cập nhật access token
 	updatedAccessToken, err := s.BaseServiceMongoImpl.UpdateById(ctx, id, accessToken)
 	if err != nil {
-		return nil, utility.ConvertMongoError(err)
+		return nil, common.ConvertMongoError(err)
 	}
 
 	return &updatedAccessToken, nil

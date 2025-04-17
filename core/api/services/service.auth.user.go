@@ -8,9 +8,9 @@ import (
 	"time"
 
 	models "meta_commerce/core/api/models/mongodb"
+	"meta_commerce/core/common"
 	"meta_commerce/core/global"
 	"meta_commerce/core/utility"
-	"meta_commerce/pkg/registry"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -28,14 +28,14 @@ type UserService struct {
 // NewUserService tạo mới UserService
 func NewUserService() (*UserService, error) {
 	// Lấy collections từ registry mới
-	userCollection, exist := registry.Collections.Get(global.MongoDB_ColNames.Users)
+	userCollection, exist := global.RegistryCollections.Get(global.MongoDB_ColNames.Users)
 	if !exist {
-		return nil, fmt.Errorf("failed to get users collection: %v", utility.ErrNotFound)
+		return nil, fmt.Errorf("failed to get users collection: %v", common.ErrNotFound)
 	}
 
-	userRoleCollection, exist := registry.Collections.Get(global.MongoDB_ColNames.UserRoles)
+	userRoleCollection, exist := global.RegistryCollections.Get(global.MongoDB_ColNames.UserRoles)
 	if !exist {
-		return nil, fmt.Errorf("failed to get user_roles collection: %v", utility.ErrNotFound)
+		return nil, fmt.Errorf("failed to get user_roles collection: %v", common.ErrNotFound)
 	}
 
 	return &UserService{
@@ -66,7 +66,7 @@ func (s *UserService) Registry(ctx context.Context, input *models.UserCreateInpu
 		return nil, err
 	}
 	if exists {
-		return nil, utility.ErrDuplicate
+		return nil, common.ErrDuplicate
 	}
 
 	// Validate email
@@ -111,15 +111,15 @@ func (s *UserService) Login(ctx context.Context, input *models.UserLoginInput) (
 	filter := bson.M{"email": input.Email}
 	user, err := s.BaseServiceMongoImpl.FindOne(ctx, filter, nil)
 	if err != nil {
-		if err == utility.ErrNotFound {
-			return nil, utility.ErrInvalidCredentials
+		if err == common.ErrNotFound {
+			return nil, common.ErrInvalidCredentials
 		}
 		return nil, err
 	}
 
 	// Kiểm tra mật khẩu
 	if err := user.ComparePassword(input.Password); err != nil {
-		return nil, utility.ErrInvalidCredentials
+		return nil, common.ErrInvalidCredentials
 	}
 
 	// Tạo chuỗi random và curentTime để tạo token mới
@@ -197,7 +197,7 @@ func (s *UserService) ChangePassword(ctx context.Context, userID primitive.Objec
 
 	// Kiểm tra mật khẩu cũ
 	if err := user.ComparePassword(input.OldPassword); err != nil {
-		return utility.ErrInvalidCredentials
+		return common.ErrInvalidCredentials
 	}
 
 	// Validate mật khẩu mới

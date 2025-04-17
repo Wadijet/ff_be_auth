@@ -4,7 +4,7 @@ import (
 	"fmt"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
-	"meta_commerce/core/utility"
+	"meta_commerce/core/common"
 
 	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -94,7 +94,7 @@ type SetRoleInput struct {
 func (h *AdminHandler) HandleSetRole(c fiber.Ctx) error {
 	var input SetRoleInput
 	if err := h.ParseRequestBody(c, &input); err != nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, err.Error(), utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, err.Error(), common.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -134,7 +134,7 @@ func (h *AdminHandler) HandleSetRole(c fiber.Ctx) error {
 func (h *AdminHandler) HandleBlockUser(c fiber.Ctx) error {
 	var input models.BlockUserInput
 	if err := h.ParseRequestBody(c, &input); err != nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, err.Error(), utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, err.Error(), common.StatusBadRequest, nil))
 		return nil
 	}
 
@@ -173,7 +173,7 @@ func (h *AdminHandler) HandleBlockUser(c fiber.Ctx) error {
 func (h *AdminHandler) HandleUnBlockUser(c fiber.Ctx) error {
 	var input models.UnBlockUserInput
 	if err := h.ParseRequestBody(c, &input); err != nil {
-		h.HandleResponse(c, nil, utility.NewError(utility.ErrCodeValidationFormat, err.Error(), utility.StatusBadRequest, nil))
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, err.Error(), common.StatusBadRequest, nil))
 		return nil
 	}
 
