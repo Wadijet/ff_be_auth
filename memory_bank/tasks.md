@@ -1,34 +1,78 @@
-# Quản lý task
+# Tasks - FolkForm Authentication Backend
 
-## Danh sách tasks 
+## Trạng Thái Hiện Tại
+- [x] Thiết lập cấu trúc dự án cơ bản
+- [x] Cấu hình Memory Bank system
+- [x] Thiết kế database schema cho user authentication
+- [x] Xác định và document các API endpoints
+- [ ] Hoàn thiện tài liệu kỹ thuật
 
-| ID | Mô tả | Trạng thái | Độ phức tạp | Ghi chú |
-|----|-------|------------|-------------|---------|
-| 1  | Khởi tạo Memory Bank | Hoàn thành | Level 1 | Đã khởi tạo cấu trúc Memory Bank cơ bản |
-| 2  | Thêm nguyên tắc phát triển | Hoàn thành | Level 1 | Đã thêm nguyên tắc về giải pháp tinh gọn và tái sử dụng code |
-| 3  | Chuyển đổi hệ thống sang Fiber | Chưa bắt đầu | Level 3 | Kế hoạch chi tiết trong tech/fiber_migration_plan.md |
+## Tasks Ưu Tiên
+1. [ ] Implement các API endpoint còn thiếu
+2. [ ] Hoàn thiện unit tests
+3. [ ] Set up CI/CD pipeline
+4. [ ] Tạo API documentation chi tiết
 
-## Chi tiết task
+## Backlog
+### Authentication [IN PROGRESS]
+- [x] Basic user model
+- [x] Role-based access control structure
+- [x] Permission system
+- [x] Multi-device token support
+- [ ] OAuth integration (if required)
+- [ ] Email verification flow
+- [ ] Password reset mechanism
 
-### Task 1: Khởi tạo Memory Bank
-- **Mô tả**: Khởi tạo cấu trúc Memory Bank cơ bản cho dự án
-- **Trạng thái**: Hoàn thành
-- **Độ phức tạp**: Level 1
-- **Ghi chú**: Đã tạo thư mục MemoryBank và file tasks.md 
+### Authorization [IN PROGRESS]
+- [x] Role-based access control
+- [x] Permission management
+- [x] Token management system
+- [x] Basic session handling
+- [ ] Advanced session features
+- [ ] Rate limiting
+- [ ] IP blocking
 
-### Task 2: Thêm nguyên tắc phát triển
-- **Mô tả**: Bổ sung các nguyên tắc phát triển vào Memory Bank
-- **Trạng thái**: Hoàn thành
-- **Độ phức tạp**: Level 1
-- **Ghi chú**: Đã thêm nguyên tắc về việc sử dụng giải pháp tinh gọn và tái sử dụng code vào systemPatterns.md và activeContext.md 
+### Database [MOSTLY DONE]
+- [x] MongoDB schema design
+- [x] Core models implementation
+- [x] Basic repositories
+- [x] Data validation
+- [ ] Index optimization
+- [ ] Query optimization
 
-### Task 3: Chuyển đổi hệ thống sang Fiber
-- **Mô tả**: Chuyển toàn bộ hệ thống từ FastHTTP sang Fiber framework
-- **Trạng thái**: Chưa bắt đầu
-- **Độ phức tạp**: Level 3
-- **Thời gian dự kiến**: 9-13 ngày
-- **Ghi chú**: 
-  - Kế hoạch chi tiết trong tech/fiber_migration_plan.md
-  - Chia thành 5 giai đoạn chính
-  - Cần đảm bảo backward compatibility
-  - Yêu cầu testing kỹ lưỡng 
+### API Development [IN PROGRESS]
+- [x] Core API structure
+- [x] CRUD endpoints
+- [x] Authentication endpoints
+- [x] Basic validation
+- [ ] Advanced validation
+- [ ] Rate limiting
+- [ ] Caching layer
+
+### Testing
+- [ ] Unit test setup
+- [ ] Integration test setup
+- [ ] API test cases
+- [ ] Security testing
+- [ ] Performance testing
+
+### Documentation
+- [ ] API documentation
+- [ ] Setup guide
+- [ ] Deployment guide
+- [ ] User guide
+
+## Completed Tasks
+- [x] Project structure setup
+- [x] Memory Bank system configuration
+- [x] Initial documentation setup
+- [x] Database schema design
+- [x] Core authentication system
+- [x] Role & Permission system
+- [x] Basic API endpoints
+
+## Notes
+- Framework đã được xác định: Fiber
+- Authentication system đã có cấu trúc cơ bản với role-based access control
+- Cần tập trung vào testing và documentation
+- Xem xét thêm các security features như rate limiting và IP blocking 

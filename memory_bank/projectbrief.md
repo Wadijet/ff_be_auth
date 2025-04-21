@@ -1,29 +1,40 @@
-# Mô tả dự án
+# FolkForm Authentication Backend (ff_be_auth)
 
-## Tổng quan
-Dự án FolkForm Backend Authentication (ff_be_auth) là một phần của hệ thống NextCommerce, phụ trách về xác thực và quản lý quyền người dùng.
+## Tổng Quan Dự Án
+FolkForm Authentication Backend là một phần của hệ thống NextCommerce, cung cấp các dịch vụ xác thực và phân quyền cho nền tảng FolkForm.
 
-## Công nghệ
+## Cấu Trúc Hệ Thống
+Dự án được tổ chức theo mô hình Clean Architecture với các thành phần chính:
+
+### Core Components
+- `cmd/`: Entry points của ứng dụng (server, worker)
+- `core/`: Logic nghiệp vụ chính
+  - `api/`: REST API handlers và middleware
+  - `database/`: Database interfaces và implementations
+  - `services/`: Business logic services
+  - `models/`: Domain models
+- `config/`: Cấu hình ứng dụng
+- `custom_modes/`: Các mode tùy chỉnh cho phát triển
+
+### Công Nghệ Sử Dụng
 - Ngôn ngữ: Go
-- Framework: FastHTTP với Router tùy chỉnh
+- Framework: (cần xác định)
 - Database: MongoDB
-- Middleware: CORS, Rate limiting, Timeout, Recovery, Measure
+- Authentication: (cần xác định)
 
-## Cấu trúc dự án
-- **app/**: Chứa mã nguồn chính của ứng dụng
-  - **database/**: Tương tác với cơ sở dữ liệu
-  - **global/**: Biến và cấu hình toàn cục
-  - **middleware/**: Các middleware xử lý request
-  - **models/**: Các model đại diện cho dữ liệu
-  - **router/**: Định nghĩa các endpoint API
-  - **services/**: Logic nghiệp vụ
-  - **utility/**: Các hàm tiện ích
-- **config/**: Cấu hình ứng dụng
-- **database/**: Kết nối và quản lý cơ sở dữ liệu
-- **main.go**: Điểm khởi chạy ứng dụng
+## Trạng Thái Hiện Tại
+- Dự án đang trong giai đoạn phát triển
+- Đã có cấu trúc cơ bản của hệ thống
+- Đang sử dụng Memory Bank system mới với các mode phát triển chuyên biệt
 
-## Chức năng chính
-- Xác thực người dùng
-- Quản lý phân quyền (Role-based Access Control)
-- Quản lý token truy cập
-- Tích hợp với các nền tảng xã hội (Facebook) 
+## Mục Tiêu
+1. Xây dựng hệ thống xác thực an toàn và hiệu quả
+2. Tích hợp với các thành phần khác của NextCommerce
+3. Đảm bảo khả năng mở rộng và bảo trì
+
+## Các Mode Phát Triển
+- VAN: Khởi tạo và xác định độ phức tạp
+- PLAN: Lập kế hoạch chi tiết
+- CREATIVE: Khám phá giải pháp thiết kế
+- IMPLEMENT: Triển khai code
+- QA: Kiểm tra và đảm bảo chất lượng 

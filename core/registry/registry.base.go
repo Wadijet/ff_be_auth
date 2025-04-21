@@ -57,21 +57,28 @@ func NewRegistry[T any]() *Registry[T] {
 //   - item: Item cần đăng ký
 //
 // Returns:
-//   - error: Trả về lỗi nếu name rỗng
+//   - isNew: true nếu là item mới, false nếu ghi đè item cũ
+//   - err: Trả về lỗi nếu name rỗng
 //
 // Thread-safety: Safe for concurrent use
 //
 // Example:
 //
-//	err := registry.Register("counter", 42)
-func (r *Registry[T]) Register(name string, item T) error {
+//	isNew, err := registry.Register("counter", 42)
+//	if isNew {
+//	    fmt.Println("Đã tạo counter mới")
+//	} else {
+//	    fmt.Println("Đã ghi đè counter cũ")
+//	}
+func (r *Registry[T]) Register(name string, item T) (isNew bool, err error) {
 	if name == "" {
-		return fmt.Errorf("name cannot be empty: %w", common.ErrRequiredField)
+		return false, fmt.Errorf("name cannot be empty: %w", common.ErrRequiredField)
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	_, exists := r.items[name]
 	r.items[name] = item
-	return nil
+	return !exists, nil
 }
 
 // Get lấy item theo tên.
@@ -81,20 +88,20 @@ func (r *Registry[T]) Register(name string, item T) error {
 //   - name: Tên của item cần lấy
 //
 // Returns:
-//   - T: Item nếu tìm thấy, zero value của T nếu không tìm thấy
-//   - bool: true nếu item tồn tại, false nếu không
+//   - item: Item nếu tìm thấy, zero value của T nếu không tìm thấy
+//   - exists: true nếu item tồn tại, false nếu không
 //
 // Thread-safety: Safe for concurrent use
 //
 // Example:
 //
-//	if value, exists := registry.Get("counter"); exists {
-//	    fmt.Printf("Counter value: %d\n", value)
+//	if item, exists := registry.Get("counter"); exists {
+//	    fmt.Printf("Counter value: %d\n", item)
 //	}
-func (r *Registry[T]) Get(name string) (T, bool) {
+func (r *Registry[T]) Get(name string) (item T, exists bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	item, exists := r.items[name]
+	item, exists = r.items[name]
 	return item, exists
 }
 
@@ -105,8 +112,8 @@ func (r *Registry[T]) Get(name string) (T, bool) {
 //   - creator: Function tạo item mới
 //
 // Returns:
-//   - T: Item (existing hoặc newly created)
-//   - error: Lỗi nếu có
+//   - item: Item (existing hoặc newly created)
+//   - err: Lỗi nếu có trong quá trình tạo hoặc validate
 //
 // Thread-safety: Safe for concurrent use
 //
@@ -115,23 +122,21 @@ func (r *Registry[T]) Get(name string) (T, bool) {
 //	item, err := registry.GetOrCreate("counter", func() (int, error) {
 //	    return 0, nil
 //	})
-func (r *Registry[T]) GetOrCreate(name string, creator func() (T, error)) (T, error) {
-	if item, exists := r.Get(name); exists {
-		return item, nil
+func (r *Registry[T]) GetOrCreate(name string, creator func() (T, error)) (item T, err error) {
+	if name == "" {
+		return item, fmt.Errorf("name cannot be empty: %w", common.ErrRequiredField)
 	}
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Double-check sau khi acquire lock
-	if item, exists := r.items[name]; exists {
-		return item, nil
+	if existingItem, exists := r.items[name]; exists {
+		return existingItem, nil
 	}
 
 	newItem, err := creator()
 	if err != nil {
-		var zero T
-		return zero, fmt.Errorf("failed to create item: %w", err)
+		return item, fmt.Errorf("failed to create item: %w", err)
 	}
 
 	r.items[name] = newItem
@@ -172,63 +177,93 @@ func (r *Registry[T]) Update(name string, updater func(T) (T, error)) error {
 	return nil
 }
 
-// Delete xóa một item khỏi registry.
+// Clear xóa một item khỏi registry.
+// Nếu cleanup function được cung cấp, nó sẽ được gọi trước khi xóa để giải phóng tài nguyên.
 //
 // Parameters:
 //   - name: Tên của item cần xóa
+//   - cleanup: Optional function để giải phóng tài nguyên trước khi xóa
 //
 // Returns:
-//   - bool: true nếu item đã được xóa, false nếu item không tồn tại
+//   - deleted: true nếu item bị xóa, false nếu item không tồn tại
+//   - err: Lỗi nếu có trong quá trình cleanup
 //
 // Thread-safety: Safe for concurrent use
 //
 // Example:
 //
-//	if deleted := registry.Delete("counter"); deleted {
-//	    fmt.Println("Counter was deleted")
-//	}
-func (r *Registry[T]) Delete(name string) bool {
+//	// Xóa item đơn giản
+//	deleted, _ := registry.Clear("counter", nil)
+//
+//	// Xóa database connection với cleanup
+//	deleted, err := registry.Clear("db1", func(db *Database) error {
+//	    return db.Close()
+//	})
+func (r *Registry[T]) Clear(name string, cleanup func(T) error) (deleted bool, err error) {
+	if name == "" {
+		return false, fmt.Errorf("name cannot be empty: %w", common.ErrRequiredField)
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if _, exists := r.items[name]; exists {
-		delete(r.items, name)
-		return true
+
+	item, exists := r.items[name]
+	if !exists {
+		return false, nil
 	}
-	return false
+
+	if cleanup != nil {
+		if err := cleanup(item); err != nil {
+			return false, fmt.Errorf("failed to cleanup item %s: %w", name, err)
+		}
+	}
+
+	delete(r.items, name)
+	return true, nil
 }
 
-// GetAll trả về danh sách tên của tất cả items trong registry.
+// ClearAll xóa tất cả items trong registry.
+// Nếu cleanup function được cung cấp, nó sẽ được gọi cho mỗi item trước khi xóa.
+//
+// Parameters:
+//   - cleanup: Optional function để giải phóng tài nguyên trước khi xóa
 //
 // Returns:
-//   - []string: Danh sách tên các items
+//   - count: Số lượng items đã bị xóa
+//   - err: Lỗi nếu có trong quá trình cleanup
 //
 // Thread-safety: Safe for concurrent use
 //
 // Example:
 //
-//	names := registry.GetAll()
-//	for _, name := range names {
-//	    fmt.Printf("Item: %s\n", name)
-//	}
-func (r *Registry[T]) GetAll() []string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	names := make([]string, 0, len(r.items))
-	for name := range r.items {
-		names = append(names, name)
-	}
-	return names
-}
-
-// Clear xóa tất cả items trong registry.
+//	// Xóa tất cả items đơn giản
+//	count, _ := registry.ClearAll(nil)
 //
-// Thread-safety: Safe for concurrent use
-//
-// Example:
-//
-//	registry.Clear()
-func (r *Registry[T]) Clear() {
+//	// Xóa tất cả database connections với cleanup
+//	count, err := registry.ClearAll(func(db *Database) error {
+//	    return db.Close()
+//	})
+func (r *Registry[T]) ClearAll(cleanup func(T) error) (count int, err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	count = len(r.items)
+	if count == 0 {
+		return 0, nil
+	}
+
+	if cleanup != nil {
+		var errs []error
+		for name, item := range r.items {
+			if err := cleanup(item); err != nil {
+				errs = append(errs, fmt.Errorf("failed to cleanup %s: %w", name, err))
+			}
+		}
+		if len(errs) > 0 {
+			return 0, fmt.Errorf("cleanup errors occurred: %v", errs)
+		}
+	}
+
 	r.items = make(map[string]T)
+	return count, nil
 }

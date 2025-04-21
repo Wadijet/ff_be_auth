@@ -27,9 +27,10 @@ func InitCollections(client *mongo.Client, cfg *config.Configuration) error {
 		"agents", "access_tokens", "fb_pages", "fb_conversations", "fb_messages", "fb_posts", "pc_orders"}
 
 	for _, name := range colNames {
-		if err := global.RegistryCollections.Register(name, db.Collection(name)); err != nil {
+		if _, err := global.RegistryCollections.Register(name, db.Collection(name)); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }

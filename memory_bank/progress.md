@@ -1,21 +1,62 @@
-# Tiến độ dự án
+# Progress Tracking - FolkForm Authentication Backend
 
-## Quá trình thực hiện
-| Ngày | Hoạt động | Kết quả |
-|------|-----------|---------|
-| 05/04/2025 | Khởi tạo Memory Bank | Đã tạo các file cơ bản của Memory Bank |
-| 05/04/2025 | Bổ sung nguyên tắc phát triển | Đã thêm nguyên tắc về giải pháp tinh gọn và tái sử dụng code |
-| 05/04/2025 | Lập kế hoạch chuyển đổi sang Fiber | Đã tạo kế hoạch chi tiết trong tech/fiber_migration_plan.md |
+## Tổng Quan Tiến Độ
+- **Trạng thái**: Đang phát triển
+- **Phase hiện tại**: Core Implementation
+- **Độ hoàn thành**: ~45%
 
-## Trạng thái hiện tại
-- Đã hoàn thành khởi tạo Memory Bank cơ bản
-- Đã xác định được nền tảng dự án là Go với MongoDB
-- Đã xác định được cấu trúc dự án hiện tại
-- Đã bổ sung các nguyên tắc phát triển quan trọng vào Memory Bank
-- Đã có kế hoạch chi tiết cho việc chuyển đổi sang Fiber framework
+## Milestone Timeline
 
-## Kế hoạch tiếp theo
-- Bắt đầu thực hiện giai đoạn 1 của kế hoạch chuyển đổi sang Fiber
-- Phân tích chi tiết hơn về cấu trúc dự án
-- Hiểu rõ hơn về các chức năng xác thực và phân quyền hiện có
-- Đánh giá code hiện có dựa trên các nguyên tắc đã đề ra 
+### Phase 1: Project Setup & Planning [COMPLETED]
+- [x] Thiết lập cấu trúc dự án
+- [x] Cấu hình Memory Bank system
+- [x] Tạo documentation cơ bản
+- [x] Xác định technical specifications
+- [x] Xác định API endpoints
+
+### Phase 2: Core Authentication [IN PROGRESS]
+- [x] Database schema design
+- [x] User model implementation
+- [x] Role & Permission system
+- [x] Basic authentication flows
+- [ ] Advanced security features
+- [ ] Email verification system
+
+### Phase 3: Extended Features [PENDING]
+- [ ] OAuth integration
+- [ ] Advanced security features
+  - [ ] Rate limiting
+  - [ ] IP blocking
+  - [ ] Session management
+- [x] Role-based access control
+- [x] Basic session management
+
+### Phase 4: Testing & Documentation [PENDING]
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Security testing
+- [ ] API documentation
+- [ ] Deployment guide
+
+## Recent Updates
+### 2024-03-20
+- [x] Hoàn thành cấu trúc cơ bản của authentication system
+- [x] Implement role-based access control
+- [x] Thiết kế và implement database schema
+- [x] Tạo các API endpoint cơ bản
+
+## Upcoming Tasks
+1. Implement các security feature nâng cao
+2. Thiết lập testing environment
+3. Tạo API documentation chi tiết
+
+## Risks & Issues
+1. Cần review security measures kỹ lưỡng trước khi deployment
+2. Cần có strategy cho performance optimization
+3. Testing coverage cần được ưu tiên
+
+## Notes
+- Core authentication system đã hoạt động
+- Role & Permission system đã được implement
+- Cần tập trung vào testing và security features
+- API documentation cần được ưu tiên 

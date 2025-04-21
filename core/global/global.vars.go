@@ -3,6 +3,8 @@ package global
 import (
 	"database/sql"
 	"meta_commerce/config"
+	"meta_commerce/core/registry"
+	"meta_commerce/core/scheduler"
 
 	_ "github.com/go-sql-driver/mysql"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -31,3 +33,10 @@ var MongoDB_Session *mongo.Client                                               
 var MongoDB_ServerConfig *config.Configuration                                       // Cấu hình của server
 var MongoDB_ColNames MongoDB_Auth_CollectionName = *new(MongoDB_Auth_CollectionName) // Tên các collection
 var MySQL_Session *sql.DB                                                            // Add this line to define MySQLDB
+
+// Các Registry
+var RegistryCollections = registry.NewRegistry[*mongo.Collection]() // Registry chứa các collections
+var RegistryDatabase = registry.NewRegistry[*mongo.Database]()      // Registry chứa các databases
+
+// Các Scheduler
+var Scheduler = scheduler.NewScheduler() // Scheduler chứa các jobs

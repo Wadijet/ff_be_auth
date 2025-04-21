@@ -28,6 +28,12 @@ func main() {
 	// Khởi tạo registry
 	InitRegistry()
 
-	// Chạy Fiber server
+	// Khởi tạo và chạy background jobs trong goroutines
+	go func() {
+		logrus.Info("Initializing background jobs...")
+		InitJobs()
+	}()
+
+	// Chạy Fiber server trên main thread
 	main_thread()
 }
