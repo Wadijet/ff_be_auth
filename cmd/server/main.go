@@ -28,6 +28,9 @@ func main() {
 	// Khởi tạo registry
 	InitRegistry()
 
+	// Khởi tạo dữ liệu mặc định
+	InitDefaultData()
+
 	// Khởi tạo và chạy background jobs trong goroutines
 	go func() {
 		logrus.Info("Initializing background jobs...")

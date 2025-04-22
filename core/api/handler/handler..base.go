@@ -7,11 +7,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"meta_commerce/core/api/services"
 	"meta_commerce/core/common"
 	"meta_commerce/core/global"
 	"meta_commerce/core/utility"
 	"strconv"
+
+	"runtime/debug"
 
 	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -490,6 +493,33 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneAndDelete(c fiber.Ctx)
 	return nil
 }
 
+// SafeHandler bọc các handler với recover để bắt panic và xử lý lỗi an toàn.
+// Hàm này đảm bảo rằng server luôn trả về response cho client, kể cả khi có panic xảy ra.
+//
+// Parameters:
+// - c: Fiber context
+// - handler: Function xử lý chính của handler
+//
+// Returns:
+// - error: Lỗi nếu có
+func (h *BaseHandler[T, CreateInput, UpdateInput]) SafeHandler(c fiber.Ctx, handler func() error) error {
+	defer func() {
+		if r := recover(); r != nil {
+			// Log stack trace để debug
+			debug.PrintStack()
+
+			// Trả về lỗi cho client
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeInternalServer,
+				fmt.Sprintf("Lỗi hệ thống không mong muốn: %v", r),
+				common.StatusInternalServerError,
+				nil,
+			))
+		}
+	}()
+	return handler()
+}
+
 // CountDocuments đếm số lượng document theo điều kiện filter.
 // Filter được truyền qua query string dưới dạng JSON.
 //
@@ -499,15 +529,36 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneAndDelete(c fiber.Ctx)
 // Returns:
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) CountDocuments(c fiber.Ctx) error {
-	var filter map[string]interface{}
-	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
-		return nil
-	}
+	return h.SafeHandler(c, func() error {
+		var filter map[string]interface{}
+		// Lấy giá trị filter từ query string, mặc định là "{}" nếu không có
+		filterStr := c.Query("filter", "{}")
 
-	count, err := h.BaseService.CountDocuments(c.Context(), filter)
-	h.HandleResponse(c, count, err)
-	return nil
+		// Log giá trị filter để debug
+		fmt.Printf("Filter string từ query: %s\n", filterStr)
+
+		// Chuyển đổi chuỗi JSON thành map
+		if err := json.Unmarshal([]byte(filterStr), &filter); err != nil {
+			// Log lỗi để debug
+			fmt.Printf("Lỗi khi parse filter: %v\n", err)
+
+			// Trả về lỗi cho client
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				"Filter không hợp lệ",
+				common.StatusBadRequest,
+				err,
+			))
+			return nil
+		}
+
+		// Log filter sau khi parse thành công
+		fmt.Printf("Filter sau khi parse: %+v\n", filter)
+
+		count, err := h.BaseService.CountDocuments(c.Context(), filter)
+		h.HandleResponse(c, count, err)
+		return nil
+	})
 }
 
 // Distinct lấy danh sách giá trị duy nhất của một trường.

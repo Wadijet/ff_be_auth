@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"meta_commerce/core/api/router"
 	"os"
 	"strings"
@@ -80,8 +81,32 @@ func InitFiberApp() *fiber.App {
 	// 1. Recover Middleware
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
+		StackTraceHandler: func(c fiber.Ctx, e interface{}) {
+			// Log panic với stack trace
+			logrus.WithFields(logrus.Fields{
+				"panic":     e,
+				"path":      c.Path(),
+				"method":    c.Method(),
+				"ip":        c.IP(),
+				"requestID": c.Get("X-Request-ID"),
+				"headers":   c.GetReqHeaders(),
+				"body":      string(c.Body()),
+			}).Error("Panic recovered")
+
+			// Trả về response với format chuẩn
+			c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"success": false,
+				"code":    fiber.StatusInternalServerError,
+				"message": "Internal Server Error",
+				"error":   fmt.Sprintf("%v", e),
+				"time":    time.Now().Format(time.RFC3339),
+			})
+		},
 		Next: func(c fiber.Ctx) bool {
-			return false
+			// Bỏ qua health check và một số endpoint không cần thiết
+			return c.Path() == "/health" ||
+				c.Path() == "/metrics" ||
+				c.Path() == "/api/v1/system/health"
 		},
 	}))
 

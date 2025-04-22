@@ -78,6 +78,14 @@ type ErrorCode struct {
 
 // Định nghĩa các mã lỗi theo hệ thống phân cấp
 var (
+	// System Errors (SYS_xxx)
+	ErrCodeInternalServer = ErrorCode{
+		Code:        "SYS_001",
+		Category:    "System",
+		SubCategory: "Internal",
+		Description: "Lỗi hệ thống nội bộ",
+	}
+
 	// Authentication Errors (AUTH_xxx)
 	ErrCodeAuth = ErrorCode{
 		Code:        "AUTH",

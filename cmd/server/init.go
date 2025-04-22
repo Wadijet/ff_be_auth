@@ -17,16 +17,15 @@ func InitGlobal() {
 	initValidator()        // Khởi tạo validator
 	initConfig()           // Khởi tạo cấu hình server
 	initDatabase_MongoDB() // Khởi tạo kết nối database
-
 }
 
 // Hàm khởi tạo tên các collection trong database
 func initColNames() {
-	global.MongoDB_ColNames.Users = "users"
-	global.MongoDB_ColNames.Permissions = "permissions"
-	global.MongoDB_ColNames.Roles = "roles"
-	global.MongoDB_ColNames.RolePermissions = "role_permissions"
-	global.MongoDB_ColNames.UserRoles = "user_roles"
+	global.MongoDB_ColNames.Users = "auth_users"
+	global.MongoDB_ColNames.Permissions = "auth_permissions"
+	global.MongoDB_ColNames.Roles = "auth_roles"
+	global.MongoDB_ColNames.RolePermissions = "auth_role_permissions"
+	global.MongoDB_ColNames.UserRoles = "auth_user_roles"
 	global.MongoDB_ColNames.Agents = "agents"
 	global.MongoDB_ColNames.AccessTokens = "access_tokens"
 	global.MongoDB_ColNames.FbPages = "fb_pages"

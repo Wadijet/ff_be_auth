@@ -23,14 +23,22 @@ func InitRegistry() {
 // InitCollections khởi tạo và đăng ký các collections MongoDB
 func InitCollections(client *mongo.Client, cfg *config.Configuration) error {
 	db := client.Database(cfg.MongoDB_DBName_Auth)
-	colNames := []string{"users", "permissions", "roles", "role_permissions", "user_roles",
+	colNames := []string{"auth_users", "auth_permissions", "auth_roles", "auth_role_permissions", "auth_user_roles",
 		"agents", "access_tokens", "fb_pages", "fb_conversations", "fb_messages", "fb_posts", "pc_orders"}
 
 	for _, name := range colNames {
-		if _, err := global.RegistryCollections.Register(name, db.Collection(name)); err != nil {
+		registered, err := global.RegistryCollections.Register(name, db.Collection(name))
+		if err != nil {
 			logrus.Errorf("Failed to register collection %s: %v", name, err)
 			return err
 		}
+
+		if registered {
+			logrus.Infof("Collection %s registered successfully", name)
+		} else {
+			logrus.Errorf("Collection %s already registered", name)
+		}
+
 	}
 
 	return nil

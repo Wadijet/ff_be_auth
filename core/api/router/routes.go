@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"meta_commerce/core/api/handler"
 	"meta_commerce/core/api/middleware"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
+
+// CONFIGS
 
 // CRUDHandler định nghĩa interface cho các handler CRUD
 type CRUDHandler interface {
@@ -145,192 +148,80 @@ func NewRouter(app *fiber.App) *Router {
 }
 
 // registerCRUDRoutes đăng ký các route CRUD cho một collection
-func (r *Router) registerCRUDRoutes(prefix string, h CRUDHandler, config CRUDConfig, permissionPrefix string) {
+func (r *Router) registerCRUDRoutes(router fiber.Router, prefix string, h CRUDHandler, config CRUDConfig, permissionPrefix string) {
 	// Create operations
 	if config.InsOne {
-		r.app.Post(fmt.Sprintf("%s/insertOne", prefix), h.InsertOne, middleware.AuthMiddleware(permissionPrefix+".Insert"))
+		router.Post(fmt.Sprintf("%s/insert-one", prefix), h.InsertOne, middleware.AuthMiddleware(permissionPrefix+".Insert"))
 	}
 	if config.InsMany {
-		r.app.Post(fmt.Sprintf("%s/insertMany", prefix), h.InsertMany, middleware.AuthMiddleware(permissionPrefix+".Insert"))
+		router.Post(fmt.Sprintf("%s/insert-many", prefix), h.InsertMany, middleware.AuthMiddleware(permissionPrefix+".Insert"))
 	}
 
 	// Read operations
 	if config.Find {
-		r.app.Get(fmt.Sprintf("%s/find", prefix), h.Find, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		router.Get(fmt.Sprintf("%s/find", prefix), h.Find, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.FindOne {
-		r.app.Get(fmt.Sprintf("%s/findOne", prefix), h.FindOne, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		router.Get(fmt.Sprintf("%s/find-one", prefix), h.FindOne, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.FindById {
-		r.app.Get(fmt.Sprintf("%s/findById/:id", prefix), h.FindOneById, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		router.Get(fmt.Sprintf("%s/find-by-id/:id", prefix), h.FindOneById, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.FindIds {
-		r.app.Post(fmt.Sprintf("%s/findByIds", prefix), h.FindManyByIds, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		router.Post(fmt.Sprintf("%s/find-by-ids", prefix), h.FindManyByIds, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.Paginate {
-		r.app.Get(fmt.Sprintf("%s/findWithPagination", prefix), h.FindWithPagination, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		router.Get(fmt.Sprintf("%s/find-with-pagination", prefix), h.FindWithPagination, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 
 	// Update operations
 	if config.UpdOne {
-		r.app.Put(fmt.Sprintf("%s/updateOne", prefix), h.UpdateOne, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		router.Put(fmt.Sprintf("%s/update-one", prefix), h.UpdateOne, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 	if config.UpdMany {
-		r.app.Put(fmt.Sprintf("%s/updateMany", prefix), h.UpdateMany, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		router.Put(fmt.Sprintf("%s/update-many", prefix), h.UpdateMany, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 	if config.UpdById {
-		r.app.Put(fmt.Sprintf("%s/updateById/:id", prefix), h.UpdateById, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		router.Put(fmt.Sprintf("%s/update-by-id/:id", prefix), h.UpdateById, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 	if config.FindUpd {
-		r.app.Put(fmt.Sprintf("%s/findOneAndUpdate", prefix), h.FindOneAndUpdate, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		router.Put(fmt.Sprintf("%s/find-one-and-update", prefix), h.FindOneAndUpdate, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 
 	// Delete operations
 	if config.DelOne {
-		r.app.Delete(fmt.Sprintf("%s/deleteOne", prefix), h.DeleteOne, middleware.AuthMiddleware(permissionPrefix+".Delete"))
+		router.Delete(fmt.Sprintf("%s/delete-one", prefix), h.DeleteOne, middleware.AuthMiddleware(permissionPrefix+".Delete"))
 	}
 	if config.DelMany {
-		r.app.Delete(fmt.Sprintf("%s/deleteMany", prefix), h.DeleteMany, middleware.AuthMiddleware(permissionPrefix+".Delete"))
+		router.Delete(fmt.Sprintf("%s/delete-many", prefix), h.DeleteMany, middleware.AuthMiddleware(permissionPrefix+".Delete"))
 	}
 	if config.DelById {
-		r.app.Delete(fmt.Sprintf("%s/deleteById/:id", prefix), h.DeleteById, middleware.AuthMiddleware(permissionPrefix+".Delete"))
+		router.Delete(fmt.Sprintf("%s/delete-by-id/:id", prefix), h.DeleteById, middleware.AuthMiddleware(permissionPrefix+".Delete"))
 	}
 	if config.FindDel {
-		r.app.Delete(fmt.Sprintf("%s/findOneAndDelete", prefix), h.FindOneAndDelete, middleware.AuthMiddleware(permissionPrefix+".Delete"))
+		router.Delete(fmt.Sprintf("%s/find-one-and-delete", prefix), h.FindOneAndDelete, middleware.AuthMiddleware(permissionPrefix+".Delete"))
 	}
 
 	// Other operations
 	if config.Count {
-		r.app.Get(fmt.Sprintf("%s/count", prefix), h.CountDocuments, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		fmt.Printf("Registering COUNT route: %s/count\n", prefix)
+		router.Get(fmt.Sprintf("%s/count", prefix), h.CountDocuments, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.Distinct {
-		r.app.Get(fmt.Sprintf("%s/distinct", prefix), h.Distinct, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		router.Get(fmt.Sprintf("%s/distinct", prefix), h.Distinct, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.Upsert {
-		r.app.Post(fmt.Sprintf("%s/upsertOne", prefix), h.Upsert, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		router.Post(fmt.Sprintf("%s/upsert-one", prefix), h.Upsert, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 	if config.UpsMany {
-		r.app.Post(fmt.Sprintf("%s/upsertMany", prefix), h.UpsertMany, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		router.Post(fmt.Sprintf("%s/upsert-many", prefix), h.UpsertMany, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 	if config.Exists {
-		r.app.Get(fmt.Sprintf("%s/exists", prefix), h.DocumentExists, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		router.Get(fmt.Sprintf("%s/exists", prefix), h.DocumentExists, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 }
 
-// registerAuthRoutes đăng ký các route cho authentication
-func (r *Router) registerAuthRoutes(router fiber.Router) error {
-	// User routes
-	userHandler, err := handler.NewUserHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create user handler: %v", err)
-	}
-
-	// Các route xác thực đặc biệt
-	router.Post("/auth/register", userHandler.HandleRegister)
-	router.Post("/auth/login", userHandler.HandleLogin)
-	router.Post("/auth/logout", userHandler.HandleLogout, middleware.AuthMiddleware(""))
-	router.Get("/auth/profile", userHandler.HandleGetProfile, middleware.AuthMiddleware(""))
-	router.Put("/auth/profile", userHandler.HandleUpdateProfile, middleware.AuthMiddleware(""))
-	router.Put("/auth/password", userHandler.HandleChangePassword, middleware.AuthMiddleware(""))
-
-	// CRUD routes cho User với quyền từ InitialPermissions
-	r.registerCRUDRoutes("/users", userHandler, userConfig, "User")
-
-	return nil
-}
-
-// registerRBACRoutes đăng ký các route cho Role-Based Access Control
-func (r *Router) registerRBACRoutes(router fiber.Router) error {
-	// Permission routes
-	permHandler, err := handler.NewPermissionHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create permission handler: %v", err)
-	}
-	r.registerCRUDRoutes("/permissions", permHandler, permConfig, "Permission")
-
-	// Role routes
-	roleHandler, err := handler.NewRoleHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create role handler: %v", err)
-	}
-	r.registerCRUDRoutes("/roles", roleHandler, roleConfig, "Role")
-
-	// RolePermission routes
-	rolePermHandler, err := handler.NewRolePermissionHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create role permission handler: %v", err)
-	}
-	// Route đặc biệt cho cập nhật quyền của vai trò
-	router.Put("/role-permissions/update-role", middleware.AuthMiddleware("RolePermission.Update"), rolePermHandler.HandleUpdateRolePermissions)
-	// CRUD routes
-	r.registerCRUDRoutes("/role-permissions", rolePermHandler, rolePermConfig, "RolePermission")
-
-	// UserRole routes
-	userRoleHandler, err := handler.NewUserRoleHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create user role handler: %v", err)
-	}
-	r.registerCRUDRoutes("/user-roles", userRoleHandler, userRoleConfig, "UserRole")
-
-	// Agent routes
-	agentHandler, err := handler.NewAgentHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create agent handler: %v", err)
-	}
-	r.registerCRUDRoutes("/agents", agentHandler, agentConfig, "Agent")
-
-	return nil
-}
-
-// registerFacebookRoutes đăng ký các route cho Facebook integration
-func (r *Router) registerFacebookRoutes(router fiber.Router) error {
-	// Access Token routes
-	accessTokenHandler, err := handler.NewAccessTokenHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create access token handler: %v", err)
-	}
-	r.registerCRUDRoutes("/access-tokens", accessTokenHandler, accessTokenConfig, "AccessToken")
-
-	// Facebook Page routes
-	fbPageHandler, err := handler.NewFbPageHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create facebook page handler: %v", err)
-	}
-	r.registerCRUDRoutes("/facebook/pages", fbPageHandler, fbPageConfig, "FbPage")
-
-	// Facebook Post routes
-	fbPostHandler, err := handler.NewFbPostHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create facebook post handler: %v", err)
-	}
-	r.registerCRUDRoutes("/facebook/posts", fbPostHandler, fbPostConfig, "FbPost")
-
-	// Facebook Conversation routes
-	fbConvHandler, err := handler.NewFbConversationHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create facebook conversation handler: %v", err)
-	}
-	// Route đặc biệt cho lấy cuộc trò chuyện sắp xếp theo thời gian cập nhật API
-	router.Get("/facebook/conversations/sort-by-api-update", middleware.AuthMiddleware("FbConversation.Read"), fbConvHandler.HandleFindAllSortByApiUpdate)
-	// CRUD routes
-	r.registerCRUDRoutes("/facebook/conversations", fbConvHandler, fbConvConfig, "FbConversation")
-
-	// Facebook Message routes
-	fbMessageHandler, err := handler.NewFbMessageHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create facebook message handler: %v", err)
-	}
-	r.registerCRUDRoutes("/facebook/messages", fbMessageHandler, fbMessageConfig, "FbMessage")
-
-	// Pancake Order routes
-	pcOrderHandler, err := handler.NewPcOrderHandler()
-	if err != nil {
-		return fmt.Errorf("failed to create pancake order handler: %v", err)
-	}
-	r.registerCRUDRoutes("/pancake/orders", pcOrderHandler, pcOrderConfig, "PcOrder")
-
-	return nil
-}
+// CÁC HÀM ĐĂNG KÝ ROUTES
 
 // registerAdminRoutes đăng ký các route cho admin operations
 func registerAdminRoutes(router fiber.Router) error {
@@ -352,8 +243,141 @@ func registerAdminRoutes(router fiber.Router) error {
 func registerSystemRoutes(router fiber.Router) error {
 	// System routes
 	router.Get("/system/health", func(c fiber.Ctx) error {
-		return c.SendString("OK")
+		return c.JSON(fiber.Map{
+			"status": "healthy",
+			"time":   time.Now(),
+		})
 	})
+
+	return nil
+}
+
+// registerAuthRoutes đăng ký các route cho authentication
+func (r *Router) registerAuthRoutes(router fiber.Router) error {
+	// User routes
+	userHandler, err := handler.NewUserHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create user handler: %v", err)
+	}
+
+	// Các route xác thực đặc biệt
+	router.Post("/auth/register", userHandler.HandleRegister)
+	router.Post("/auth/login", userHandler.HandleLogin)
+	router.Post("/auth/logout", userHandler.HandleLogout, middleware.AuthMiddleware(""))
+	router.Get("/auth/profile", userHandler.HandleGetProfile, middleware.AuthMiddleware(""))
+	router.Put("/auth/profile", userHandler.HandleUpdateProfile, middleware.AuthMiddleware(""))
+	router.Put("/auth/password", userHandler.HandleChangePassword, middleware.AuthMiddleware(""))
+
+	// CRUD routes cho User với quyền từ InitialPermissions
+	r.registerCRUDRoutes(router, "/user", userHandler, userConfig, "User")
+
+	return nil
+}
+
+// registerRBACRoutes đăng ký các route cho Role-Based Access Control
+func (r *Router) registerRBACRoutes(router fiber.Router) error {
+	// Permission routes
+	permHandler, err := handler.NewPermissionHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create permission handler: %v", err)
+	}
+	fmt.Printf("Registering permission routes with prefix: /permission\n")
+	r.registerCRUDRoutes(router, "/permission", permHandler, permConfig, "Permission")
+
+	// Role routes
+	roleHandler, err := handler.NewRoleHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create role handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/role", roleHandler, roleConfig, "Role")
+
+	// RolePermission routes
+	rolePermHandler, err := handler.NewRolePermissionHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create role permission handler: %v", err)
+	}
+	// Route đặc biệt cho cập nhật quyền của vai trò
+	router.Put("/role-permission/update-role", middleware.AuthMiddleware("RolePermission.Update"), rolePermHandler.HandleUpdateRolePermissions)
+	// CRUD routes
+	r.registerCRUDRoutes(router, "/role-permission", rolePermHandler, rolePermConfig, "RolePermission")
+
+	// UserRole routes
+	userRoleHandler, err := handler.NewUserRoleHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create user role handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/user-role", userRoleHandler, userRoleConfig, "UserRole")
+
+	// Agent routes
+	agentHandler, err := handler.NewAgentHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create agent handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/agent", agentHandler, agentConfig, "Agent")
+
+	return nil
+}
+
+// registerFacebookRoutes đăng ký các route cho Facebook integration
+func (r *Router) registerFacebookRoutes(router fiber.Router) error {
+	// Access Token routes
+	accessTokenHandler, err := handler.NewAccessTokenHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create access token handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/access-token", accessTokenHandler, accessTokenConfig, "AccessToken")
+
+	// Facebook Page routes
+	fbPageHandler, err := handler.NewFbPageHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create facebook page handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/facebook/page", fbPageHandler, fbPageConfig, "FbPage")
+
+	// Facebook Post routes
+	fbPostHandler, err := handler.NewFbPostHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create facebook post handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/facebook/post", fbPostHandler, fbPostConfig, "FbPost")
+
+	// Facebook Conversation routes
+	fbConvHandler, err := handler.NewFbConversationHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create facebook conversation handler: %v", err)
+	}
+	// Route đặc biệt cho lấy cuộc trò chuyện sắp xếp theo thời gian cập nhật API
+	router.Get("/facebook/conversation/sort-by-api-update", middleware.AuthMiddleware("FbConversation.Read"), fbConvHandler.HandleFindAllSortByApiUpdate)
+	// CRUD routes
+	r.registerCRUDRoutes(router, "/facebook/conversation", fbConvHandler, fbConvConfig, "FbConversation")
+
+	// Facebook Message routes
+	fbMessageHandler, err := handler.NewFbMessageHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create facebook message handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/facebook/message", fbMessageHandler, fbMessageConfig, "FbMessage")
+
+	// Pancake Order routes
+	pcOrderHandler, err := handler.NewPcOrderHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create pancake order handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/pancake/order", pcOrderHandler, pcOrderConfig, "PcOrder")
+
+	return nil
+}
+
+// registerInitRoutes đăng ký các route cho khởi tạo hệ thống
+func (r *Router) registerInitRoutes(router fiber.Router) error {
+	// Init routes
+	initHandler, err := handler.NewInitHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create init handler: %v", err)
+	}
+
+	// Route thiết lập administrator
+	router.Post("/init/set-administrator/:id", middleware.AuthMiddleware("Init.SetAdmin"), initHandler.HandleSetAdministrator)
 
 	return nil
 }
@@ -367,27 +391,32 @@ func SetupRoutes(app *fiber.App) error {
 	// Khởi tạo router
 	router := NewRouter(app)
 
-	// 1. Admin Routes
+	// 1. Init Routes
+	if err := router.registerInitRoutes(v1); err != nil {
+		return fmt.Errorf("failed to register init routes: %v", err)
+	}
+
+	// 2. Admin Routes
 	if err := registerAdminRoutes(v1); err != nil {
 		return fmt.Errorf("failed to register admin routes: %v", err)
 	}
 
-	// 2. System Routes
+	// 3. System Routes
 	if err := registerSystemRoutes(v1); err != nil {
 		return fmt.Errorf("failed to register system routes: %v", err)
 	}
 
-	// 3. Auth Routes
+	// 4. Auth Routes
 	if err := router.registerAuthRoutes(v1); err != nil {
 		return fmt.Errorf("failed to register auth routes: %v", err)
 	}
 
-	// 4. RBAC Routes
+	// 5. RBAC Routes
 	if err := router.registerRBACRoutes(v1); err != nil {
 		return fmt.Errorf("failed to register RBAC routes: %v", err)
 	}
 
-	// 5. Facebook Routes
+	// 6. Facebook Routes
 	if err := router.registerFacebookRoutes(v1); err != nil {
 		return fmt.Errorf("failed to register Facebook routes: %v", err)
 	}
