@@ -173,7 +173,7 @@ func AuthMiddleware(requirePermission string) fiber.Handler {
 		}
 
 		// Lưu thông tin user vào context
-		c.Locals("userId", user.ID.Hex())
+		c.Locals("user_id", user.ID.Hex())
 		c.Locals("user", user)
 
 		// Nếu không yêu cầu permission cụ thể, cho phép truy cập

@@ -28,6 +28,7 @@ func InitCollections(client *mongo.Client, cfg *config.Configuration) error {
 
 	for _, name := range colNames {
 		if _, err := global.RegistryCollections.Register(name, db.Collection(name)); err != nil {
+			logrus.Errorf("Failed to register collection %s: %v", name, err)
 			return err
 		}
 	}

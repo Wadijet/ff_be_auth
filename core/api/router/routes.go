@@ -148,72 +148,72 @@ func NewRouter(app *fiber.App) *Router {
 func (r *Router) registerCRUDRoutes(prefix string, h CRUDHandler, config CRUDConfig, permissionPrefix string) {
 	// Create operations
 	if config.InsOne {
-		r.app.Post(fmt.Sprintf("%s/insertOne", prefix), middleware.AuthMiddleware(permissionPrefix+".Insert"), h.InsertOne)
+		r.app.Post(fmt.Sprintf("%s/insertOne", prefix), h.InsertOne, middleware.AuthMiddleware(permissionPrefix+".Insert"))
 	}
 	if config.InsMany {
-		r.app.Post(fmt.Sprintf("%s/insertMany", prefix), middleware.AuthMiddleware(permissionPrefix+".Insert"), h.InsertMany)
+		r.app.Post(fmt.Sprintf("%s/insertMany", prefix), h.InsertMany, middleware.AuthMiddleware(permissionPrefix+".Insert"))
 	}
 
 	// Read operations
 	if config.Find {
-		r.app.Get(fmt.Sprintf("%s/find", prefix), middleware.AuthMiddleware(permissionPrefix+".Read"), h.Find)
+		r.app.Get(fmt.Sprintf("%s/find", prefix), h.Find, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.FindOne {
-		r.app.Get(fmt.Sprintf("%s/findOne", prefix), middleware.AuthMiddleware(permissionPrefix+".Read"), h.FindOne)
+		r.app.Get(fmt.Sprintf("%s/findOne", prefix), h.FindOne, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.FindById {
-		r.app.Get(fmt.Sprintf("%s/findById/:id", prefix), middleware.AuthMiddleware(permissionPrefix+".Read"), h.FindOneById)
+		r.app.Get(fmt.Sprintf("%s/findById/:id", prefix), h.FindOneById, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.FindIds {
-		r.app.Post(fmt.Sprintf("%s/findByIds", prefix), middleware.AuthMiddleware(permissionPrefix+".Read"), h.FindManyByIds)
+		r.app.Post(fmt.Sprintf("%s/findByIds", prefix), h.FindManyByIds, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.Paginate {
-		r.app.Get(fmt.Sprintf("%s/findWithPagination", prefix), middleware.AuthMiddleware(permissionPrefix+".Read"), h.FindWithPagination)
+		r.app.Get(fmt.Sprintf("%s/findWithPagination", prefix), h.FindWithPagination, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 
 	// Update operations
 	if config.UpdOne {
-		r.app.Put(fmt.Sprintf("%s/updateOne", prefix), middleware.AuthMiddleware(permissionPrefix+".Update"), h.UpdateOne)
+		r.app.Put(fmt.Sprintf("%s/updateOne", prefix), h.UpdateOne, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 	if config.UpdMany {
-		r.app.Put(fmt.Sprintf("%s/updateMany", prefix), middleware.AuthMiddleware(permissionPrefix+".Update"), h.UpdateMany)
+		r.app.Put(fmt.Sprintf("%s/updateMany", prefix), h.UpdateMany, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 	if config.UpdById {
-		r.app.Put(fmt.Sprintf("%s/updateById/:id", prefix), middleware.AuthMiddleware(permissionPrefix+".Update"), h.UpdateById)
+		r.app.Put(fmt.Sprintf("%s/updateById/:id", prefix), h.UpdateById, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 	if config.FindUpd {
-		r.app.Put(fmt.Sprintf("%s/findOneAndUpdate", prefix), middleware.AuthMiddleware(permissionPrefix+".Update"), h.FindOneAndUpdate)
+		r.app.Put(fmt.Sprintf("%s/findOneAndUpdate", prefix), h.FindOneAndUpdate, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 
 	// Delete operations
 	if config.DelOne {
-		r.app.Delete(fmt.Sprintf("%s/deleteOne", prefix), middleware.AuthMiddleware(permissionPrefix+".Delete"), h.DeleteOne)
+		r.app.Delete(fmt.Sprintf("%s/deleteOne", prefix), h.DeleteOne, middleware.AuthMiddleware(permissionPrefix+".Delete"))
 	}
 	if config.DelMany {
-		r.app.Delete(fmt.Sprintf("%s/deleteMany", prefix), middleware.AuthMiddleware(permissionPrefix+".Delete"), h.DeleteMany)
+		r.app.Delete(fmt.Sprintf("%s/deleteMany", prefix), h.DeleteMany, middleware.AuthMiddleware(permissionPrefix+".Delete"))
 	}
 	if config.DelById {
-		r.app.Delete(fmt.Sprintf("%s/deleteById/:id", prefix), middleware.AuthMiddleware(permissionPrefix+".Delete"), h.DeleteById)
+		r.app.Delete(fmt.Sprintf("%s/deleteById/:id", prefix), h.DeleteById, middleware.AuthMiddleware(permissionPrefix+".Delete"))
 	}
 	if config.FindDel {
-		r.app.Delete(fmt.Sprintf("%s/findOneAndDelete", prefix), middleware.AuthMiddleware(permissionPrefix+".Delete"), h.FindOneAndDelete)
+		r.app.Delete(fmt.Sprintf("%s/findOneAndDelete", prefix), h.FindOneAndDelete, middleware.AuthMiddleware(permissionPrefix+".Delete"))
 	}
 
 	// Other operations
 	if config.Count {
-		r.app.Get(fmt.Sprintf("%s/count", prefix), middleware.AuthMiddleware(permissionPrefix+".Read"), h.CountDocuments)
+		r.app.Get(fmt.Sprintf("%s/count", prefix), h.CountDocuments, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.Distinct {
-		r.app.Get(fmt.Sprintf("%s/distinct", prefix), middleware.AuthMiddleware(permissionPrefix+".Read"), h.Distinct)
+		r.app.Get(fmt.Sprintf("%s/distinct", prefix), h.Distinct, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 	if config.Upsert {
-		r.app.Post(fmt.Sprintf("%s/upsertOne", prefix), middleware.AuthMiddleware(permissionPrefix+".Update"), h.Upsert)
+		r.app.Post(fmt.Sprintf("%s/upsertOne", prefix), h.Upsert, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 	if config.UpsMany {
-		r.app.Post(fmt.Sprintf("%s/upsertMany", prefix), middleware.AuthMiddleware(permissionPrefix+".Update"), h.UpsertMany)
+		r.app.Post(fmt.Sprintf("%s/upsertMany", prefix), h.UpsertMany, middleware.AuthMiddleware(permissionPrefix+".Update"))
 	}
 	if config.Exists {
-		r.app.Get(fmt.Sprintf("%s/exists", prefix), middleware.AuthMiddleware(permissionPrefix+".Read"), h.DocumentExists)
+		r.app.Get(fmt.Sprintf("%s/exists", prefix), h.DocumentExists, middleware.AuthMiddleware(permissionPrefix+".Read"))
 	}
 }
 
@@ -228,10 +228,10 @@ func (r *Router) registerAuthRoutes(router fiber.Router) error {
 	// Các route xác thực đặc biệt
 	router.Post("/auth/register", userHandler.HandleRegister)
 	router.Post("/auth/login", userHandler.HandleLogin)
-	router.Post("/auth/logout", middleware.AuthMiddleware(""), userHandler.HandleLogout)
-	router.Get("/auth/profile", middleware.AuthMiddleware(""), userHandler.HandleGetProfile)
-	router.Put("/auth/profile", middleware.AuthMiddleware(""), userHandler.HandleUpdateProfile)
-	router.Put("/auth/password", middleware.AuthMiddleware(""), userHandler.HandleChangePassword)
+	router.Post("/auth/logout", userHandler.HandleLogout, middleware.AuthMiddleware(""))
+	router.Get("/auth/profile", userHandler.HandleGetProfile, middleware.AuthMiddleware(""))
+	router.Put("/auth/profile", userHandler.HandleUpdateProfile, middleware.AuthMiddleware(""))
+	router.Put("/auth/password", userHandler.HandleChangePassword, middleware.AuthMiddleware(""))
 
 	// CRUD routes cho User với quyền từ InitialPermissions
 	r.registerCRUDRoutes("/users", userHandler, userConfig, "User")
@@ -353,9 +353,6 @@ func registerSystemRoutes(router fiber.Router) error {
 	// System routes
 	router.Get("/system/health", func(c fiber.Ctx) error {
 		return c.SendString("OK")
-	})
-	router.Get("/system/version", func(c fiber.Ctx) error {
-		return c.SendString("v1.0.0")
 	})
 
 	return nil
