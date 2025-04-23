@@ -21,16 +21,17 @@ type PcOrderHandler struct {
 //   - *FiberPcOrderHandler: Instance mới của FiberPcOrderHandler đã được khởi tạo với các service cần thiết
 //   - error: Lỗi nếu có trong quá trình khởi tạo
 func NewPcOrderHandler() (*PcOrderHandler, error) {
-	handler := &PcOrderHandler{}
-
 	// Khởi tạo PcOrderService và xử lý error
 	service, err := services.NewPcOrderService()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create order service: %v", err)
 	}
-	handler.PcOrderService = service
 
-	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng PcOrderService trực tiếp
+	handler := &PcOrderHandler{
+		BaseHandler:    *NewBaseHandler[models.PcOrder, models.PcOrderCreateInput, models.PcOrderCreateInput](service.BaseServiceMongoImpl),
+		PcOrderService: service,
+	}
+
 	return handler, nil
 }
 

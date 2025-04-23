@@ -41,9 +41,9 @@ type UserCreateInput struct {
 
 // UserLoginInput , đầu vào đăng nhập người dùng
 type UserLoginInput struct {
-	Email    string `json:"email" bson:"email" validate:"required"`       // Email của người dùng
-	Password string `json:"password" bson:"password" validate:"required"` // Mật khẩu của người dùng
-	Hwid     string `json:"hwid" bson:"hwid" validate:"required"`         // ID phần cứng
+	Email    string `json:"email" bson:"email" validate:"required,email,min=6,max=100"` // Email của người dùng, phải đúng định dạng email, độ dài từ 6-100 ký tự
+	Password string `json:"password" bson:"password" validate:"required,min=8,max=32"`  // Mật khẩu của người dùng, độ dài từ 8-32 ký tự
+	Hwid     string `json:"hwid" bson:"hwid" validate:"required"`                       // ID phần cứng
 }
 
 // UserLoginInput , đầu vào đăng nhập người dùng

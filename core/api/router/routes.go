@@ -252,7 +252,7 @@ func registerSystemRoutes(router fiber.Router) error {
 	return nil
 }
 
-// registerAuthRoutes đăng ký các route cho authentication
+// registerAuthRoutes đăng ký các route cho authentication cá nhân
 func (r *Router) registerAuthRoutes(router fiber.Router) error {
 	// User routes
 	userHandler, err := handler.NewUserHandler()
@@ -260,22 +260,27 @@ func (r *Router) registerAuthRoutes(router fiber.Router) error {
 		return fmt.Errorf("failed to create user handler: %v", err)
 	}
 
-	// Các route xác thực đặc biệt
+	// Các route xác thực cá nhân
 	router.Post("/auth/register", userHandler.HandleRegister)
 	router.Post("/auth/login", userHandler.HandleLogin)
 	router.Post("/auth/logout", userHandler.HandleLogout, middleware.AuthMiddleware(""))
 	router.Get("/auth/profile", userHandler.HandleGetProfile, middleware.AuthMiddleware(""))
 	router.Put("/auth/profile", userHandler.HandleUpdateProfile, middleware.AuthMiddleware(""))
 	router.Put("/auth/password", userHandler.HandleChangePassword, middleware.AuthMiddleware(""))
-
-	// CRUD routes cho User với quyền từ InitialPermissions
-	r.registerCRUDRoutes(router, "/user", userHandler, userConfig, "User")
+	router.Get("/auth/roles", userHandler.HandleGetUserRoles, middleware.AuthMiddleware(""))
 
 	return nil
 }
 
 // registerRBACRoutes đăng ký các route cho Role-Based Access Control
 func (r *Router) registerRBACRoutes(router fiber.Router) error {
+	// User routes (Quản lý người dùng)
+	userHandler, err := handler.NewUserHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create user handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/user", userHandler, userConfig, "User")
+
 	// Permission routes
 	permHandler, err := handler.NewPermissionHandler()
 	if err != nil {
@@ -406,12 +411,12 @@ func SetupRoutes(app *fiber.App) error {
 		return fmt.Errorf("failed to register system routes: %v", err)
 	}
 
-	// 4. Auth Routes
+	// 4. Auth Routes (Xác thực cá nhân)
 	if err := router.registerAuthRoutes(v1); err != nil {
 		return fmt.Errorf("failed to register auth routes: %v", err)
 	}
 
-	// 5. RBAC Routes
+	// 5. RBAC Routes (Bao gồm User Management)
 	if err := router.registerRBACRoutes(v1); err != nil {
 		return fmt.Errorf("failed to register RBAC routes: %v", err)
 	}

@@ -18,16 +18,17 @@ type FbMessageHandler struct {
 //   - *FiberFbMessageHandler: Instance mới của FiberFbMessageHandler đã được khởi tạo với các service cần thiết
 //   - error: Lỗi nếu có trong quá trình khởi tạo
 func NewFbMessageHandler() (*FbMessageHandler, error) {
-	handler := &FbMessageHandler{}
-
 	// Khởi tạo FbMessageService và xử lý error
 	service, err := services.NewFbMessageService()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create message service: %v", err)
 	}
-	handler.FbMessageService = service
 
-	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng FbMessageService trực tiếp
+	handler := &FbMessageHandler{
+		BaseHandler:      *NewBaseHandler[models.FbMessage, models.FbMessageCreateInput, models.FbMessageCreateInput](service.BaseServiceMongoImpl),
+		FbMessageService: service,
+	}
+
 	return handler, nil
 }
 

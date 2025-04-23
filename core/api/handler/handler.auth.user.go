@@ -9,36 +9,43 @@ import (
 	"meta_commerce/core/common"
 
 	"github.com/gofiber/fiber/v3"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // UserHandler xử lý các request liên quan đến xác thực và quản lý thông tin người dùng
 type UserHandler struct {
 	*BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]
-	userService *services.UserService
-	roleService *services.RoleService
+	userService     *services.UserService
+	roleService     *services.RoleService
+	userRoleService *services.UserRoleService
 }
 
 // NewUserHandler tạo một instance mới của UserHandler
 func NewUserHandler() (*UserHandler, error) {
-	handler := &UserHandler{}
-
-	// Khởi tạo base handler
-	baseHandler := &BaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput]{}
-	handler.BaseHandler = baseHandler
-
 	// Khởi tạo các service
 	userService, err := services.NewUserService()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user service: %v", err)
 	}
-	handler.userService = userService
 
 	roleService, err := services.NewRoleService()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create role service: %v", err)
 	}
-	handler.roleService = roleService
+
+	userRoleService, err := services.NewUserRoleService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user role service: %v", err)
+	}
+
+	baseHandler := NewBaseHandler[models.User, models.UserCreateInput, models.UserChangeInfoInput](userService)
+	handler := &UserHandler{
+		BaseHandler:     baseHandler,
+		userService:     userService,
+		roleService:     roleService,
+		userRoleService: userRoleService,
+	}
 
 	return handler, nil
 }
@@ -181,12 +188,15 @@ func (h *UserHandler) HandleUpdateProfile(c fiber.Ctx) error {
 		return nil
 	}
 
-	// Tạo user object từ input
-	updateUser := &models.User{
-		Name: input.Name,
+	// Tạo update data với các trường cần update
+	update := &services.UpdateData{
+		Set: map[string]interface{}{
+			"name": input.Name,
+			// Thêm các trường khác nếu cần
+		},
 	}
 
-	updatedUser, err := h.userService.UpdateById(context.Background(), objID, *updateUser)
+	updatedUser, err := h.userService.UpdateById(context.Background(), objID, update)
 	if err != nil {
 		h.HandleResponse(c, nil, err)
 		return nil
@@ -223,5 +233,51 @@ func (h *UserHandler) HandleChangePassword(c fiber.Ctx) error {
 
 	err = h.userService.ChangePassword(context.Background(), objID, &input)
 	h.HandleResponse(c, nil, err)
+	return nil
+}
+
+// HandleGetUserRoles lấy danh sách tất cả các role của người dùng
+// @Summary Lấy danh sách role của người dùng
+// @Description Trả về danh sách các role mà người dùng hiện có
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.Role
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Router /auth/roles [get]
+func (h *UserHandler) HandleGetUserRoles(c fiber.Ctx) error {
+	// Lấy user ID từ context
+	userID := c.Locals("user_id")
+	if userID == nil {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeAuth, "User not authenticated", common.StatusUnauthorized, nil))
+		return nil
+	}
+
+	// Chuyển đổi string ID thành ObjectID
+	objID, err := primitive.ObjectIDFromHex(userID.(string))
+	if err != nil {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Invalid user ID", common.StatusBadRequest, err))
+		return nil
+	}
+
+	// Lấy danh sách user role
+	filter := bson.M{"userId": objID}
+	userRoles, err := h.userRoleService.Find(context.Background(), filter, nil)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
+		return nil
+	}
+
+	// Lấy thông tin chi tiết của từng role
+	var roles []models.Role
+	for _, userRole := range userRoles {
+		role, err := h.roleService.FindOneById(context.Background(), userRole.RoleID)
+		if err != nil {
+			continue // Bỏ qua role không tìm thấy
+		}
+		roles = append(roles, role)
+	}
+
+	h.HandleResponse(c, roles, nil)
 	return nil
 }

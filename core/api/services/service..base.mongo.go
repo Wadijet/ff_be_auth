@@ -15,6 +15,42 @@ import (
 	"meta_commerce/core/utility"
 )
 
+// UpdateData định nghĩa kiểu dữ liệu cho partial update
+type UpdateData struct {
+	Set      map[string]interface{} `bson:"$set,omitempty"`      // Các trường cần update
+	Unset    map[string]interface{} `bson:"$unset,omitempty"`    // Các trường cần xóa
+	Push     map[string]interface{} `bson:"$push,omitempty"`     // Các trường cần thêm vào array
+	AddToSet map[string]interface{} `bson:"$addToSet,omitempty"` // Các trường cần thêm vào set
+}
+
+// ToUpdateData chuyển đổi interface{} thành UpdateData
+func ToUpdateData(data interface{}) (*UpdateData, error) {
+	// Nếu data đã là UpdateData, return luôn
+	if update, ok := data.(*UpdateData); ok {
+		return update, nil
+	}
+
+	// Chuyển data thành map
+	dataMap, err := utility.ToMap(data)
+	if err != nil {
+		return nil, err
+	}
+
+	// Nếu data có sẵn các operator MongoDB ($set, $unset, etc)
+	if _, hasOperator := dataMap["$set"]; hasOperator {
+		update := &UpdateData{}
+		if err := bson.Unmarshal(bson.Raw(data.([]byte)), update); err != nil {
+			return nil, err
+		}
+		return update, nil
+	}
+
+	// Nếu data là map thường, wrap trong $set
+	return &UpdateData{
+		Set: dataMap,
+	}, nil
+}
+
 // ====================================
 // INTERFACE VÀ STRUCT
 // ====================================
@@ -59,11 +95,11 @@ type BaseServiceMongo[Model any] interface {
 	FindWithPagination(ctx context.Context, filter interface{}, page, limit int64) (*models.PaginateResult[Model], error)
 
 	// 2.2 Các hàm Update/Delete mở rộng
-	UpdateById(ctx context.Context, id primitive.ObjectID, data Model) (Model, error)
+	UpdateById(ctx context.Context, id primitive.ObjectID, data interface{}) (Model, error)
 	DeleteById(ctx context.Context, id primitive.ObjectID) error
 
 	// 2.3 Các hàm Upsert tiện ích
-	Upsert(ctx context.Context, filter interface{}, data Model) (Model, error)
+	Upsert(ctx context.Context, filter interface{}, data interface{}) (Model, error)
 	UpsertMany(ctx context.Context, filter interface{}, data []Model) ([]Model, error)
 
 	// 2.4 Các hàm kiểm tra
@@ -229,34 +265,37 @@ func (s *BaseServiceMongoImpl[T]) UpdateOne(ctx context.Context, filter interfac
 	}
 
 	if opts == nil {
-		opts = options.Update()
+		opts = options.Update().SetUpsert(false)
 	}
 
-	// Thêm updatedAt vào update
-	updateMap, err := utility.ToMap(update)
+	// Chuyển update thành UpdateData
+	updateData, err := ToUpdateData(update)
 	if err != nil {
 		return zero, common.ErrInvalidFormat
 	}
 
-	if setMap, ok := updateMap["$set"].(map[string]interface{}); ok {
-		setMap["updatedAt"] = time.Now().UnixMilli()
-		updateMap["$set"] = setMap
-	} else {
-		updateMap["$set"] = bson.M{"updatedAt": time.Now().UnixMilli()}
+	// Thêm updatedAt vào $set
+	if updateData.Set == nil {
+		updateData.Set = make(map[string]interface{})
 	}
+	updateData.Set["updatedAt"] = time.Now().UnixMilli()
 
-	result, err := s.collection.UpdateOne(ctx, filter, updateMap, opts)
+	result, err := s.collection.UpdateOne(ctx, filter, updateData, opts)
 	if err != nil {
 		return zero, common.ConvertMongoError(err)
 	}
 
-	if result.ModifiedCount == 0 {
+	if result.ModifiedCount == 0 && result.UpsertedCount == 0 {
 		return zero, common.ErrNotFound
 	}
 
 	// Lấy lại document đã update
 	var updated T
-	err = s.collection.FindOne(ctx, filter).Decode(&updated)
+	if result.UpsertedID != nil {
+		err = s.collection.FindOne(ctx, bson.M{"_id": result.UpsertedID}).Decode(&updated)
+	} else {
+		err = s.collection.FindOne(ctx, filter).Decode(&updated)
+	}
 	if err != nil {
 		return zero, common.ConvertMongoError(err)
 	}
@@ -271,23 +310,22 @@ func (s *BaseServiceMongoImpl[T]) UpdateMany(ctx context.Context, filter interfa
 	}
 
 	if opts == nil {
-		opts = options.Update()
+		opts = options.Update().SetUpsert(false)
 	}
 
-	// Thêm updatedAt vào update
-	updateMap, err := utility.ToMap(update)
+	// Chuyển update thành UpdateData
+	updateData, err := ToUpdateData(update)
 	if err != nil {
 		return 0, common.ErrInvalidFormat
 	}
 
-	if setMap, ok := updateMap["$set"].(map[string]interface{}); ok {
-		setMap["updatedAt"] = time.Now().UnixMilli()
-		updateMap["$set"] = setMap
-	} else {
-		updateMap["$set"] = bson.M{"updatedAt": time.Now().UnixMilli()}
+	// Thêm updatedAt vào $set
+	if updateData.Set == nil {
+		updateData.Set = make(map[string]interface{})
 	}
+	updateData.Set["updatedAt"] = time.Now().UnixMilli()
 
-	result, err := s.collection.UpdateMany(ctx, filter, updateMap, opts)
+	result, err := s.collection.UpdateMany(ctx, filter, updateData, opts)
 	if err != nil {
 		return 0, common.ConvertMongoError(err)
 	}
@@ -503,30 +541,32 @@ func (s *BaseServiceMongoImpl[T]) FindWithPagination(ctx context.Context, filter
 // Parameters:
 //   - ctx: Context cho việc hủy bỏ hoặc timeout
 //   - id: ObjectId của document cần cập nhật
-//   - data: Dữ liệu cần cập nhật
+//   - data: Dữ liệu cần cập nhật (có thể là T hoặc BsonWrapper)
 //
 // Returns:
 //   - T: Document đã được cập nhật
 //   - error: Lỗi nếu có
-func (s *BaseServiceMongoImpl[T]) UpdateById(ctx context.Context, id primitive.ObjectID, data T) (T, error) {
+func (s *BaseServiceMongoImpl[T]) UpdateById(ctx context.Context, id primitive.ObjectID, data interface{}) (T, error) {
 	var zero T
 	filter := bson.M{"_id": id}
 
-	// Chuyển data thành map để thêm timestamps
-	dataMap, err := utility.ToMap(data)
+	// Chuyển data thành UpdateData
+	updateData, err := ToUpdateData(data)
 	if err != nil {
 		return zero, common.ErrInvalidFormat
 	}
 
-	// Thêm timestamps
-	now := time.Now().UnixMilli()
-	dataMap["updatedAt"] = now
+	// Thêm updatedAt vào $set
+	if updateData.Set == nil {
+		updateData.Set = make(map[string]interface{})
+	}
+	updateData.Set["updatedAt"] = time.Now().UnixMilli()
 
 	// Tạo options cho update
 	opts := options.Update().SetUpsert(false)
 
 	// Thực hiện update
-	result, err := s.collection.UpdateOne(ctx, filter, bson.M{"$set": dataMap}, opts)
+	result, err := s.collection.UpdateOne(ctx, filter, updateData, opts)
 	if err != nil {
 		return zero, common.ConvertMongoError(err)
 	}
@@ -570,18 +610,22 @@ func (s *BaseServiceMongoImpl[T]) DeleteById(ctx context.Context, id primitive.O
 // --------------------------
 
 // Upsert thực hiện thao tác update nếu tồn tại, insert nếu chưa tồn tại
-func (s *BaseServiceMongoImpl[T]) Upsert(ctx context.Context, filter interface{}, data T) (T, error) {
+func (s *BaseServiceMongoImpl[T]) Upsert(ctx context.Context, filter interface{}, data interface{}) (T, error) {
 	var zero T
 
-	// Chuyển data thành map để thêm timestamps
-	dataMap, err := utility.ToMap(data)
+	// Chuyển data thành UpdateData
+	updateData, err := ToUpdateData(data)
 	if err != nil {
 		return zero, common.ErrInvalidFormat
 	}
 
 	// Thêm timestamps
 	now := time.Now().UnixMilli()
-	dataMap["updatedAt"] = now
+	if updateData.Set == nil {
+		updateData.Set = make(map[string]interface{})
+	}
+	updateData.Set["updatedAt"] = now
+	updateData.Set["createdAt"] = now
 
 	// Tạo options cho upsert với sort để đảm bảo chỉ update một document
 	opts := options.FindOneAndUpdate().
@@ -591,7 +635,7 @@ func (s *BaseServiceMongoImpl[T]) Upsert(ctx context.Context, filter interface{}
 
 	// Thực hiện upsert và lấy document sau khi update
 	var upserted T
-	err = s.collection.FindOneAndUpdate(ctx, filter, bson.M{"$set": dataMap}, opts).Decode(&upserted)
+	err = s.collection.FindOneAndUpdate(ctx, filter, updateData, opts).Decode(&upserted)
 	if err != nil {
 		return zero, common.ConvertMongoError(err)
 	}

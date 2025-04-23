@@ -1,0 +1,1727 @@
+{
+	"info": {
+		"_postman_id": "ff-be-auth-collection",
+		"name": "FolkForm Auth API",
+		"description": "Collection các API của hệ thống xác thực FolkForm",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "your_jwt_token_here",
+			"type": "string" 
+		}
+	],
+	"item": [
+		{
+			"name": "1. Auth (Xác thực cá nhân)",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"test@example.com\",\n    \"password\": \"Test@123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Đăng ký tài khoản mới (UserCreateInput)"
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"Test@123\",\n    \"hwid\": \"device_unique_id\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Đăng nhập (UserLoginInput)"
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"hwid\": \"device_unique_id\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "logout"]
+						},
+						"description": "Đăng xuất (UserLogoutInput)"
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "profile"]
+						},
+						"description": "Lấy thông tin profile người dùng"
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Name\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "profile"]
+						},
+						"description": "Cập nhật thông tin profile (UserChangeInfoInput)"
+					}
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oldPassword\": \"Test@123\",\n    \"newPassword\": \"NewTest@123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/password",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "password"]
+						},
+						"description": "Đổi mật khẩu (UserChangePasswordInput)"
+					}
+				},
+				{
+					"name": "Get User Roles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/roles",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "roles"]
+						},
+						"description": "Lấy danh sách role của người dùng"
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Admin",
+			"item": [
+				{
+					"name": "Block User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"note\": \"Violation of terms\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/user/block",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "user", "block"]
+						},
+						"description": "Khóa tài khoản người dùng (BlockUserInput)"
+					}
+				},
+				{
+					"name": "Unblock User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/user/unblock",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "user", "unblock"]
+						},
+						"description": "Mở khóa tài khoản người dùng (UnBlockUserInput)"
+					}
+				},
+				{
+					"name": "Set User Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"roleId\": \"role_id_here\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/user/role",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "user", "role"]
+						},
+						"description": "Thiết lập role cho người dùng (UserSetWorkingRoleInput)"
+					}
+				}
+			]
+		},
+		{
+			"name": "3. System",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/system/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["system", "health"]
+						},
+						"description": "Kiểm tra trạng thái hoạt động của hệ thống"
+					}
+				}
+			]
+		},
+		{
+			"name": "4. RBAC (Quản lý quyền)",
+			"item": [
+				{
+					"name": "Users",
+					"item": [
+						{
+							"name": "Get All Users",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/user/find",
+									"host": ["{{baseUrl}}"],
+									"path": ["user", "find"]
+								},
+								"description": "Lấy danh sách tất cả người dùng"
+							}
+						},
+						{
+							"name": "Get User By ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/user/find-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["user", "find-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "user_id_here"
+										}
+									]
+								},
+								"description": "Lấy thông tin người dùng theo ID"
+							}
+						},
+						{
+							"name": "Find One User",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/user/find-one",
+									"host": ["{{baseUrl}}"],
+									"path": ["user", "find-one"]
+								},
+								"description": "Tìm một người dùng theo điều kiện"
+							}
+						},
+						{
+							"name": "Find Users By IDs",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\"user_id_1\", \"user_id_2\"]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/user/find-by-ids",
+									"host": ["{{baseUrl}}"],
+									"path": ["user", "find-by-ids"]
+								},
+								"description": "Lấy thông tin nhiều người dùng theo danh sách ID"
+							}
+						},
+						{
+							"name": "Find Users With Pagination",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/user/find-with-pagination?page=1&limit=10",
+									"host": ["{{baseUrl}}"],
+									"path": ["user", "find-with-pagination"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Lấy danh sách người dùng có phân trang"
+							}
+						},
+						{
+							"name": "Update User",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Updated User Name\",\n    \"email\": \"updated@example.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/user/update-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["user", "update-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "user_id_here"
+										}
+									]
+								},
+								"description": "Cập nhật thông tin người dùng theo ID"
+							}
+						},
+						{
+							"name": "Count Users",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/user/count",
+									"host": ["{{baseUrl}}"],
+									"path": ["user", "count"]
+								},
+								"description": "Đếm số lượng người dùng"
+							}
+						},
+						{
+							"name": "Check User Exists",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/user/exists?email=test@example.com",
+									"host": ["{{baseUrl}}"],
+									"path": ["user", "exists"],
+									"query": [
+										{
+											"key": "email",
+											"value": "test@example.com"
+										}
+									]
+								},
+								"description": "Kiểm tra người dùng có tồn tại"
+							}
+						},
+						{
+							"name": "Get Distinct User Fields",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/user/distinct?field=role",
+									"host": ["{{baseUrl}}"],
+									"path": ["user", "distinct"],
+									"query": [
+										{
+											"key": "field",
+											"value": "role"
+										}
+									]
+								},
+								"description": "Lấy danh sách giá trị duy nhất của một trường"
+							}
+						}
+					]
+				},
+				{
+					"name": "Roles",
+					"item": [
+						{
+							"name": "Create Role",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"editor\",\n    \"describe\": \"Editor role with content management permissions\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role/insert-one",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "insert-one"]
+								},
+								"description": "Tạo role mới"
+							}
+						},
+						{
+							"name": "Create Multiple Roles",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"roles\": [\n        {\n            \"name\": \"editor\",\n            \"describe\": \"Editor role\"\n        },\n        {\n            \"name\": \"reviewer\",\n            \"describe\": \"Reviewer role\"\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role/insert-many",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "insert-many"]
+								},
+								"description": "Tạo nhiều role cùng lúc"
+							}
+						},
+						{
+							"name": "Get All Roles",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role/find",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "find"]
+								},
+								"description": "Lấy danh sách tất cả role"
+							}
+						},
+						{
+							"name": "Get Role By ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role/find-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "find-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "role_id_here"
+										}
+									]
+								},
+								"description": "Lấy thông tin role theo ID"
+							}
+						},
+						{
+							"name": "Find One Role",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role/find-one",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "find-one"]
+								},
+								"description": "Tìm một role theo điều kiện"
+							}
+						},
+						{
+							"name": "Find Roles By IDs",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\"role_id_1\", \"role_id_2\"]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role/find-by-ids",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "find-by-ids"]
+								},
+								"description": "Lấy thông tin nhiều role theo danh sách ID"
+							}
+						},
+						{
+							"name": "Update Role",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"editor\",\n    \"describe\": \"Updated role description\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role/update-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "update-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "role_id_here"
+										}
+									]
+								},
+								"description": "Cập nhật thông tin role"
+							}
+						},
+						{
+							"name": "Update Multiple Roles",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"filter\": {\n        \"type\": \"editor\"\n    },\n    \"update\": {\n        \"describe\": \"Updated description for all editors\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role/update-many",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "update-many"]
+								},
+								"description": "Cập nhật nhiều role cùng lúc"
+							}
+						},
+						{
+							"name": "Delete Role",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role/delete-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "delete-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "role_id_here"
+										}
+									]
+								},
+								"description": "Xóa role theo ID"
+							}
+						},
+						{
+							"name": "Delete Multiple Roles",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"filter\": {\n        \"type\": \"temporary\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role/delete-many",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "delete-many"]
+								},
+								"description": "Xóa nhiều role cùng lúc"
+							}
+						},
+						{
+							"name": "Count Roles",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role/count",
+									"host": ["{{baseUrl}}"],
+									"path": ["role", "count"]
+								},
+								"description": "Đếm số lượng role"
+							}
+						}
+					]
+				},
+				{
+					"name": "Permissions",
+					"item": [
+						{
+							"name": "Get All Permissions",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/permission/find",
+									"host": ["{{baseUrl}}"],
+									"path": ["permission", "find"]
+								},
+								"description": "Lấy danh sách tất cả permission"
+							}
+						},
+						{
+							"name": "Get Permission By ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/permission/find-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["permission", "find-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "permission_id_here"
+										}
+									]
+								},
+								"description": "Lấy thông tin permission theo ID"
+							}
+						},
+						{
+							"name": "Find One Permission",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/permission/find-one",
+									"host": ["{{baseUrl}}"],
+									"path": ["permission", "find-one"]
+								},
+								"description": "Tìm một permission theo điều kiện"
+							}
+						},
+						{
+							"name": "Find Permissions By IDs",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\"permission_id_1\", \"permission_id_2\"]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/permission/find-by-ids",
+									"host": ["{{baseUrl}}"],
+									"path": ["permission", "find-by-ids"]
+								},
+								"description": "Lấy thông tin nhiều permission theo danh sách ID"
+							}
+						},
+						{
+							"name": "Find Permissions With Pagination",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/permission/find-with-pagination?page=1&limit=10",
+									"host": ["{{baseUrl}}"],
+									"path": ["permission", "find-with-pagination"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Lấy danh sách permission có phân trang"
+							}
+						},
+						{
+							"name": "Count Permissions",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/permission/count",
+									"host": ["{{baseUrl}}"],
+									"path": ["permission", "count"]
+								},
+								"description": "Đếm số lượng permission"
+							}
+						},
+						{
+							"name": "Get Distinct Permission Fields",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/permission/distinct?field=category",
+									"host": ["{{baseUrl}}"],
+									"path": ["permission", "distinct"],
+									"query": [
+										{
+											"key": "field",
+											"value": "category"
+										}
+									]
+								},
+								"description": "Lấy danh sách giá trị duy nhất của một trường"
+							}
+						}
+					]
+				},
+				{
+					"name": "Role Permissions",
+					"item": [
+						{
+							"name": "Update Role Permissions",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"roleId\": \"role_id_here\",\n    \"permissions\": [\"permission_id_1\", \"permission_id_2\"]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/update-role",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "update-role"]
+								},
+								"description": "Cập nhật danh sách permission cho role"
+							}
+						},
+						{
+							"name": "Get All Role Permissions",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/find",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "find"]
+								},
+								"description": "Lấy danh sách tất cả role-permission"
+							}
+						},
+						{
+							"name": "Get Role Permission By ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/find-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "find-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "role_permission_id_here"
+										}
+									]
+								},
+								"description": "Lấy thông tin role-permission theo ID"
+							}
+						},
+						{
+							"name": "Find One Role Permission",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/find-one",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "find-one"]
+								},
+								"description": "Tìm một role-permission theo điều kiện"
+							}
+						},
+						{
+							"name": "Find Role Permissions By IDs",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ids\": [\"role_permission_id_1\", \"role_permission_id_2\"]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/find-by-ids",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "find-by-ids"]
+								},
+								"description": "Lấy thông tin nhiều role-permission theo danh sách ID"
+							}
+						},
+						{
+							"name": "Find Role Permissions With Pagination",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/find-with-pagination?page=1&limit=10",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "find-with-pagination"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Lấy danh sách role-permission có phân trang"
+							}
+						},
+						{
+							"name": "Insert One Role Permission",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"roleId\": \"role_id_here\",\n    \"permissionId\": \"permission_id_here\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/insert-one",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "insert-one"]
+								},
+								"description": "Thêm mới một role-permission"
+							}
+						},
+						{
+							"name": "Insert Many Role Permissions",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"items\": [\n        {\n            \"roleId\": \"role_id_1\",\n            \"permissionId\": \"permission_id_1\"\n        },\n        {\n            \"roleId\": \"role_id_2\",\n            \"permissionId\": \"permission_id_2\"\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/insert-many",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "insert-many"]
+								},
+								"description": "Thêm mới nhiều role-permission"
+							}
+						},
+						{
+							"name": "Delete Role Permission",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/delete-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "delete-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "role_permission_id_here"
+										}
+									]
+								},
+								"description": "Xóa role-permission theo ID"
+							}
+						},
+						{
+							"name": "Delete Many Role Permissions",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"filter\": {\n        \"roleId\": \"role_id_here\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/delete-many",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "delete-many"]
+								},
+								"description": "Xóa nhiều role-permission theo điều kiện"
+							}
+						},
+						{
+							"name": "Count Role Permissions",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/role-permission/count",
+									"host": ["{{baseUrl}}"],
+									"path": ["role-permission", "count"]
+								},
+								"description": "Đếm số lượng role-permission"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "5. Facebook Integration",
+			"item": [
+				{
+					"name": "Access Tokens",
+					"item": [
+						{
+							"name": "Get All Access Tokens",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/access-token/find",
+									"host": ["{{baseUrl}}"],
+									"path": ["access-token", "find"]
+								},
+								"description": "Lấy danh sách tất cả access token"
+							}
+						},
+						{
+							"name": "Create Access Token",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"token\": \"facebook_access_token\",\n    \"type\": \"facebook\",\n    \"expireAt\": \"2024-12-31T23:59:59Z\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/access-token/insert-one",
+									"host": ["{{baseUrl}}"],
+									"path": ["access-token", "insert-one"]
+								},
+								"description": "Tạo mới access token"
+							}
+						}
+					]
+				},
+				{
+					"name": "Pages",
+					"item": [
+						{
+							"name": "Get All Pages",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/facebook/page/find",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "page", "find"],
+									"description": "Lấy danh sách tất cả Facebook page"
+								}
+							}
+						},
+						{
+							"name": "Get Page By ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/facebook/page/find-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "page", "find-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "page_id_here"
+										}
+									]
+								},
+								"description": "Lấy thông tin Facebook page theo ID"
+							}
+						},
+						{
+							"name": "Create Page",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"pageId\": \"facebook_page_id\",\n    \"name\": \"Page Name\",\n    \"accessToken\": \"page_access_token\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/facebook/page/insert-one",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "page", "insert-one"]
+								},
+								"description": "Tạo mới Facebook page"
+							}
+						},
+						{
+							"name": "Update Page",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Updated Page Name\",\n    \"accessToken\": \"updated_page_access_token\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/facebook/page/update-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "page", "update-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "page_id_here"
+										}
+									]
+								},
+								"description": "Cập nhật thông tin Facebook page"
+							}
+						},
+						{
+							"name": "Delete Page",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/facebook/page/delete-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "page", "delete-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "page_id_here"
+										}
+									]
+								},
+								"description": "Xóa Facebook page"
+							}
+						}
+					]
+				},
+				{
+					"name": "Conversations",
+					"item": [
+						{
+							"name": "Get All Conversations",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/facebook/conversation/find",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "conversation", "find"]
+								},
+								"description": "Lấy danh sách tất cả cuộc trò chuyện"
+							}
+						},
+						{
+							"name": "Get Conversations Sorted by Update",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/facebook/conversation/sort-by-api-update",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "conversation", "sort-by-api-update"]
+								},
+								"description": "Lấy danh sách cuộc trò chuyện sắp xếp theo thời gian cập nhật"
+							}
+						},
+						{
+							"name": "Get Conversation By ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/facebook/conversation/find-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "conversation", "find-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "conversation_id_here"
+										}
+									]
+								},
+								"description": "Lấy thông tin cuộc trò chuyện theo ID"
+							}
+						},
+						{
+							"name": "Create Conversation",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"pageId\": \"facebook_page_id\",\n    \"customerId\": \"customer_id\",\n    \"lastMessage\": \"Last message content\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/facebook/conversation/insert-one",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "conversation", "insert-one"]
+								},
+								"description": "Tạo mới cuộc trò chuyện"
+							}
+						},
+						{
+							"name": "Update Conversation",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"lastMessage\": \"Updated last message\",\n    \"status\": \"read\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/facebook/conversation/update-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "conversation", "update-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "conversation_id_here"
+										}
+									]
+								},
+								"description": "Cập nhật thông tin cuộc trò chuyện"
+							}
+						}
+					]
+				},
+				{
+					"name": "Messages",
+					"item": [
+						{
+							"name": "Get All Messages",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/facebook/message/find",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "message", "find"]
+								},
+								"description": "Lấy danh sách tất cả tin nhắn"
+							}
+						},
+						{
+							"name": "Get Message By ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/facebook/message/find-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "message", "find-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "message_id_here"
+										}
+									]
+								},
+								"description": "Lấy thông tin tin nhắn theo ID"
+							}
+						},
+						{
+							"name": "Create Message",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"conversationId\": \"conversation_id\",\n    \"senderId\": \"sender_id\",\n    \"content\": \"Message content\",\n    \"type\": \"text\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/facebook/message/insert-one",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "message", "insert-one"]
+								},
+								"description": "Tạo mới tin nhắn"
+							}
+						},
+						{
+							"name": "Update Message",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"content\": \"Updated message content\",\n    \"status\": \"read\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/facebook/message/update-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "message", "update-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "message_id_here"
+										}
+									]
+								},
+								"description": "Cập nhật thông tin tin nhắn"
+							}
+						},
+						{
+							"name": "Delete Message",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/facebook/message/delete-by-id/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["facebook", "message", "delete-by-id", ":id"],
+									"variable": [
+										{
+											"key": "id",
+											"value": "message_id_here"
+										}
+									]
+								},
+								"description": "Xóa tin nhắn"
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+} 

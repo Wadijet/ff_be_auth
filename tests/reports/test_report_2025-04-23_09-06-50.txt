@@ -1,0 +1,116 @@
+﻿===========================================
+BÁO CÁO KẾT QUẢ TEST
+Thời gian bắt đầu: 2025-04-23 09:06:50
+===========================================
+
+=== RUN   TestAuthFlow
+=== RUN   TestAuthFlow/👤_Đăng_ký_tài_khoản
+    auth_test.go:40: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:40
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 400
+        	Test:       	TestAuthFlow/👤_Đăng_ký_tài_khoản
+        	Messages:   	Status code phải là 200
+    auth_test.go:47: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:47
+        	Error:      	Expected value not to be nil.
+        	Test:       	TestAuthFlow/👤_Đăng_ký_tài_khoản
+        	Messages:   	Phải có thông tin user trong response
+✅ Đăng ký thành công với username: testuser
+=== RUN   TestAuthFlow/🔐_Đăng_nhập
+    auth_test.go:65: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:65
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 400
+        	Test:       	TestAuthFlow/🔐_Đăng_nhập
+        	Messages:   	Status code phải là 200
+    auth_test.go:73: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:73
+        	Error:      	Should be true
+        	Test:       	TestAuthFlow/🔐_Đăng_nhập
+        	Messages:   	Phải có token trong response
+✅ Đăng nhập thành công và nhận được token
+=== RUN   TestAuthFlow/👤_Lấy_thông_tin_profile
+    auth_test.go:91: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:91
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 401
+        	Test:       	TestAuthFlow/👤_Lấy_thông_tin_profile
+        	Messages:   	Status code phải là 200
+    auth_test.go:98: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:98
+        	Error:      	Not equal: 
+        	            	expected: string("testuser")
+        	            	actual  : <nil>(<nil>)
+        	Test:       	TestAuthFlow/👤_Lấy_thông_tin_profile
+        	Messages:   	Username phải khớp
+    auth_test.go:99: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:99
+        	Error:      	Not equal: 
+        	            	expected: string("test@example.com")
+        	            	actual  : <nil>(<nil>)
+        	Test:       	TestAuthFlow/👤_Lấy_thông_tin_profile
+        	Messages:   	Email phải khớp
+✅ Lấy thông tin profile thành công
+=== RUN   TestAuthFlow/✏️_Cập_nhật_profile
+    auth_test.go:122: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:122
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 401
+        	Test:       	TestAuthFlow/✏️_Cập_nhật_profile
+        	Messages:   	Status code phải là 200
+    auth_test.go:129: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:129
+        	Error:      	Not equal: 
+        	            	expected: string("Updated Test User")
+        	            	actual  : <nil>(<nil>)
+        	Test:       	TestAuthFlow/✏️_Cập_nhật_profile
+        	Messages:   	Tên đầy đủ phải được cập nhật
+✅ Cập nhật profile thành công
+=== RUN   TestAuthFlow/🔑_Đổi_mật_khẩu
+    auth_test.go:153: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:153
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 401
+        	Test:       	TestAuthFlow/🔑_Đổi_mật_khẩu
+        	Messages:   	Status code phải là 200
+✅ Đổi mật khẩu thành công
+=== RUN   TestAuthFlow/🚪_Đăng_xuất
+    auth_test.go:169: 
+        	Error Trace:	C:/Projects/DMD/NextCommerce/FolkForm/ff_be_auth/tests/cases/auth_test.go:169
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 401
+        	Test:       	TestAuthFlow/🚪_Đăng_xuất
+        	Messages:   	Status code phải là 200
+✅ Đăng xuất thành công
+--- FAIL: TestAuthFlow (2.02s)
+    --- FAIL: TestAuthFlow/👤_Đăng_ký_tài_khoản (0.02s)
+    --- FAIL: TestAuthFlow/🔐_Đăng_nhập (0.00s)
+    --- FAIL: TestAuthFlow/👤_Lấy_thông_tin_profile (0.00s)
+    --- FAIL: TestAuthFlow/✏️_Cập_nhật_profile (0.00s)
+    --- FAIL: TestAuthFlow/🔑_Đổi_mật_khẩu (0.00s)
+    --- FAIL: TestAuthFlow/🚪_Đăng_xuất (0.00s)
+=== RUN   TestHealthCheck
+=== RUN   TestHealthCheck/🏥_Kiểm_tra_Health_Check_API
+✅ Health Check thành công:
+   - Status: healthy
+   - Time: 2025-04-23T09:07:01.4842623+07:00
+--- PASS: TestHealthCheck (2.00s)
+    --- PASS: TestHealthCheck/🏥_Kiểm_tra_Health_Check_API (0.00s)
+FAIL
+FAIL	meta_commerce/tests/cases	4.583s
+FAIL
+
+===========================================
+TỔNG KẾT BÁO CÁO
+- Tổng số test cases: 9
+- Số test passed: 2
+- Số test failed: 7
+- Thời gian kết thúc: 2025-04-23 09:07:01
+=========================================== 

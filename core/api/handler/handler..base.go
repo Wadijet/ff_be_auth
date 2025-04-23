@@ -12,6 +12,7 @@ import (
 	"meta_commerce/core/common"
 	"meta_commerce/core/global"
 	"meta_commerce/core/utility"
+	"reflect"
 	"strconv"
 
 	"runtime/debug"
@@ -29,6 +30,13 @@ import (
 // - UpdateInput: Kiểu dữ liệu của input khi cập nhật
 type BaseHandler[T any, CreateInput any, UpdateInput any] struct {
 	BaseService services.BaseServiceMongo[T] // Service xử lý logic nghiệp vụ với MongoDB
+}
+
+// NewBaseHandler tạo mới một BaseHandler với BaseService được cung cấp
+func NewBaseHandler[T any, CreateInput any, UpdateInput any](baseService services.BaseServiceMongo[T]) *BaseHandler[T, CreateInput, UpdateInput] {
+	return &BaseHandler[T, CreateInput, UpdateInput]{
+		BaseService: baseService,
+	}
 }
 
 // HandleResponse xử lý và chuẩn hóa response trả về cho client.
@@ -68,6 +76,78 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) HandleResponse(c fiber.Ctx, d
 	})
 }
 
+// validateInput thực hiện validate chi tiết dữ liệu đầu vào
+func (h *BaseHandler[T, CreateInput, UpdateInput]) validateInput(input interface{}) error {
+	// Validate với validator từ global
+	if err := global.Validate.Struct(input); err != nil {
+		return common.NewError(common.ErrCodeValidationInput, common.MsgValidationError, common.StatusBadRequest, err)
+	}
+
+	// Kiểm tra các trường đặc biệt
+	val := reflect.ValueOf(input)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	// Chỉ xử lý nếu input là struct
+	if val.Kind() != reflect.Struct {
+		return nil
+	}
+
+	typ := val.Type()
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+
+		// Kiểm tra các trường string
+		if field.Kind() == reflect.String {
+			// Kiểm tra độ dài tối đa (nếu có tag maxLength)
+			if maxTag := fieldType.Tag.Get("maxLength"); maxTag != "" {
+				maxLen, err := strconv.Atoi(maxTag)
+				if err == nil && len(field.String()) > maxLen {
+					return common.NewError(
+						common.ErrCodeValidationInput,
+						fmt.Sprintf("Trường %s vượt quá độ dài cho phép (%d ký tự)", fieldType.Name, maxLen),
+						common.StatusBadRequest,
+						nil,
+					)
+				}
+			}
+		}
+
+		// Kiểm tra các trường số
+		if field.Kind() == reflect.Int || field.Kind() == reflect.Int64 {
+			// Kiểm tra giá trị tối thiểu (nếu có tag min)
+			if minTag := fieldType.Tag.Get("min"); minTag != "" {
+				min, err := strconv.ParseInt(minTag, 10, 64)
+				if err == nil && field.Int() < min {
+					return common.NewError(
+						common.ErrCodeValidationInput,
+						fmt.Sprintf("Trường %s phải lớn hơn hoặc bằng %d", fieldType.Name, min),
+						common.StatusBadRequest,
+						nil,
+					)
+				}
+			}
+
+			// Kiểm tra giá trị tối đa (nếu có tag max)
+			if maxTag := fieldType.Tag.Get("max"); maxTag != "" {
+				max, err := strconv.ParseInt(maxTag, 10, 64)
+				if err == nil && field.Int() > max {
+					return common.NewError(
+						common.ErrCodeValidationInput,
+						fmt.Sprintf("Trường %s phải nhỏ hơn hoặc bằng %d", fieldType.Name, max),
+						common.StatusBadRequest,
+						nil,
+					)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // ParseRequestBody parse và validate dữ liệu từ request body.
 // Sử dụng json.Decoder với UseNumber() để xử lý chính xác các số.
 //
@@ -87,9 +167,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) ParseRequestBody(c fiber.Ctx,
 		return common.NewError(common.ErrCodeValidationFormat, common.MsgValidationError, common.StatusBadRequest, err)
 	}
 
-	// Validate struct input xem có hợp lệ không
-	if err := global.Validate.Struct(input); err != nil {
-		return common.NewError(common.ErrCodeValidationInput, common.MsgValidationError, common.StatusBadRequest, err)
+	// Validate chi tiết input
+	if err := h.validateInput(input); err != nil {
+		return err
 	}
 
 	return nil
@@ -296,7 +376,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ct
 // Returns:
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error {
-	var filter map[string]interface{}
+	filter := make(map[string]interface{})
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
 		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
 		return nil
@@ -309,6 +389,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error {
 
 // UpdateOne cập nhật một document theo điều kiện filter.
 // Filter được truyền qua query string, dữ liệu cập nhật trong request body.
+// Chỉ update các trường có trong input, giữ nguyên các trường khác.
 //
 // Parameters:
 // - c: Fiber context
@@ -322,19 +403,26 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateOne(c fiber.Ctx) error 
 		return nil
 	}
 
-	input := new(T)
-	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleResponse(c, nil, err)
+	// Parse input thành map để chỉ update các trường được chỉ định
+	var updateData map[string]interface{}
+	if err := json.NewDecoder(bytes.NewReader(c.Body())).Decode(&updateData); err != nil {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Dữ liệu cập nhật không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 
-	data, err := h.BaseService.UpdateOne(c.Context(), filter, input, nil)
+	// Tạo update data với $set operator
+	update := &services.UpdateData{
+		Set: updateData,
+	}
+
+	data, err := h.BaseService.UpdateOne(c.Context(), filter, update, nil)
 	h.HandleResponse(c, data, err)
 	return nil
 }
 
 // UpdateMany cập nhật nhiều document theo điều kiện filter.
 // Filter được truyền qua query string, dữ liệu cập nhật trong request body.
+// Chỉ update các trường có trong input, giữ nguyên các trường khác.
 //
 // Parameters:
 // - c: Fiber context
@@ -348,19 +436,26 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateMany(c fiber.Ctx) error
 		return nil
 	}
 
-	input := new(T)
-	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleResponse(c, nil, err)
+	// Parse input thành map để chỉ update các trường được chỉ định
+	var updateData map[string]interface{}
+	if err := json.NewDecoder(bytes.NewReader(c.Body())).Decode(&updateData); err != nil {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Dữ liệu cập nhật không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 
-	count, err := h.BaseService.UpdateMany(c.Context(), filter, input, nil)
+	// Tạo update data với $set operator
+	update := &services.UpdateData{
+		Set: updateData,
+	}
+
+	count, err := h.BaseService.UpdateMany(c.Context(), filter, update, nil)
 	h.HandleResponse(c, count, err)
 	return nil
 }
 
 // UpdateById cập nhật một document theo ID.
 // ID được truyền qua URI params, dữ liệu cập nhật trong request body.
+// Chỉ update các trường có trong input, giữ nguyên các trường khác.
 //
 // Parameters:
 // - c: Fiber context
@@ -374,13 +469,19 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) error
 		return nil
 	}
 
-	input := new(T)
-	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleResponse(c, nil, err)
+	// Parse input thành map để chỉ update các trường được chỉ định
+	var updateData map[string]interface{}
+	if err := json.NewDecoder(bytes.NewReader(c.Body())).Decode(&updateData); err != nil {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Dữ liệu cập nhật không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 
-	data, err := h.BaseService.UpdateById(c.Context(), utility.String2ObjectID(id), *input)
+	// Tạo update data với $set operator
+	update := &services.UpdateData{
+		Set: updateData,
+	}
+
+	data, err := h.BaseService.UpdateById(c.Context(), utility.String2ObjectID(id), update)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -414,7 +515,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteOne(c fiber.Ctx) error 
 // Returns:
 // - error: Lỗi nếu có và số lượng document đã xóa
 func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteMany(c fiber.Ctx) error {
-	var filter map[string]interface{}
+	filter := make(map[string]interface{})
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
 		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
 		return nil
@@ -461,13 +562,19 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneAndUpdate(c fiber.Ctx)
 		return nil
 	}
 
-	input := new(T)
-	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleResponse(c, nil, err)
+	// Parse input thành map để chỉ update các trường được chỉ định
+	var updateData map[string]interface{}
+	if err := json.NewDecoder(bytes.NewReader(c.Body())).Decode(&updateData); err != nil {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Dữ liệu cập nhật không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 
-	data, err := h.BaseService.FindOneAndUpdate(c.Context(), filter, input, nil)
+	// Tạo update data với $set operator
+	update := &services.UpdateData{
+		Set: updateData,
+	}
+
+	data, err := h.BaseService.FindOneAndUpdate(c.Context(), filter, update, nil)
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -603,13 +710,19 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) error {
 		return nil
 	}
 
-	input := new(T)
-	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleResponse(c, nil, err)
+	// Parse input thành map để chỉ update các trường được chỉ định
+	var updateData map[string]interface{}
+	if err := json.NewDecoder(bytes.NewReader(c.Body())).Decode(&updateData); err != nil {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Dữ liệu cập nhật không hợp lệ", common.StatusBadRequest, nil))
 		return nil
 	}
 
-	data, err := h.BaseService.Upsert(c.Context(), filter, *input)
+	// Tạo update data với $set operator
+	update := &services.UpdateData{
+		Set: updateData,
+	}
+
+	data, err := h.BaseService.Upsert(c.Context(), filter, update)
 	h.HandleResponse(c, data, err)
 	return nil
 }

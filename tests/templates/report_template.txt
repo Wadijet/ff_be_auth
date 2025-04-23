@@ -1,0 +1,14 @@
+===========================================
+BÁO CÁO KẾT QUẢ TEST
+Thời gian bắt đầu: {{START_TIME}}
+===========================================
+
+{{TEST_OUTPUT}}
+
+===========================================
+TỔNG KẾT BÁO CÁO
+- Tổng số test cases: {{TOTAL_TESTS}}
+- Số test passed: {{PASSED_TESTS}}
+- Số test failed: {{FAILED_TESTS}}
+- Thời gian kết thúc: {{END_TIME}}
+=========================================== 
