@@ -14,12 +14,30 @@ import (
 	"meta_commerce/core/utility"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"runtime/debug"
 
 	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	mongoopts "go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// FilterOptions cấu hình cho việc validate filter
+type FilterOptions struct {
+	DeniedFields     []string // Các trường bị cấm filter
+	AllowedOperators []string // Các operator MongoDB được phép
+	MaxFields        int      // Số lượng field tối đa trong một filter
+}
+
+// FindOptions cấu hình cho việc tìm kiếm
+type FindOptions struct {
+	Fields     []string               `json:"fields,omitempty"`     // Các trường cần lấy
+	Sort       map[string]int         `json:"sort,omitempty"`       // Sắp xếp kết quả (1: tăng dần, -1: giảm dần)
+	Limit      int64                  `json:"limit,omitempty"`      // Giới hạn số lượng kết quả
+	Skip       int64                  `json:"skip,omitempty"`       // Bỏ qua số lượng kết quả
+	Projection map[string]interface{} `json:"projection,omitempty"` // Chỉ định các trường cần lấy/loại bỏ
+}
 
 // BaseHandler là base handler cho các Fiber handler, cung cấp các chức năng CRUD cơ bản.
 // Struct này sử dụng Generic Type để có thể tái sử dụng cho nhiều loại model khác nhau.
@@ -29,13 +47,34 @@ import (
 // - CreateInput: Kiểu dữ liệu của input khi tạo mới
 // - UpdateInput: Kiểu dữ liệu của input khi cập nhật
 type BaseHandler[T any, CreateInput any, UpdateInput any] struct {
-	BaseService services.BaseServiceMongo[T] // Service xử lý logic nghiệp vụ với MongoDB
+	BaseService   services.BaseServiceMongo[T] // Service xử lý logic nghiệp vụ với MongoDB
+	filterOptions FilterOptions                // Cấu hình validate filter
 }
 
 // NewBaseHandler tạo mới một BaseHandler với BaseService được cung cấp
 func NewBaseHandler[T any, CreateInput any, UpdateInput any](baseService services.BaseServiceMongo[T]) *BaseHandler[T, CreateInput, UpdateInput] {
 	return &BaseHandler[T, CreateInput, UpdateInput]{
 		BaseService: baseService,
+		filterOptions: FilterOptions{
+			DeniedFields: []string{
+				"password",
+				"token",
+				"secret",
+				"key",
+				"hash",
+			},
+			AllowedOperators: []string{
+				"$eq",
+				"$gt",
+				"$gte",
+				"$lt",
+				"$lte",
+				"$in",
+				"$nin",
+				"$exists",
+			},
+			MaxFields: 10,
+		},
 	}
 }
 
@@ -268,8 +307,115 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertMany(c fiber.Ctx) error
 	return nil
 }
 
+// validateFilter kiểm tra tính hợp lệ của filter
+func (h *BaseHandler[T, CreateInput, UpdateInput]) validateFilter(filter map[string]interface{}) error {
+	// Kiểm tra số lượng field
+	if len(filter) > h.filterOptions.MaxFields {
+		return common.NewError(
+			common.ErrCodeValidationFormat,
+			fmt.Sprintf("Số lượng field filter không được vượt quá %d", h.filterOptions.MaxFields),
+			common.StatusBadRequest,
+			nil,
+		)
+	}
+
+	// Kiểm tra từng field và operator
+	for field, value := range filter {
+		// Kiểm tra field có bị cấm không
+		if utility.Contains(h.filterOptions.DeniedFields, field) {
+			return common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("Field không được phép filter: %s", field),
+				common.StatusBadRequest,
+				nil,
+			)
+		}
+
+		// Kiểm tra operator nếu value là map
+		if mapValue, ok := value.(map[string]interface{}); ok {
+			for op := range mapValue {
+				if strings.HasPrefix(op, "$") && !utility.Contains(h.filterOptions.AllowedOperators, op) {
+					return common.NewError(
+						common.ErrCodeValidationFormat,
+						fmt.Sprintf("Operator không được phép sử dụng: %s", op),
+						common.StatusBadRequest,
+						nil,
+					)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// processFilter xử lý và validate filter từ request
+func (h *BaseHandler[T, CreateInput, UpdateInput]) processFilter(c fiber.Ctx) (map[string]interface{}, error) {
+	var filter map[string]interface{}
+
+	// Parse filter từ query
+	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
+		return nil, common.NewError(
+			common.ErrCodeValidationFormat,
+			"Filter không hợp lệ",
+			common.StatusBadRequest,
+			err,
+		)
+	}
+
+	// Validate filter
+	if err := h.validateFilter(filter); err != nil {
+		return nil, err
+	}
+
+	return filter, nil
+}
+
+// processMongoOptions xử lý options từ query string và chuyển đổi sang MongoDB options
+func (h *BaseHandler[T, CreateInput, UpdateInput]) processMongoOptions(c fiber.Ctx, isFindOne bool) (interface{}, error) {
+	var rawOptions map[string]interface{}
+
+	// Parse options từ query string
+	if err := json.Unmarshal([]byte(c.Query("options", "{}")), &rawOptions); err != nil {
+		return nil, common.NewError(
+			common.ErrCodeValidationFormat,
+			"Options không hợp lệ",
+			common.StatusBadRequest,
+			err,
+		)
+	}
+
+	// Chuyển đổi sang MongoDB options
+	if isFindOne {
+		opts := mongoopts.FindOne()
+		if projection, ok := rawOptions["projection"].(map[string]interface{}); ok {
+			opts.SetProjection(projection)
+		}
+		if sort, ok := rawOptions["sort"].(map[string]interface{}); ok {
+			opts.SetSort(sort)
+		}
+		return opts, nil
+	}
+
+	opts := mongoopts.Find()
+	if projection, ok := rawOptions["projection"].(map[string]interface{}); ok {
+		opts.SetProjection(projection)
+	}
+	if sort, ok := rawOptions["sort"].(map[string]interface{}); ok {
+		opts.SetSort(sort)
+	}
+	if limit, ok := rawOptions["limit"].(float64); ok {
+		opts.SetLimit(int64(limit))
+	}
+	if skip, ok := rawOptions["skip"].(float64); ok {
+		opts.SetSkip(int64(skip))
+	}
+	return opts, nil
+}
+
 // FindOne tìm một document theo điều kiện filter.
-// Filter được truyền qua query string dưới dạng JSON.
+// Filter và options được truyền qua query string dưới dạng JSON.
+// Ví dụ options: {"projection": {"field": 1}, "sort": {"field": 1}}
 //
 // Parameters:
 // - c: Fiber context
@@ -277,13 +423,19 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertMany(c fiber.Ctx) error
 // Returns:
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOne(c fiber.Ctx) error {
-	var filter map[string]interface{}
-	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
+	filter, err := h.processFilter(c)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
-	data, err := h.BaseService.FindOne(c.Context(), filter, nil)
+	options, err := h.processMongoOptions(c, true)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
+		return nil
+	}
+
+	data, err := h.BaseService.FindOne(c.Context(), filter, options.(*mongoopts.FindOneOptions))
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -334,12 +486,13 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindManyByIds(c fiber.Ctx) er
 }
 
 // FindWithPagination tìm nhiều document với phân trang.
-// Hỗ trợ filter và phân trang với page và limit.
+// Hỗ trợ filter, options và phân trang với page và limit.
 //
 // Parameters:
 // - c: Fiber context
 // Query params:
 // - filter: Điều kiện tìm kiếm (JSON)
+// - options: Tùy chọn tìm kiếm (JSON). Ví dụ: {"projection": {"field": 1}, "sort": {"field": 1}}
 // - page: Số trang (mặc định: 1)
 // - limit: Số lượng item trên một trang (mặc định: 10)
 //
@@ -349,6 +502,12 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ct
 	var filter map[string]interface{}
 	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
 		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, common.MsgValidationError, common.StatusBadRequest, nil))
+		return nil
+	}
+
+	options, err := h.processMongoOptions(c, false)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -362,13 +521,19 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ct
 		limit = 10
 	}
 
-	data, err := h.BaseService.FindWithPagination(c.Context(), filter, page, limit)
+	// Thêm limit và skip vào options
+	findOptions := options.(*mongoopts.FindOptions)
+	findOptions.SetLimit(limit)
+	findOptions.SetSkip((page - 1) * limit)
+
+	data, err := h.BaseService.FindWithPagination(c.Context(), filter, page, limit, findOptions)
 	h.HandleResponse(c, data, err)
 	return nil
 }
 
 // Find tìm nhiều document theo điều kiện filter.
-// Filter được truyền qua query string dưới dạng JSON.
+// Filter và options được truyền qua query string dưới dạng JSON.
+// Ví dụ options: {"projection": {"field": 1}, "sort": {"field": 1}, "limit": 10, "skip": 0}
 //
 // Parameters:
 // - c: Fiber context
@@ -376,13 +541,19 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ct
 // Returns:
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error {
-	filter := make(map[string]interface{})
-	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
+	filter, err := h.processFilter(c)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
-	data, err := h.BaseService.Find(c.Context(), filter, nil)
+	options, err := h.processMongoOptions(c, false)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
+		return nil
+	}
+
+	data, err := h.BaseService.Find(c.Context(), filter, options.(*mongoopts.FindOptions))
 	h.HandleResponse(c, data, err)
 	return nil
 }
@@ -397,9 +568,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error {
 // Returns:
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateOne(c fiber.Ctx) error {
-	var filter map[string]interface{}
-	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
+	filter, err := h.processFilter(c)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -430,9 +601,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateOne(c fiber.Ctx) error 
 // Returns:
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateMany(c fiber.Ctx) error {
-	var filter map[string]interface{}
-	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
+	filter, err := h.processFilter(c)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -495,13 +666,13 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) error
 // Returns:
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteOne(c fiber.Ctx) error {
-	var filter map[string]interface{}
-	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
+	filter, err := h.processFilter(c)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
-	err := h.BaseService.DeleteOne(c.Context(), filter)
+	err = h.BaseService.DeleteOne(c.Context(), filter)
 	h.HandleResponse(c, nil, err)
 	return nil
 }
@@ -515,9 +686,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteOne(c fiber.Ctx) error 
 // Returns:
 // - error: Lỗi nếu có và số lượng document đã xóa
 func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteMany(c fiber.Ctx) error {
-	filter := make(map[string]interface{})
-	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
+	filter, err := h.processFilter(c)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -556,9 +727,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteById(c fiber.Ctx) error
 // Returns:
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneAndUpdate(c fiber.Ctx) error {
-	var filter map[string]interface{}
-	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
+	filter, err := h.processFilter(c)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 
@@ -589,9 +760,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneAndUpdate(c fiber.Ctx)
 // Returns:
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneAndDelete(c fiber.Ctx) error {
-	var filter map[string]interface{}
-	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
+	filter, err := h.processFilter(c)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
 		return nil
 	}
 

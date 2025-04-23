@@ -126,7 +126,7 @@ func (h *PermissionHandler) HandleGetPermissions(c fiber.Ctx) error {
 	// Lấy thông tin phân trang
 	page, limit := h.ParsePagination(c)
 
-	data, err := h.BaseService.FindWithPagination(c.Context(), filter, page, limit)
+	data, err := h.BaseService.FindWithPagination(c.Context(), filter, page, limit, nil)
 	h.HandleResponse(c, data, err)
 	return nil
 }

@@ -92,7 +92,7 @@ type BaseServiceMongo[Model any] interface {
 	// 2.1 Các hàm Find mở rộng
 	FindOneById(ctx context.Context, id primitive.ObjectID) (Model, error)
 	FindManyByIds(ctx context.Context, ids []primitive.ObjectID) ([]Model, error)
-	FindWithPagination(ctx context.Context, filter interface{}, page, limit int64) (*models.PaginateResult[Model], error)
+	FindWithPagination(ctx context.Context, filter interface{}, page, limit int64, opts *options.FindOptions) (*models.PaginateResult[Model], error)
 
 	// 2.2 Các hàm Update/Delete mở rộng
 	UpdateById(ctx context.Context, id primitive.ObjectID, data interface{}) (Model, error)
@@ -496,15 +496,20 @@ func (s *BaseServiceMongoImpl[T]) FindManyByIds(ctx context.Context, ids []primi
 }
 
 // FindWithPagination tìm tất cả bản ghi với phân trang
-func (s *BaseServiceMongoImpl[T]) FindWithPagination(ctx context.Context, filter interface{}, page, limit int64) (*models.PaginateResult[T], error) {
+func (s *BaseServiceMongoImpl[T]) FindWithPagination(ctx context.Context, filter interface{}, page, limit int64, opts *options.FindOptions) (*models.PaginateResult[T], error) {
 	if filter == nil {
 		filter = bson.D{}
 	}
 
+	// Tạo options mới nếu chưa có
+	if opts == nil {
+		opts = options.Find()
+	}
+
+	// Ghi đè skip và limit cho phân trang
 	skip := (page - 1) * limit
-	opts := options.Find().
-		SetSkip(skip).
-		SetLimit(limit)
+	opts.SetSkip(skip)
+	opts.SetLimit(limit)
 
 	// Lấy tổng số bản ghi
 	total, err := s.collection.CountDocuments(ctx, filter)
