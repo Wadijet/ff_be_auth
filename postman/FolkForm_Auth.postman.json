@@ -1,0 +1,1691 @@
+{
+    "info": {
+        "_postman_id": "ff-be-auth-collection",
+        "name": "FolkForm Auth API",
+        "description": "Collection các API của hệ thống xác thực FolkForm\n\nCác tham số chung cho tất cả API CRUD:\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc cho hầu hết các API)\n\n**Query Parameters:**\n- query: JSON string chứa các điều kiện filter\n  Ví dụ: ?query={\"name\":\"test\",\"age\":{\"$gt\":18}}\n  Các operator được hỗ trợ: $eq, $gt, $gte, $lt, $lte, $in, $nin, $exists\n  Giới hạn tối đa 10 fields trong một filter\n\n- options: JSON string chứa các tùy chọn cho MongoDB\n  Ví dụ: ?options={\"sort\":{\"createdAt\":-1},\"limit\":10}\n  Các options được hỗ trợ:\n  + sort: Sắp xếp kết quả (-1: giảm dần, 1: tăng dần)\n  + limit: Giới hạn số lượng kết quả\n  + skip: Bỏ qua số lượng kết quả\n  + projection: Chọn các field cần lấy\n\n- page: Số trang (mặc định: 1)\n- limit: Số lượng item trên một trang (mặc định: 10)\n\n**Response Format:**\n```json\n{\n  \"code\": \"string\",      // Mã lỗi/thành công\n  \"message\": \"string\",   // Thông báo\n  \"data\": any,          // Dữ liệu trả về\n  \"error\": any          // Chi tiết lỗi (nếu có)\n}\n```",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8080/api/v1",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "your_jwt_token_here",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "1. Auth (Xác thực cá nhân)",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Test User\",      // Tên người dùng\n    \"email\": \"test@example.com\", // Email (unique)\n    \"password\": \"Test@123\"      // Mật khẩu (min: 6 ký tự)\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/register",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "register"]
+                        },
+                        "description": "Đăng ký tài khoản mới\n\n**Body Parameters:**\n- name: Tên người dùng\n- email: Email (phải là duy nhất trong hệ thống)\n- password: Mật khẩu (tối thiểu 6 ký tự)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đăng ký thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"test@example.com\",    // Email đã đăng ký\n    \"password\": \"Test@123\",        // Mật khẩu\n    \"hwid\": \"device_unique_id\"     // Hardware ID của thiết bị\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "login"]
+                        },
+                        "description": "Đăng nhập vào hệ thống\n\n**Body Parameters:**\n- email: Email đã đăng ký\n- password: Mật khẩu\n- hwid: Hardware ID của thiết bị (dùng để quản lý phiên đăng nhập)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đăng nhập thành công\",\n  \"data\": {\n    \"token\": \"string\",      // JWT token\n    \"refreshToken\": \"string\", // Refresh token\n    \"expiresIn\": number      // Thời gian hết hạn (giây)\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text",
+                                "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"hwid\": \"device_unique_id\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/logout",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "logout"]
+                        },
+                        "description": "Đăng xuất (UserLogoutInput)\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- hwid: Hardware ID của thiết bị\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đăng xuất thành công\"\n}\n```"
+                    }
+                },
+                {
+                    "name": "Get Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/profile",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "profile"]
+                        },
+                        "description": "Lấy thông tin profile người dùng\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy thông tin thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Updated Name\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/profile",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "profile"]
+                        },
+                        "description": "Cập nhật thông tin profile\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- name: Tên mới của người dùng\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"oldPassword\": \"Test@123\",\n    \"newPassword\": \"NewTest@123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/password",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "password"]
+                        },
+                        "description": "Đổi mật khẩu\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- oldPassword: Mật khẩu cũ\n- newPassword: Mật khẩu mới (tối thiểu 6 ký tự)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đổi mật khẩu thành công\"\n}\n```"
+                    }
+                },
+                {
+                    "name": "Get User Roles",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/roles",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "roles"]
+                        },
+                        "description": "Lấy danh sách role của người dùng\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [{\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"describe\": \"string\"\n  }]\n}\n```"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. Admin",
+            "item": [
+                {
+                    "name": "Block User",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"user@example.com\",   // Email người dùng cần khóa\n    \"note\": \"Violation of terms\"    // Ghi chú lý do khóa\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/user/block",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["admin", "user", "block"]
+                        },
+                        "description": "Khóa tài khoản người dùng\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- email: Email của người dùng cần khóa\n- note: Ghi chú lý do khóa tài khoản\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Khóa tài khoản thành công\",\n  \"data\": {\n    \"email\": \"string\",\n    \"blockedAt\": \"string\",\n    \"note\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Unblock User",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"user@example.com\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/user/unblock",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["admin", "user", "unblock"]
+                        },
+                        "description": "Mở khóa tài khoản người dùng\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- email: Email của người dùng cần mở khóa\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Mở khóa tài khoản thành công\",\n  \"data\": {\n    \"email\": \"string\",\n    \"unblockedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Set User Role",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"roleId\": \"role_id_here\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/user/role",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["admin", "user", "role"]
+                        },
+                        "description": "Thiết lập role cho người dùng\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- roleId: ID của role cần gán cho người dùng\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Thiết lập role thành công\",\n  \"data\": {\n    \"userId\": \"string\",\n    \"roleId\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. System",
+            "item": [
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/system/health",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["system", "health"]
+                        },
+                        "description": "Kiểm tra trạng thái hoạt động của hệ thống"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. RBAC (Quản lý quyền)",
+            "item": [
+                {
+                    "name": "Users",
+                    "item": [
+                        {
+                            "name": "Get All Users",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/user/find?query={\"status\":\"active\"}&options={\"sort\":{\"createdAt\":-1}}",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["user", "find"],
+                                    "query": [
+                                        {
+                                            "key": "query",
+                                            "value": "{\"status\":\"active\"}",
+                                            "description": "Filter theo trạng thái người dùng"
+                                        },
+                                        {
+                                            "key": "options",
+                                            "value": "{\"sort\":{\"createdAt\":-1}}",
+                                            "description": "Sắp xếp theo thời gian tạo giảm dần"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy danh sách tất cả người dùng\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Query Parameters:**\n- query: Filter theo điều kiện (JSON string)\n  Ví dụ: {\"status\":\"active\", \"role\":\"admin\"}\n- options: Tùy chọn sort, limit, etc. (JSON string)\n  Ví dụ: {\"sort\":{\"createdAt\":-1}, \"limit\":10}\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [{\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"status\": \"string\",\n    \"createdAt\": \"string\",\n    \"updatedAt\": \"string\"\n  }]\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Get User By ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/user/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["user", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "user_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin người dùng theo ID\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của người dùng\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy thông tin thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"status\": \"string\",\n    \"createdAt\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Find One User",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/user/find-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["user", "find-one"]
+                                },
+                                "description": "Tìm một người dùng theo điều kiện\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"status\": \"string\",\n    \"createdAt\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Find Users By IDs",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"ids\": [\"user_id_1\", \"user_id_2\"]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/user/find-by-ids",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["user", "find-by-ids"]
+                                },
+                                "description": "Lấy thông tin nhiều người dùng theo danh sách ID\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- ids: Mảng chứa ID của các người dùng\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [{\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"status\": \"string\",\n    \"createdAt\": \"string\",\n    \"updatedAt\": \"string\"\n  }]\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Find Users With Pagination",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/user/find-with-pagination?page=1&limit=10",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["user", "find-with-pagination"],
+                                    "query": [
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "limit",
+                                            "value": "10"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy danh sách người dùng có phân trang\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Query Parameters:**\n- page: Số trang (mặc định: 1)\n- limit: Số lượng item trên một trang (mặc định: 10)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"items\": [{\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"email\": \"string\",\n      \"status\": \"string\",\n      \"createdAt\": \"string\",\n      \"updatedAt\": \"string\"\n    }],\n    \"total\": number,\n    \"page\": number,\n    \"limit\": number,\n    \"totalPages\": number\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Update User",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Updated User Name\",\n    \"email\": \"updated@example.com\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/user/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["user", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "user_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật thông tin người dùng theo ID\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của người dùng\n\n**Body Parameters:**\n- name: Tên mới của người dùng\n- email: Email mới của người dùng\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Count Users",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/user/count",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["user", "count"]
+                                },
+                                "description": "Đếm số lượng người dùng\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đếm thành công\",\n  \"data\": {\n    \"count\": number\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Check User Exists",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/user/exists?email=test@example.com",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["user", "exists"],
+                                    "query": [
+                                        {
+                                            "key": "email",
+                                            "value": "test@example.com"
+                                        }
+                                    ]
+                                },
+                                "description": "Kiểm tra người dùng có tồn tại\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Query Parameters:**\n- email: Email cần kiểm tra\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Kiểm tra thành công\",\n  \"data\": {\n    \"exists\": boolean\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Get Distinct User Fields",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/user/distinct?field=role",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["user", "distinct"],
+                                    "query": [
+                                        {
+                                            "key": "field",
+                                            "value": "role"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy danh sách giá trị duy nhất của một trường\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Query Parameters:**\n- field: Tên trường cần lấy giá trị duy nhất\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [\"value1\", \"value2\", ...]\n}\n```"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Roles",
+                    "item": [
+                        {
+                            "name": "Create Role",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"editor\",                           // Tên role (unique)\n    \"describe\": \"Editor role with permissions\"    // Mô tả role\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "insert-one"]
+                                },
+                                "description": "Tạo role mới\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- name: Tên role (phải là duy nhất)\n- describe: Mô tả về role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tạo role thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"describe\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Create Multiple Roles",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"roles\": [\n        {\n            \"name\": \"editor\",\n            \"describe\": \"Editor role\"\n        },\n        {\n            \"name\": \"reviewer\",\n            \"describe\": \"Reviewer role\"\n        }\n    ]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/insert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "insert-many"]
+                                },
+                                "description": "Tạo nhiều role cùng lúc\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- roles: Mảng chứa thông tin các role cần tạo\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tạo roles thành công\",\n  \"data\": {\n    \"insertedCount\": number,\n    \"insertedIds\": [\"string\"]\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Get All Roles",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "find"]
+                                },
+                                "description": "Lấy danh sách tất cả role\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [{\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"describe\": \"string\",\n    \"createdAt\": \"string\",\n    \"updatedAt\": \"string\"\n  }]\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Get Role By ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "role_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin role theo ID\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy thông tin thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"describe\": \"string\",\n    \"createdAt\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Find One Role",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/find-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "find-one"]
+                                },
+                                "description": "Tìm một role theo điều kiện\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"describe\": \"string\",\n    \"createdAt\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Find Roles By IDs",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"ids\": [\"role_id_1\", \"role_id_2\"]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/find-by-ids",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "find-by-ids"]
+                                },
+                                "description": "Lấy thông tin nhiều role theo danh sách ID\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- ids: Mảng chứa ID của các role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [{\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"describe\": \"string\",\n    \"createdAt\": \"string\",\n    \"updatedAt\": \"string\"\n  }]\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Update Role",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"editor\",\n    \"describe\": \"Updated role description\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "role_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật thông tin role\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của role\n\n**Body Parameters:**\n- name: Tên mới của role\n- describe: Mô tả mới của role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"describe\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Update Multiple Roles",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"filter\": {\n        \"type\": \"editor\"\n    },\n    \"update\": {\n        \"describe\": \"Updated description for all editors\"\n    }\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/update-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "update-many"]
+                                },
+                                "description": "Cập nhật nhiều role cùng lúc\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện lọc các role cần cập nhật\n- update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"matchedCount\": number,\n    \"modifiedCount\": number\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Delete Role",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/delete-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "delete-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "role_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Xóa role theo ID\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của role cần xóa\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Delete Multiple Roles",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"filter\": {\n        \"type\": \"temporary\"\n    }\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/delete-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "delete-many"]
+                                },
+                                "description": "Xóa nhiều role cùng lúc\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện lọc các role cần xóa\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"deletedCount\": number\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Count Roles",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/role/count",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role", "count"]
+                                },
+                                "description": "Đếm số lượng role\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đếm thành công\",\n  \"data\": {\n    \"count\": number\n  }\n}\n```"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Permissions",
+                    "item": [
+                        {
+                            "name": "Get All Permissions",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/permission/find?query={\"module\":\"user\"}&options={\"sort\":{\"name\":1}}",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["permission", "find"],
+                                    "query": [
+                                        {
+                                            "key": "query",
+                                            "value": "{\"module\":\"user\"}",
+                                            "description": "Filter theo module"
+                                        },
+                                        {
+                                            "key": "options",
+                                            "value": "{\"sort\":{\"name\":1}}",
+                                            "description": "Sắp xếp theo tên tăng dần"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy danh sách tất cả permission\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Query Parameters:**\n- query: Filter theo điều kiện (JSON string)\n  Ví dụ: {\"module\":\"user\", \"action\":\"create\"}\n- options: Tùy chọn sort, limit, etc. (JSON string)\n  Ví dụ: {\"sort\":{\"name\":1}, \"limit\":20}\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [{\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"module\": \"string\",\n    \"action\": \"string\",\n    \"describe\": \"string\"\n  }]\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Get Permission By ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/permission/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["permission", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "permission_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin permission theo ID\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy thông tin thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"module\": \"string\",\n    \"action\": \"string\",\n    \"describe\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Find One Permission",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/permission/find-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["permission", "find-one"]
+                                },
+                                "description": "Tìm một permission theo điều kiện\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"module\": \"string\",\n    \"action\": \"string\",\n    \"describe\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Find Permissions By IDs",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"ids\": [\"permission_id_1\", \"permission_id_2\"]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/permission/find-by-ids",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["permission", "find-by-ids"]
+                                },
+                                "description": "Lấy thông tin nhiều permission theo danh sách ID\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- ids: Mảng chứa ID của các permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [{\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"module\": \"string\",\n    \"action\": \"string\",\n    \"describe\": \"string\"\n  }]\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Find Permissions With Pagination",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/permission/find-with-pagination?page=1&limit=10",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["permission", "find-with-pagination"],
+                                    "query": [
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "limit",
+                                            "value": "10"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy danh sách permission có phân trang\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Query Parameters:**\n- page: Số trang (mặc định: 1)\n- limit: Số lượng item trên một trang (mặc định: 10)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"items\": [{\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"module\": \"string\",\n      \"action\": \"string\",\n      \"describe\": \"string\"\n    }],\n    \"total\": number,\n    \"page\": number,\n    \"limit\": number,\n    \"totalPages\": number\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Count Permissions",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/permission/count",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["permission", "count"]
+                                },
+                                "description": "Đếm số lượng permission\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đếm thành công\",\n  \"data\": {\n    \"count\": number\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Get Distinct Permission Fields",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập (bắt buộc)"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/permission/distinct?field=category",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["permission", "distinct"],
+                                    "query": [
+                                        {
+                                            "key": "field",
+                                            "value": "category"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy danh sách giá trị duy nhất của một trường\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Query Parameters:**\n- field: Tên trường cần lấy giá trị duy nhất\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [\"value1\", \"value2\", ...]\n}\n```"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Role Permissions",
+                    "item": [
+                        {
+                            "name": "Update Role Permissions",
+                            "request": {
+                                "method": "PUT",
+                                "header": [],
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"roleId\": \"role_id_here\",              // ID của role\n    \"permissions\": [\"perm_id_1\", ...]     // Danh sách ID của permissions\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role-permission/update-role",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role-permission", "update-role"]
+                                },
+                                "description": "Cập nhật danh sách permission cho role\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- roleId: ID của role cần cập nhật\n- permissions: Mảng chứa ID của các permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"roleId\": \"string\",\n    \"permissions\": [\"string\"],\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Get All Role Permissions",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role-permission/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role-permission", "find"]
+                                },
+                                "description": "Lấy danh sách tất cả role-permission\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [{\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"createdAt\": \"string\"\n  }]\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Get Role Permission By ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role-permission/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role-permission", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "role_permission_id_here",
+                                            "description": "ID của role-permission cần tìm"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin role-permission theo ID\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của role-permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy thông tin thành công\",\n  \"data\": {\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Find One Role Permission",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role-permission/find-one?roleId=role_id_here",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role-permission", "find-one"],
+                                    "query": [
+                                        {
+                                            "key": "roleId",
+                                            "value": "role_id_here",
+                                            "description": "ID của role cần tìm"
+                                        }
+                                    ]
+                                },
+                                "description": "Tìm một role-permission theo điều kiện\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Query Parameters:**\n- roleId: ID của role (tùy chọn)\n- permissionId: ID của permission (tùy chọn)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                            }
+                        },
+                        {
+                            "name": "Find Role Permissions By IDs",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"ids\": [\"role_permission_id_1\", \"role_permission_id_2\"]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/role-permission/find-by-ids",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["role-permission", "find-by-ids"]
+                                },
+                                "description": "Lấy thông tin nhiều role-permission theo danh sách ID\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- ids: Mảng chứa ID của các role-permission cần tìm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [{\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"createdAt\": \"string\"\n  }]\n}\n```"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "5. Facebook Integration",
+            "item": [
+                {
+                    "name": "Access Tokens",
+                    "item": [
+                        {
+                            "name": "Get All Access Tokens",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/access-token/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["access-token", "find"]
+                                },
+                                "description": "Lấy danh sách tất cả access token"
+                            }
+                        },
+                        {
+                            "name": "Create Access Token",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text",
+                                        "description": "JWT token nhận được sau khi đăng nhập"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"token\": \"facebook_access_token\",    // Access token từ Facebook\n    \"type\": \"facebook\",                 // Loại token\n    \"expireAt\": \"2024-12-31T23:59:59Z\"  // Thời gian hết hạn (ISO 8601)\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/access-token/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["access-token", "insert-one"]
+                                },
+                                "description": "Tạo mới access token\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- token: Access token từ Facebook\n- type: Loại token (facebook)\n- expireAt: Thời gian hết hạn (định dạng ISO 8601)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tạo token thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"token\": \"string\",\n    \"type\": \"string\",\n    \"expireAt\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Pages",
+                    "item": [
+                        {
+                            "name": "Get All Pages",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "find"],
+                                    "description": "Lấy danh sách tất cả Facebook page"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Get Page By ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "page_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin Facebook page theo ID"
+                            }
+                        },
+                        {
+                            "name": "Create Page",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"pageId\": \"facebook_page_id\",\n    \"name\": \"Page Name\",\n    \"accessToken\": \"page_access_token\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "insert-one"]
+                                },
+                                "description": "Tạo mới Facebook page"
+                            }
+                        },
+                        {
+                            "name": "Update Page",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Updated Page Name\",\n    \"accessToken\": \"updated_page_access_token\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "page_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật thông tin Facebook page"
+                            }
+                        },
+                        {
+                            "name": "Delete Page",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/delete-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "delete-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "page_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Xóa Facebook page"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Conversations",
+                    "item": [
+                        {
+                            "name": "Get All Conversations",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "find"]
+                                },
+                                "description": "Lấy danh sách tất cả cuộc trò chuyện"
+                            }
+                        },
+                        {
+                            "name": "Get Conversations Sorted by Update",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/sort-by-api-update",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "sort-by-api-update"]
+                                },
+                                "description": "Lấy danh sách cuộc trò chuyện sắp xếp theo thời gian cập nhật"
+                            }
+                        },
+                        {
+                            "name": "Get Conversation By ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "conversation_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin cuộc trò chuyện theo ID"
+                            }
+                        },
+                        {
+                            "name": "Create Conversation",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"pageId\": \"facebook_page_id\",\n    \"customerId\": \"customer_id\",\n    \"lastMessage\": \"Last message content\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "insert-one"]
+                                },
+                                "description": "Tạo mới cuộc trò chuyện"
+                            }
+                        },
+                        {
+                            "name": "Update Conversation",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"lastMessage\": \"Updated last message\",\n    \"status\": \"read\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "conversation_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật thông tin cuộc trò chuyện"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Messages",
+                    "item": [
+                        {
+                            "name": "Get All Messages",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find"]
+                                },
+                                "description": "Lấy danh sách tất cả tin nhắn"
+                            }
+                        },
+                        {
+                            "name": "Get Message By ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "message_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin tin nhắn theo ID"
+                            }
+                        },
+                        {
+                            "name": "Create Message",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"conversationId\": \"conversation_id\",\n    \"senderId\": \"sender_id\",\n    \"content\": \"Message content\",\n    \"type\": \"text\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "insert-one"]
+                                },
+                                "description": "Tạo mới tin nhắn"
+                            }
+                        },
+                        {
+                            "name": "Update Message",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"content\": \"Updated message content\",\n    \"status\": \"read\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "message_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật thông tin tin nhắn"
+                            }
+                        },
+                        {
+                            "name": "Delete Message",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/delete-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "delete-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "message_id_here"
+                                        }
+                                    ]
+                                },
+                                "description": "Xóa tin nhắn"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+} 

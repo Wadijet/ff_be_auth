@@ -30,7 +30,12 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertOne(c fiber.Ctx) error 
 		// Parse request body thành struct T
 		input := new(T)
 		if err := h.ParseRequestBody(c, input); err != nil {
-			h.HandleResponse(c, nil, err)
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("Dữ liệu gửi lên không đúng định dạng JSON hoặc không khớp với cấu trúc yêu cầu. Chi tiết: %v", err),
+				common.StatusBadRequest,
+				err,
+			))
 			return nil
 		}
 
@@ -52,7 +57,12 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertMany(c fiber.Ctx) error
 	return h.SafeHandler(c, func() error {
 		var inputs []T
 		if err := h.ParseRequestBody(c, &inputs); err != nil {
-			h.HandleResponse(c, nil, err)
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("Dữ liệu gửi lên phải là một mảng JSON và các phần tử phải khớp với cấu trúc yêu cầu. Chi tiết: %v", err),
+				common.StatusBadRequest,
+				err,
+			))
 			return nil
 		}
 
@@ -103,7 +113,22 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneById(c fiber.Ctx) erro
 	return h.SafeHandler(c, func() error {
 		id := c.Params("id")
 		if id == "" {
-			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "ID không hợp lệ", common.StatusBadRequest, nil))
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				"ID không được để trống trong URL params",
+				common.StatusBadRequest,
+				nil,
+			))
+			return nil
+		}
+
+		if !primitive.IsValidObjectID(id) {
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("ID '%s' không đúng định dạng MongoDB ObjectID (phải là chuỗi hex 24 ký tự)", id),
+				common.StatusBadRequest,
+				nil,
+			))
 			return nil
 		}
 
@@ -124,13 +149,29 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneById(c fiber.Ctx) erro
 func (h *BaseHandler[T, CreateInput, UpdateInput]) FindManyByIds(c fiber.Ctx) error {
 	return h.SafeHandler(c, func() error {
 		var ids []string
-		if err := json.Unmarshal([]byte(c.Query("ids", "[]")), &ids); err != nil {
-			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Danh sách ID không hợp lệ", common.StatusBadRequest, nil))
+		idsStr := c.Query("ids", "[]")
+		if err := json.Unmarshal([]byte(idsStr), &ids); err != nil {
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("Danh sách ID phải là một mảng JSON. Giá trị nhận được: %s. Chi tiết lỗi: %v", idsStr, err),
+				common.StatusBadRequest,
+				nil,
+			))
 			return nil
 		}
 
+		// Validate từng ID
 		objectIds := make([]primitive.ObjectID, len(ids))
 		for i, id := range ids {
+			if !primitive.IsValidObjectID(id) {
+				h.HandleResponse(c, nil, common.NewError(
+					common.ErrCodeValidationFormat,
+					fmt.Sprintf("ID '%s' tại vị trí %d không đúng định dạng MongoDB ObjectID (phải là chuỗi hex 24 ký tự)", id, i),
+					common.StatusBadRequest,
+					nil,
+				))
+				return nil
+			}
 			objectIds[i] = utility.String2ObjectID(id)
 		}
 
@@ -300,14 +341,34 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) error
 	return h.SafeHandler(c, func() error {
 		id := c.Params("id")
 		if id == "" {
-			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "ID không hợp lệ", common.StatusBadRequest, nil))
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				"ID không được để trống trong URL params",
+				common.StatusBadRequest,
+				nil,
+			))
+			return nil
+		}
+
+		if !primitive.IsValidObjectID(id) {
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("ID '%s' không đúng định dạng MongoDB ObjectID (phải là chuỗi hex 24 ký tự)", id),
+				common.StatusBadRequest,
+				nil,
+			))
 			return nil
 		}
 
 		// Parse input thành map để chỉ update các trường được chỉ định
 		var updateData map[string]interface{}
 		if err := json.NewDecoder(bytes.NewReader(c.Body())).Decode(&updateData); err != nil {
-			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Dữ liệu cập nhật không hợp lệ", common.StatusBadRequest, nil))
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("Dữ liệu cập nhật phải là một object JSON hợp lệ. Chi tiết lỗi: %v", err),
+				common.StatusBadRequest,
+				nil,
+			))
 			return nil
 		}
 
@@ -378,7 +439,22 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteById(c fiber.Ctx) error
 	return h.SafeHandler(c, func() error {
 		id := c.Params("id")
 		if id == "" {
-			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "ID không hợp lệ", common.StatusBadRequest, nil))
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				"ID không được để trống trong URL params",
+				common.StatusBadRequest,
+				nil,
+			))
+			return nil
+		}
+
+		if !primitive.IsValidObjectID(id) {
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("ID '%s' không đúng định dạng MongoDB ObjectID (phải là chuỗi hex 24 ký tự)", id),
+				common.StatusBadRequest,
+				nil,
+			))
 			return nil
 		}
 

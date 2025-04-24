@@ -215,57 +215,16 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) ParseRequestParams(c fiber.Ct
 	return nil
 }
 
-// validateFilter kiểm tra tính hợp lệ của filter
-func (h *BaseHandler[T, CreateInput, UpdateInput]) validateFilter(filter map[string]interface{}) error {
-	// Kiểm tra số lượng field
-	if len(filter) > h.filterOptions.MaxFields {
-		return common.NewError(
-			common.ErrCodeValidationFormat,
-			fmt.Sprintf("Số lượng field filter không được vượt quá %d", h.filterOptions.MaxFields),
-			common.StatusBadRequest,
-			nil,
-		)
-	}
-
-	// Kiểm tra từng field và operator
-	for field, value := range filter {
-		// Kiểm tra field có bị cấm không
-		if utility.Contains(h.filterOptions.DeniedFields, field) {
-			return common.NewError(
-				common.ErrCodeValidationFormat,
-				fmt.Sprintf("Field không được phép filter: %s", field),
-				common.StatusBadRequest,
-				nil,
-			)
-		}
-
-		// Kiểm tra operator nếu value là map
-		if mapValue, ok := value.(map[string]interface{}); ok {
-			for op := range mapValue {
-				if strings.HasPrefix(op, "$") && !utility.Contains(h.filterOptions.AllowedOperators, op) {
-					return common.NewError(
-						common.ErrCodeValidationFormat,
-						fmt.Sprintf("Operator không được phép sử dụng: %s", op),
-						common.StatusBadRequest,
-						nil,
-					)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 // processFilter xử lý và validate filter từ request
 func (h *BaseHandler[T, CreateInput, UpdateInput]) processFilter(c fiber.Ctx) (map[string]interface{}, error) {
 	var filter map[string]interface{}
 
 	// Parse filter từ query
-	if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
+	filterStr := c.Query("filter", "{}")
+	if err := json.Unmarshal([]byte(filterStr), &filter); err != nil {
 		return nil, common.NewError(
 			common.ErrCodeValidationFormat,
-			"Filter không hợp lệ",
+			fmt.Sprintf("Filter không đúng định dạng JSON. Chi tiết lỗi: %v. Giá trị filter nhận được: %s", err, filterStr),
 			common.StatusBadRequest,
 			err,
 		)
@@ -279,96 +238,42 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) processFilter(c fiber.Ctx) (m
 	return filter, nil
 }
 
-// validateMongoOptions kiểm tra tính hợp lệ của các options
-func (h *BaseHandler[T, CreateInput, UpdateInput]) validateMongoOptions(options map[string]interface{}) error {
-	// Danh sách các options được phép
-	allowedOptions := map[string]bool{
-		"projection": true,
-		"sort":       true,
-		"limit":      true,
-		"skip":       true,
+// validateFilter kiểm tra tính hợp lệ của filter
+func (h *BaseHandler[T, CreateInput, UpdateInput]) validateFilter(filter map[string]interface{}) error {
+	// Kiểm tra số lượng field
+	if len(filter) > h.filterOptions.MaxFields {
+		return common.NewError(
+			common.ErrCodeValidationFormat,
+			fmt.Sprintf("Filter vượt quá số lượng trường cho phép. Tối đa %d trường, hiện tại có %d trường. Vui lòng giảm số lượng trường trong filter.", h.filterOptions.MaxFields, len(filter)),
+			common.StatusBadRequest,
+			nil,
+		)
 	}
 
-	// Kiểm tra các options không hợp lệ
-	for key := range options {
-		if !allowedOptions[key] {
+	// Kiểm tra từng field và operator
+	for field, value := range filter {
+		// Kiểm tra field có bị cấm không
+		if utility.Contains(h.filterOptions.DeniedFields, field) {
 			return common.NewError(
 				common.ErrCodeValidationFormat,
-				fmt.Sprintf("Option không hợp lệ: %s", key),
+				fmt.Sprintf("Trường '%s' không được phép sử dụng trong filter vì lý do bảo mật. Vui lòng sử dụng các trường khác.", field),
 				common.StatusBadRequest,
 				nil,
 			)
 		}
-	}
 
-	// Validate projection
-	if projection, ok := options["projection"].(map[string]interface{}); ok {
-		for field := range projection {
-			// Kiểm tra các trường bị cấm
-			if utility.Contains(h.filterOptions.DeniedFields, field) {
-				return common.NewError(
-					common.ErrCodeValidationFormat,
-					fmt.Sprintf("Field không được phép projection: %s", field),
-					common.StatusBadRequest,
-					nil,
-				)
+		// Kiểm tra operator nếu value là map
+		if mapValue, ok := value.(map[string]interface{}); ok {
+			for op := range mapValue {
+				if strings.HasPrefix(op, "$") && !utility.Contains(h.filterOptions.AllowedOperators, op) {
+					return common.NewError(
+						common.ErrCodeValidationFormat,
+						fmt.Sprintf("Toán tử MongoDB '%s' không được phép sử dụng. Các toán tử được phép: %v", op, h.filterOptions.AllowedOperators),
+						common.StatusBadRequest,
+						nil,
+					)
+				}
 			}
-		}
-	}
-
-	// Validate sort
-	if sort, ok := options["sort"].(map[string]interface{}); ok {
-		for field, value := range sort {
-			// Kiểm tra các trường bị cấm
-			if utility.Contains(h.filterOptions.DeniedFields, field) {
-				return common.NewError(
-					common.ErrCodeValidationFormat,
-					fmt.Sprintf("Field không được phép sort: %s", field),
-					common.StatusBadRequest,
-					nil,
-				)
-			}
-			// Kiểm tra giá trị sort (1 hoặc -1)
-			if v, ok := value.(float64); !ok || (v != 1 && v != -1) {
-				return common.NewError(
-					common.ErrCodeValidationFormat,
-					fmt.Sprintf("Giá trị sort không hợp lệ cho field %s: %v (phải là 1 hoặc -1)", field, value),
-					common.StatusBadRequest,
-					nil,
-				)
-			}
-		}
-	}
-
-	// Validate limit
-	if limit, ok := options["limit"].(float64); ok {
-		if limit <= 0 {
-			return common.NewError(
-				common.ErrCodeValidationFormat,
-				"Limit phải lớn hơn 0",
-				common.StatusBadRequest,
-				nil,
-			)
-		}
-		if limit > 1000 { // Giới hạn tối đa 1000 documents
-			return common.NewError(
-				common.ErrCodeValidationFormat,
-				"Limit không được vượt quá 1000",
-				common.StatusBadRequest,
-				nil,
-			)
-		}
-	}
-
-	// Validate skip
-	if skip, ok := options["skip"].(float64); ok {
-		if skip < 0 {
-			return common.NewError(
-				common.ErrCodeValidationFormat,
-				"Skip không được âm",
-				common.StatusBadRequest,
-				nil,
-			)
 		}
 	}
 
@@ -380,10 +285,11 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) processMongoOptions(c fiber.C
 	var rawOptions map[string]interface{}
 
 	// Parse options từ query string
-	if err := json.Unmarshal([]byte(c.Query("options", "{}")), &rawOptions); err != nil {
+	optionsStr := c.Query("options", "{}")
+	if err := json.Unmarshal([]byte(optionsStr), &rawOptions); err != nil {
 		return nil, common.NewError(
 			common.ErrCodeValidationFormat,
-			"Options không hợp lệ",
+			fmt.Sprintf("Options không đúng định dạng JSON. Chi tiết lỗi: %v. Giá trị options nhận được: %s", err, optionsStr),
 			common.StatusBadRequest,
 			err,
 		)
@@ -420,6 +326,102 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) processMongoOptions(c fiber.C
 		opts.SetSkip(int64(skip))
 	}
 	return opts, nil
+}
+
+// validateMongoOptions kiểm tra tính hợp lệ của các options
+func (h *BaseHandler[T, CreateInput, UpdateInput]) validateMongoOptions(options map[string]interface{}) error {
+	// Danh sách các options được phép
+	allowedOptions := map[string]bool{
+		"projection": true,
+		"sort":       true,
+		"limit":      true,
+		"skip":       true,
+	}
+
+	// Kiểm tra các options không hợp lệ
+	for key := range options {
+		if !allowedOptions[key] {
+			return common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("Option '%s' không được hỗ trợ. Các options được phép: projection, sort, limit, skip", key),
+				common.StatusBadRequest,
+				nil,
+			)
+		}
+	}
+
+	// Validate projection
+	if projection, ok := options["projection"].(map[string]interface{}); ok {
+		for field := range projection {
+			// Kiểm tra các trường bị cấm
+			if utility.Contains(h.filterOptions.DeniedFields, field) {
+				return common.NewError(
+					common.ErrCodeValidationFormat,
+					fmt.Sprintf("Trường '%s' không được phép sử dụng trong projection vì lý do bảo mật", field),
+					common.StatusBadRequest,
+					nil,
+				)
+			}
+		}
+	}
+
+	// Validate sort
+	if sort, ok := options["sort"].(map[string]interface{}); ok {
+		for field, value := range sort {
+			// Kiểm tra các trường bị cấm
+			if utility.Contains(h.filterOptions.DeniedFields, field) {
+				return common.NewError(
+					common.ErrCodeValidationFormat,
+					fmt.Sprintf("Trường '%s' không được phép sử dụng trong sort vì lý do bảo mật", field),
+					common.StatusBadRequest,
+					nil,
+				)
+			}
+			// Kiểm tra giá trị sort (1 hoặc -1)
+			if v, ok := value.(float64); !ok || (v != 1 && v != -1) {
+				return common.NewError(
+					common.ErrCodeValidationFormat,
+					fmt.Sprintf("Giá trị sort cho trường '%s' phải là 1 (tăng dần) hoặc -1 (giảm dần), giá trị hiện tại: %v", field, value),
+					common.StatusBadRequest,
+					nil,
+				)
+			}
+		}
+	}
+
+	// Validate limit
+	if limit, ok := options["limit"].(float64); ok {
+		if limit <= 0 {
+			return common.NewError(
+				common.ErrCodeValidationFormat,
+				"Giá trị limit phải lớn hơn 0",
+				common.StatusBadRequest,
+				nil,
+			)
+		}
+		if limit > 1000 {
+			return common.NewError(
+				common.ErrCodeValidationFormat,
+				"Giá trị limit không được vượt quá 1000 để đảm bảo hiệu năng hệ thống",
+				common.StatusBadRequest,
+				nil,
+			)
+		}
+	}
+
+	// Validate skip
+	if skip, ok := options["skip"].(float64); ok {
+		if skip < 0 {
+			return common.NewError(
+				common.ErrCodeValidationFormat,
+				"Giá trị skip không được âm",
+				common.StatusBadRequest,
+				nil,
+			)
+		}
+	}
+
+	return nil
 }
 
 // ParsePagination xử lý việc parse thông tin phân trang từ request.
