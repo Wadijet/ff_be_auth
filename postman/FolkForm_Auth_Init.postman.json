@@ -1,0 +1,66 @@
+{
+    "info": {
+        "_postman_id": "ff-be-auth-init",
+        "name": "FolkForm Auth API - Init",
+        "description": "Collection các API khởi tạo của hệ thống FolkForm",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8080/api/v1",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        }
+    ],
+    "item": [
+        {
+            "name": "1. Administrator",
+            "item": [
+                {
+                    "name": "Set Administrator",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/init/set-administrator/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["init", "set-administrator", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "user_id",
+                                    "description": "ID của người dùng cần thiết lập làm admin"
+                                }
+                            ]
+                        },
+                        "description": "Thiết lập người dùng làm quản trị viên hệ thống\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của người dùng cần thiết lập làm admin\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Thiết lập admin thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"email\": \"string\",\n    \"name\": \"string\",\n    \"isAdmin\": true,\n    \"createdAt\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```\n\n**Error Responses:**\n- 400: ID không hợp lệ\n- 404: Không tìm thấy người dùng\n- 500: Lỗi server"
+                    }
+                }
+            ]
+        }
+    ]
+} 

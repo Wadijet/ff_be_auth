@@ -1,0 +1,150 @@
+{
+    "info": {
+        "_postman_id": "ff-be-auth-admin",
+        "name": "FolkForm Auth API - Admin",
+        "description": "Collection các API quản trị của hệ thống FolkForm",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8080/api/v1",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        }
+    ],
+    "item": [
+        {
+            "name": "1. User Management",
+            "item": [
+                {
+                    "name": "Block User",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"userId\": \"user_id\",\n    \"reason\": \"Violation of terms\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/user/block",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["admin", "user", "block"]
+                        },
+                        "description": "Khóa tài khoản người dùng\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- userId: ID người dùng cần khóa\n- reason: Lý do khóa\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Khóa tài khoản thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"status\": \"BLOCKED\",\n    \"blockedAt\": \"string\",\n    \"blockedReason\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Unblock User",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"userId\": \"user_id\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/user/unblock",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["admin", "user", "unblock"]
+                        },
+                        "description": "Mở khóa tài khoản người dùng\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- userId: ID người dùng cần mở khóa\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Mở khóa tài khoản thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"status\": \"ACTIVE\",\n    \"unBlockedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Set User Role",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"userId\": \"user_id\",\n    \"roleIds\": [\"role_id_1\", \"role_id_2\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/user/role",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["admin", "user", "role"]
+                        },
+                        "description": "Thiết lập role cho người dùng\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- userId: ID người dùng\n- roleIds: Danh sách ID của các role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Thiết lập role thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"roles\": [{\n      \"id\": \"string\",\n      \"name\": \"string\"\n    }],\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. System",
+            "item": [
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/system/health",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["system", "health"]
+                        },
+                        "description": "Kiểm tra trạng thái hoạt động của hệ thống\n\n**Response:**\n```json\n{\n  \"status\": \"healthy\",\n  \"time\": \"string\"\n}\n```"
+                    }
+                }
+            ]
+        }
+    ]
+} 

@@ -7,7 +7,7 @@ CleanupJob là một ví dụ về job định kỳ dọn dẹp dữ liệu cũ 
 - Xóa các dữ liệu cũ hơn X ngày
 - Có thể tùy chỉnh số ngày lưu trữ thông qua tham số retentionDays
 */
-package examples
+package jobs
 
 import (
 	"context"

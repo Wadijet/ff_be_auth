@@ -1,0 +1,2305 @@
+{
+    "info": {
+        "_postman_id": "ff-be-auth-integration",
+        "name": "FolkForm Auth API - Integration",
+        "description": "Collection các API tích hợp của hệ thống FolkForm với các dịch vụ bên thứ 3",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8080/api/v1",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        }
+    ],
+    "item": [
+        {
+            "name": "1. Access Token",
+            "item": [
+                {
+                    "name": "Find Access Tokens",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/find",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "find"]
+                        },
+                        "description": "Lấy danh sách access token\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"type\": \"string\",\n      \"token\": \"string\",\n      \"expiresAt\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One Access Token",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/find-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "find-one"]
+                        },
+                        "description": "Tìm một access token theo điều kiện"
+                    }
+                },
+                {
+                    "name": "Find Access Token By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/find-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "find-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "description": "Tìm access token theo ID"
+                    }
+                },
+                {
+                    "name": "Create Access Token",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/insert-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "insert-one"]
+                        },
+                        "description": "Tạo mới một access token"
+                    }
+                },
+                {
+                    "name": "Create Multiple Access Tokens",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/insert-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "insert-many"]
+                        },
+                        "description": "Tạo nhiều access token cùng lúc"
+                    }
+                },
+                {
+                    "name": "Update Access Token",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/update-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "update-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "description": "Cập nhật access token theo ID"
+                    }
+                },
+                {
+                    "name": "Update Multiple Access Tokens",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/update-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "update-many"]
+                        },
+                        "description": "Cập nhật nhiều access token cùng lúc"
+                    }
+                },
+                {
+                    "name": "Delete Access Token",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/delete-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "delete-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "description": "Xóa access token theo ID"
+                    }
+                },
+                {
+                    "name": "Delete Multiple Access Tokens",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/delete-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "delete-many"]
+                        },
+                        "description": "Xóa nhiều access token cùng lúc"
+                    }
+                },
+                {
+                    "name": "Find Access Tokens By IDs",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/find-by-ids",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "find-by-ids"]
+                        },
+                        "description": "Tìm nhiều access token theo danh sách ID"
+                    }
+                },
+                {
+                    "name": "Find And Update Access Token",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/find-one-and-update",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "find-one-and-update"]
+                        },
+                        "description": "Tìm và cập nhật một access token"
+                    }
+                },
+                {
+                    "name": "Find And Delete Access Token",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/find-one-and-delete",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "find-one-and-delete"]
+                        },
+                        "description": "Tìm và xóa một access token"
+                    }
+                },
+                {
+                    "name": "Count Access Tokens",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/count",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "count"]
+                        },
+                        "description": "Đếm số lượng access token theo điều kiện"
+                    }
+                },
+                {
+                    "name": "Get Distinct Access Token Values",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/distinct",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "distinct"]
+                        },
+                        "description": "Lấy danh sách giá trị duy nhất của một trường trong access token"
+                    }
+                },
+                {
+                    "name": "Upsert Access Token",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/upsert-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "upsert-one"]
+                        },
+                        "description": "Tạo mới hoặc cập nhật một access token"
+                    }
+                },
+                {
+                    "name": "Upsert Multiple Access Tokens",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/upsert-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "upsert-many"]
+                        },
+                        "description": "Tạo mới hoặc cập nhật nhiều access token"
+                    }
+                },
+                {
+                    "name": "Check Access Token Exists",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/access-token/exists",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["access-token", "exists"]
+                        },
+                        "description": "Kiểm tra access token có tồn tại không"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. Facebook",
+            "item": [
+                {
+                    "name": "Page Management",
+                    "item": [
+                        {
+                            "name": "Get Facebook Pages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "find"]
+                                },
+                                "description": "Lấy danh sách các trang Facebook"
+                            }
+                        },
+                        {
+                            "name": "Get Facebook Page By ID",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin trang Facebook theo ID"
+                            }
+                        },
+                        {
+                            "name": "Create Facebook Page",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "insert-one"]
+                                },
+                                "description": "Thêm mới trang Facebook"
+                            }
+                        },
+                        {
+                            "name": "Update Facebook Page",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật thông tin trang Facebook"
+                            }
+                        },
+                        {
+                            "name": "Delete Facebook Page",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/delete-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "delete-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Xóa trang Facebook"
+                            }
+                        },
+                        {
+                            "name": "Find One Facebook Page",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/find-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "find-one"]
+                                },
+                                "description": "Tìm một trang Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Find Facebook Pages By IDs",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/find-by-ids",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "find-by-ids"]
+                                },
+                                "description": "Tìm nhiều trang Facebook theo danh sách ID"
+                            }
+                        },
+                        {
+                            "name": "Get Facebook Pages With Pagination",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/find-with-pagination",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "find-with-pagination"]
+                                },
+                                "description": "Lấy danh sách trang Facebook có phân trang"
+                            }
+                        },
+                        {
+                            "name": "Update One Facebook Page",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/update-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "update-one"]
+                                },
+                                "description": "Cập nhật một trang Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Update Multiple Facebook Pages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/update-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "update-many"]
+                                },
+                                "description": "Cập nhật nhiều trang Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Find And Update Facebook Page",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/find-one-and-update",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "find-one-and-update"]
+                                },
+                                "description": "Tìm và cập nhật một trang Facebook"
+                            }
+                        },
+                        {
+                            "name": "Delete One Facebook Page",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/delete-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "delete-one"]
+                                },
+                                "description": "Xóa một trang Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Find And Delete Facebook Page",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/find-one-and-delete",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "find-one-and-delete"]
+                                },
+                                "description": "Tìm và xóa một trang Facebook"
+                            }
+                        },
+                        {
+                            "name": "Count Facebook Pages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/count",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "count"]
+                                },
+                                "description": "Đếm số lượng trang Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Get Distinct Facebook Page Values",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/distinct",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "distinct"]
+                                },
+                                "description": "Lấy danh sách giá trị duy nhất của một trường trong trang Facebook"
+                            }
+                        },
+                        {
+                            "name": "Upsert Facebook Page",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/upsert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "upsert-one"]
+                                },
+                                "description": "Tạo mới hoặc cập nhật một trang Facebook"
+                            }
+                        },
+                        {
+                            "name": "Upsert Multiple Facebook Pages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/upsert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "upsert-many"]
+                                },
+                                "description": "Tạo mới hoặc cập nhật nhiều trang Facebook"
+                            }
+                        },
+                        {
+                            "name": "Check Facebook Page Exists",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/exists",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "exists"]
+                                },
+                                "description": "Kiểm tra trang Facebook có tồn tại không"
+                            }
+                        },
+                        {
+                            "name": "Create Multiple Facebook Pages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/insert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "insert-many"]
+                                },
+                                "description": "Tạo nhiều trang Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Delete Multiple Facebook Pages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/page/delete-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "page", "delete-many"]
+                                },
+                                "description": "Xóa nhiều trang Facebook cùng lúc"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Post Management",
+                    "item": [
+                        {
+                            "name": "Get Facebook Posts",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "find"]
+                                },
+                                "description": "Lấy danh sách bài đăng Facebook"
+                            }
+                        },
+                        {
+                            "name": "Get Facebook Post By ID",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin bài đăng Facebook theo ID"
+                            }
+                        },
+                        {
+                            "name": "Create Facebook Post",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "insert-one"]
+                                },
+                                "description": "Tạo bài đăng Facebook mới"
+                            }
+                        },
+                        {
+                            "name": "Update Facebook Post",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật bài đăng Facebook"
+                            }
+                        },
+                        {
+                            "name": "Delete Facebook Post",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/delete-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "delete-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Xóa bài đăng Facebook"
+                            }
+                        },
+                        {
+                            "name": "Find One Facebook Post",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/find-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "find-one"]
+                                },
+                                "description": "Tìm một bài đăng Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Find Facebook Posts By IDs",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/find-by-ids",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "find-by-ids"]
+                                },
+                                "description": "Tìm nhiều bài đăng Facebook theo danh sách ID"
+                            }
+                        },
+                        {
+                            "name": "Get Facebook Posts With Pagination",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/find-with-pagination",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "find-with-pagination"]
+                                },
+                                "description": "Lấy danh sách bài đăng Facebook có phân trang"
+                            }
+                        },
+                        {
+                            "name": "Get Facebook Messages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find"]
+                                },
+                                "description": "Lấy danh sách tin nhắn Facebook"
+                            }
+                        },
+                        {
+                            "name": "Get Message By ID",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin tin nhắn Facebook theo ID"
+                            }
+                        },
+                        {
+                            "name": "Create Message",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "insert-one"]
+                                },
+                                "description": "Tạo tin nhắn Facebook mới"
+                            }
+                        },
+                        {
+                            "name": "Create Multiple Messages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/insert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "insert-many"]
+                                },
+                                "description": "Tạo nhiều tin nhắn Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Update Message",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật tin nhắn Facebook"
+                            }
+                        },
+                        {
+                            "name": "Delete Message",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/delete-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "delete-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Xóa tin nhắn Facebook"
+                            }
+                        },
+                        {
+                            "name": "Create Multiple Facebook Posts",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/insert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "insert-many"]
+                                },
+                                "description": "Tạo nhiều bài đăng Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Update One Facebook Post",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/update-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "update-one"]
+                                },
+                                "description": "Cập nhật một bài đăng Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Update Multiple Facebook Posts",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/update-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "update-many"]
+                                },
+                                "description": "Cập nhật nhiều bài đăng Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Find And Update Facebook Post",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/find-one-and-update",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "find-one-and-update"]
+                                },
+                                "description": "Tìm và cập nhật một bài đăng Facebook"
+                            }
+                        },
+                        {
+                            "name": "Delete One Facebook Post",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/delete-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "delete-one"]
+                                },
+                                "description": "Xóa một bài đăng Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Delete Multiple Facebook Posts",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/delete-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "delete-many"]
+                                },
+                                "description": "Xóa nhiều bài đăng Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Find And Delete Facebook Post",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/find-one-and-delete",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "find-one-and-delete"]
+                                },
+                                "description": "Tìm và xóa một bài đăng Facebook"
+                            }
+                        },
+                        {
+                            "name": "Count Facebook Posts",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/count",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "count"]
+                                },
+                                "description": "Đếm số lượng bài đăng Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Get Distinct Facebook Post Values",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/distinct",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "distinct"]
+                                },
+                                "description": "Lấy danh sách giá trị duy nhất của một trường trong bài đăng Facebook"
+                            }
+                        },
+                        {
+                            "name": "Upsert Facebook Post",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/upsert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "upsert-one"]
+                                },
+                                "description": "Tạo mới hoặc cập nhật một bài đăng Facebook"
+                            }
+                        },
+                        {
+                            "name": "Upsert Multiple Facebook Posts",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/upsert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "upsert-many"]
+                                },
+                                "description": "Tạo mới hoặc cập nhật nhiều bài đăng Facebook"
+                            }
+                        },
+                        {
+                            "name": "Check Facebook Post Exists",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/post/exists",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "post", "exists"]
+                                },
+                                "description": "Kiểm tra bài đăng Facebook có tồn tại không"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Conversation Management",
+                    "item": [
+                        {
+                            "name": "Get Conversations",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "find"]
+                                },
+                                "description": "Lấy danh sách cuộc trò chuyện Facebook"
+                            }
+                        },
+                        {
+                            "name": "Get Conversations Sort By API Update",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/sort-by-api-update",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "sort-by-api-update"]
+                                },
+                                "description": "Lấy danh sách cuộc trò chuyện Facebook sắp xếp theo thời gian cập nhật API"
+                            }
+                        },
+                        {
+                            "name": "Get Conversation By ID",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin cuộc trò chuyện Facebook theo ID"
+                            }
+                        },
+                        {
+                            "name": "Find One Facebook Conversation",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/find-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "find-one"]
+                                },
+                                "description": "Tìm một cuộc trò chuyện Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Find Facebook Conversations By IDs",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/find-by-ids",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "find-by-ids"]
+                                },
+                                "description": "Tìm nhiều cuộc trò chuyện Facebook theo danh sách ID"
+                            }
+                        },
+                        {
+                            "name": "Get Facebook Conversations With Pagination",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/find-with-pagination",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "find-with-pagination"]
+                                },
+                                "description": "Lấy danh sách cuộc trò chuyện Facebook có phân trang"
+                            }
+                        },
+                        {
+                            "name": "Create Conversation",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "insert-one"]
+                                },
+                                "description": "Tạo cuộc trò chuyện Facebook mới"
+                            }
+                        },
+                        {
+                            "name": "Create Multiple Facebook Conversations",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/insert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "insert-many"]
+                                },
+                                "description": "Tạo nhiều cuộc trò chuyện Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Update Conversation",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật cuộc trò chuyện Facebook"
+                            }
+                        },
+                        {
+                            "name": "Update One Facebook Conversation",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/update-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "update-one"]
+                                },
+                                "description": "Cập nhật một cuộc trò chuyện Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Update Multiple Facebook Conversations",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/update-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "update-many"]
+                                },
+                                "description": "Cập nhật nhiều cuộc trò chuyện Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Find And Update Facebook Conversation",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/find-one-and-update",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "find-one-and-update"]
+                                },
+                                "description": "Tìm và cập nhật một cuộc trò chuyện Facebook"
+                            }
+                        },
+                        {
+                            "name": "Delete Conversation",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/delete-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "delete-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Xóa cuộc trò chuyện Facebook"
+                            }
+                        },
+                        {
+                            "name": "Delete One Facebook Conversation",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/delete-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "delete-one"]
+                                },
+                                "description": "Xóa một cuộc trò chuyện Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Delete Multiple Facebook Conversations",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/delete-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "delete-many"]
+                                },
+                                "description": "Xóa nhiều cuộc trò chuyện Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Find And Delete Facebook Conversation",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/find-one-and-delete",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "find-one-and-delete"]
+                                },
+                                "description": "Tìm và xóa một cuộc trò chuyện Facebook"
+                            }
+                        },
+                        {
+                            "name": "Count Facebook Conversations",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/count",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "count"]
+                                },
+                                "description": "Đếm số lượng cuộc trò chuyện Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Get Distinct Facebook Conversation Values",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/distinct",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "distinct"]
+                                },
+                                "description": "Lấy danh sách giá trị duy nhất của một trường trong cuộc trò chuyện Facebook"
+                            }
+                        },
+                        {
+                            "name": "Upsert Facebook Conversation",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/upsert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "upsert-one"]
+                                },
+                                "description": "Tạo mới hoặc cập nhật một cuộc trò chuyện Facebook"
+                            }
+                        },
+                        {
+                            "name": "Upsert Multiple Facebook Conversations",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/upsert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "upsert-many"]
+                                },
+                                "description": "Tạo mới hoặc cập nhật nhiều cuộc trò chuyện Facebook"
+                            }
+                        },
+                        {
+                            "name": "Check Facebook Conversation Exists",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/conversation/exists",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "conversation", "exists"]
+                                },
+                                "description": "Kiểm tra cuộc trò chuyện Facebook có tồn tại không"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Message Management",
+                    "item": [
+                        {
+                            "name": "Get Facebook Messages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find"]
+                                },
+                                "description": "Lấy danh sách tin nhắn Facebook"
+                            }
+                        },
+                        {
+                            "name": "Find One Facebook Message",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find-one"]
+                                },
+                                "description": "Tìm một tin nhắn Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Get Facebook Message By ID",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin tin nhắn Facebook theo ID"
+                            }
+                        },
+                        {
+                            "name": "Find Facebook Messages By IDs",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find-by-ids",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find-by-ids"]
+                                },
+                                "description": "Tìm nhiều tin nhắn Facebook theo danh sách ID"
+                            }
+                        },
+                        {
+                            "name": "Get Facebook Messages With Pagination",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find-with-pagination",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find-with-pagination"]
+                                },
+                                "description": "Lấy danh sách tin nhắn Facebook có phân trang"
+                            }
+                        },
+                        {
+                            "name": "Create Facebook Message",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "insert-one"]
+                                },
+                                "description": "Tạo tin nhắn Facebook mới"
+                            }
+                        },
+                        {
+                            "name": "Create Multiple Facebook Messages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/insert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "insert-many"]
+                                },
+                                "description": "Tạo nhiều tin nhắn Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Update Facebook Message By ID",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật tin nhắn Facebook theo ID"
+                            }
+                        },
+                        {
+                            "name": "Update One Facebook Message",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/update-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "update-one"]
+                                },
+                                "description": "Cập nhật một tin nhắn Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Update Multiple Facebook Messages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/update-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "update-many"]
+                                },
+                                "description": "Cập nhật nhiều tin nhắn Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Find And Update Facebook Message",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find-one-and-update",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find-one-and-update"]
+                                },
+                                "description": "Tìm và cập nhật một tin nhắn Facebook"
+                            }
+                        },
+                        {
+                            "name": "Delete Facebook Message By ID",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/delete-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "delete-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Xóa tin nhắn Facebook theo ID"
+                            }
+                        },
+                        {
+                            "name": "Delete One Facebook Message",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/delete-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "delete-one"]
+                                },
+                                "description": "Xóa một tin nhắn Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Delete Multiple Facebook Messages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/delete-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "delete-many"]
+                                },
+                                "description": "Xóa nhiều tin nhắn Facebook cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Find And Delete Facebook Message",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/find-one-and-delete",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "find-one-and-delete"]
+                                },
+                                "description": "Tìm và xóa một tin nhắn Facebook"
+                            }
+                        },
+                        {
+                            "name": "Count Facebook Messages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/count",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "count"]
+                                },
+                                "description": "Đếm số lượng tin nhắn Facebook theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Get Distinct Facebook Message Values",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/distinct",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "distinct"]
+                                },
+                                "description": "Lấy danh sách giá trị duy nhất của một trường trong tin nhắn Facebook"
+                            }
+                        },
+                        {
+                            "name": "Upsert Facebook Message",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/upsert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "upsert-one"]
+                                },
+                                "description": "Tạo mới hoặc cập nhật một tin nhắn Facebook"
+                            }
+                        },
+                        {
+                            "name": "Upsert Multiple Facebook Messages",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/upsert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "upsert-many"]
+                                },
+                                "description": "Tạo mới hoặc cập nhật nhiều tin nhắn Facebook"
+                            }
+                        },
+                        {
+                            "name": "Check Facebook Message Exists",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/facebook/message/exists",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["facebook", "message", "exists"]
+                                },
+                                "description": "Kiểm tra tin nhắn Facebook có tồn tại không"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "3. Pancake",
+            "item": [
+                {
+                    "name": "Order Management",
+                    "item": [
+                        {
+                            "name": "Get Pancake Orders",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/find",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "find"]
+                                },
+                                "description": "Lấy danh sách đơn hàng Pancake"
+                            }
+                        },
+                        {
+                            "name": "Find One Pancake Order",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/find-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "find-one"]
+                                },
+                                "description": "Tìm một đơn hàng Pancake theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Get Pancake Order By ID",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/find-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "find-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Lấy thông tin đơn hàng Pancake theo ID"
+                            }
+                        },
+                        {
+                            "name": "Find Pancake Orders By IDs",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/find-by-ids",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "find-by-ids"]
+                                },
+                                "description": "Tìm nhiều đơn hàng Pancake theo danh sách ID"
+                            }
+                        },
+                        {
+                            "name": "Get Pancake Orders With Pagination",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/find-with-pagination",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "find-with-pagination"]
+                                },
+                                "description": "Lấy danh sách đơn hàng Pancake có phân trang"
+                            }
+                        },
+                        {
+                            "name": "Create Pancake Order",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/insert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "insert-one"]
+                                },
+                                "description": "Tạo đơn hàng Pancake mới"
+                            }
+                        },
+                        {
+                            "name": "Create Multiple Pancake Orders",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/insert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "insert-many"]
+                                },
+                                "description": "Tạo nhiều đơn hàng Pancake cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Update Pancake Order By ID",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/update-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "update-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Cập nhật đơn hàng Pancake theo ID"
+                            }
+                        },
+                        {
+                            "name": "Update One Pancake Order",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/update-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "update-one"]
+                                },
+                                "description": "Cập nhật một đơn hàng Pancake theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Update Multiple Pancake Orders",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/update-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "update-many"]
+                                },
+                                "description": "Cập nhật nhiều đơn hàng Pancake cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Find And Update Pancake Order",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "PUT",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/find-one-and-update",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "find-one-and-update"]
+                                },
+                                "description": "Tìm và cập nhật một đơn hàng Pancake"
+                            }
+                        },
+                        {
+                            "name": "Delete Pancake Order By ID",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/delete-by-id/:id",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "delete-by-id", ":id"],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Xóa đơn hàng Pancake theo ID"
+                            }
+                        },
+                        {
+                            "name": "Delete One Pancake Order",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/delete-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "delete-one"]
+                                },
+                                "description": "Xóa một đơn hàng Pancake theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Delete Multiple Pancake Orders",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/delete-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "delete-many"]
+                                },
+                                "description": "Xóa nhiều đơn hàng Pancake cùng lúc"
+                            }
+                        },
+                        {
+                            "name": "Find And Delete Pancake Order",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "DELETE",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/find-one-and-delete",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "find-one-and-delete"]
+                                },
+                                "description": "Tìm và xóa một đơn hàng Pancake"
+                            }
+                        },
+                        {
+                            "name": "Count Pancake Orders",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/count",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "count"]
+                                },
+                                "description": "Đếm số lượng đơn hàng Pancake theo điều kiện"
+                            }
+                        },
+                        {
+                            "name": "Get Distinct Pancake Order Values",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/distinct",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "distinct"]
+                                },
+                                "description": "Lấy danh sách giá trị duy nhất của một trường trong đơn hàng Pancake"
+                            }
+                        },
+                        {
+                            "name": "Upsert Pancake Order",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/upsert-one",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "upsert-one"]
+                                },
+                                "description": "Tạo mới hoặc cập nhật một đơn hàng Pancake"
+                            }
+                        },
+                        {
+                            "name": "Upsert Multiple Pancake Orders",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/upsert-many",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "upsert-many"]
+                                },
+                                "description": "Tạo mới hoặc cập nhật nhiều đơn hàng Pancake"
+                            }
+                        },
+                        {
+                            "name": "Check Pancake Order Exists",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/pancake/order/exists",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["pancake", "order", "exists"]
+                                },
+                                "description": "Kiểm tra đơn hàng Pancake có tồn tại không"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+} 

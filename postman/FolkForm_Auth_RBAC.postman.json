@@ -1,0 +1,2643 @@
+{
+    "info": {
+        "_postman_id": "ff-be-auth-rbac",
+        "name": "FolkForm Auth API - RBAC",
+        "description": "Collection các API quản lý phân quyền của hệ thống FolkForm",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8080/api/v1",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        }
+    ],
+    "item": [
+        {
+            "name": "1. User",
+            "item": [
+                {
+                    "name": "Find All Users",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/find",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user", "find"]
+                        },
+                        "description": "Lấy danh sách tất cả người dùng\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"email\": \"string\",\n      \"status\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One User",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/find-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user", "find-one"]
+                        },
+                        "description": "Tìm một người dùng theo điều kiện\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- filter: Điều kiện tìm kiếm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"status\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find User By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/find-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user", "find-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "user_id",
+                                    "description": "ID của người dùng"
+                                }
+                            ]
+                        },
+                        "description": "Tìm người dùng theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của người dùng\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"status\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Users By IDs",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"ids\": [\"user_id_1\", \"user_id_2\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user/find-by-ids",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user", "find-by-ids"]
+                        },
+                        "description": "Tìm nhiều người dùng theo danh sách ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- ids: Mảng các ID người dùng\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"email\": \"string\",\n      \"status\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Users With Pagination",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/find-with-pagination?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user", "find-with-pagination"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách người dùng có phân trang\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- page: Số trang\n- limit: Số lượng kết quả mỗi trang\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"string\",\n        \"name\": \"string\",\n        \"email\": \"string\",\n        \"status\": \"string\",\n        \"createdAt\": \"string\"\n      }\n    ],\n    \"total\": \"number\",\n    \"page\": \"number\",\n    \"limit\": \"number\",\n    \"totalPages\": \"number\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One And Update User",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"id\": \"user_id\"\n    },\n    \"update\": {\n        \"name\": \"Updated Name\",\n        \"email\": \"updated@example.com\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user/find-one-and-update",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user", "find-one-and-update"]
+                        },
+                        "description": "Tìm và cập nhật một người dùng\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n  - id: ID người dùng\n- update: Thông tin cần cập nhật\n  - name: Tên mới\n  - email: Email mới\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"status\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One And Delete User",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"id\": \"user_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user/find-one-and-delete",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user", "find-one-and-delete"]
+                        },
+                        "description": "Tìm và xóa một người dùng\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n  - id: ID người dùng\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"email\": \"string\",\n    \"status\": \"string\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Count Users",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/count",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user", "count"]
+                        },
+                        "description": "Đếm số lượng người dùng\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đếm thành công\",\n  \"data\": {\n    \"count\": \"number\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Check User Exists",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/exists",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user", "exists"]
+                        },
+                        "description": "Kiểm tra người dùng tồn tại\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- filter: Điều kiện kiểm tra\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Kiểm tra thành công\",\n  \"data\": {\n    \"exists\": \"boolean\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Get Distinct User Field",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/distinct?field=status",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user", "distinct"],
+                            "query": [
+                                {
+                                    "key": "field",
+                                    "value": "status"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách giá trị duy nhất của một trường\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- field: Tên trường cần lấy giá trị duy nhất\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"values\": [\"string\"]\n  }\n}\n```"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. Role",
+            "item": [
+                {
+                    "name": "Find All Roles",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role/find",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "find"]
+                        },
+                        "description": "Lấy danh sách tất cả các role\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One Role",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role/find-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "find-one"]
+                        },
+                        "description": "Tìm một role theo điều kiện\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- filter: Điều kiện tìm kiếm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"description\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Role By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role/find-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "find-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "role_id",
+                                    "description": "ID của role"
+                                }
+                            ]
+                        },
+                        "description": "Tìm role theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"description\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Roles By IDs",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"ids\": [\"role_id_1\", \"role_id_2\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role/find-by-ids",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "find-by-ids"]
+                        },
+                        "description": "Tìm nhiều role theo danh sách ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- ids: Mảng các ID role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Roles With Pagination",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role/find-with-pagination?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "find-with-pagination"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách role có phân trang\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- page: Số trang\n- limit: Số lượng kết quả mỗi trang\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"string\",\n        \"name\": \"string\",\n        \"description\": \"string\",\n        \"createdAt\": \"string\"\n      }\n    ],\n    \"total\": \"number\",\n    \"page\": \"number\",\n    \"limit\": \"number\",\n    \"totalPages\": \"number\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Insert One Role",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"admin\",\n    \"description\": \"Administrator role\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role/insert-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "insert-one"]
+                        },
+                        "description": "Tạo một role mới\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- name: Tên role (phải là duy nhất)\n- description: Mô tả về role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tạo role thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"description\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Insert Many Roles",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"documents\": [\n        {\n            \"name\": \"admin\",\n            \"description\": \"Administrator role\"\n        },\n        {\n            \"name\": \"user\",\n            \"description\": \"Normal user role\"\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role/insert-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "insert-many"]
+                        },
+                        "description": "Tạo nhiều role mới\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- documents: Mảng các role cần tạo\n  - name: Tên role (phải là duy nhất)\n  - description: Mô tả về role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tạo role thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update One Role",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"id\": \"role_id\"\n    },\n    \"update\": {\n        \"name\": \"super_admin\",\n        \"description\": \"Super Administrator role\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role/update-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "update-one"]
+                        },
+                        "description": "Cập nhật một role\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện lọc role\n  - id: ID của role\n- update: Thông tin cần cập nhật\n  - name: Tên mới\n  - description: Mô tả mới\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"description\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update Many Roles",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"status\": \"active\"\n    },\n    \"update\": {\n        \"description\": \"Updated role description\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role/update-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "update-many"]
+                        },
+                        "description": "Cập nhật nhiều role\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện lọc role\n- update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"matchedCount\": \"number\",\n    \"modifiedCount\": \"number\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update Role By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"super_admin\",\n    \"description\": \"Super Administrator role\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role/update-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "update-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "role_id",
+                                    "description": "ID của role"
+                                }
+                            ]
+                        },
+                        "description": "Cập nhật role theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của role\n\n**Body Parameters:**\n- name: Tên mới\n- description: Mô tả mới\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"description\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete One Role",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"id\": \"role_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role/delete-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "delete-one"]
+                        },
+                        "description": "Xóa một role\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện lọc role\n  - id: ID của role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"description\": \"string\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete Many Roles",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"status\": \"inactive\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role/delete-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "delete-many"]
+                        },
+                        "description": "Xóa nhiều role\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện lọc role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"deletedCount\": \"number\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete Role By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role/delete-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "delete-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "role_id",
+                                    "description": "ID của role"
+                                }
+                            ]
+                        },
+                        "description": "Xóa role theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"description\": \"string\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Count Roles",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role/count",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "count"]
+                        },
+                        "description": "Đếm số lượng role\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đếm thành công\",\n  \"data\": {\n    \"count\": \"number\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Check Role Exists",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role/exists",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "exists"]
+                        },
+                        "description": "Kiểm tra role tồn tại\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- filter: Điều kiện kiểm tra\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Kiểm tra thành công\",\n  \"data\": {\n    \"exists\": \"boolean\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Get Distinct Role Field",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role/distinct?field=name",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "distinct"],
+                            "query": [
+                                {
+                                    "key": "field",
+                                    "value": "name"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách giá trị duy nhất của một trường\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- field: Tên trường cần lấy giá trị duy nhất\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"values\": [\"string\"]\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Upsert Role",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"name\": \"admin\"\n    },\n    \"update\": {\n        \"description\": \"Administrator role\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role/upsert-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "upsert-one"]
+                        },
+                        "description": "Tạo mới hoặc cập nhật role\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n- update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Upsert thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"description\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Upsert Many Roles",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"documents\": [\n        {\n            \"filter\": {\n                \"name\": \"admin\"\n            },\n            \"update\": {\n                \"description\": \"Administrator role\"\n            }\n        },\n        {\n            \"filter\": {\n                \"name\": \"user\"\n            },\n            \"update\": {\n                \"description\": \"Normal user role\"\n            }\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role/upsert-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role", "upsert-many"]
+                        },
+                        "description": "Tạo mới hoặc cập nhật nhiều role\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- documents: Mảng các document cần upsert\n  - filter: Điều kiện tìm kiếm\n  - update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Upsert thành công\",\n  \"data\": {\n    \"upsertedCount\": \"number\",\n    \"modifiedCount\": \"number\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. Permission",
+            "item": [
+                {
+                    "name": "Find All Permissions",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/permission/find",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["permission", "find"]
+                        },
+                        "description": "Lấy danh sách tất cả các permission\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One Permission",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/permission/find-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["permission", "find-one"]
+                        },
+                        "description": "Tìm một permission theo điều kiện\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- filter: Điều kiện tìm kiếm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"description\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Permission By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/permission/find-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["permission", "find-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "permission_id",
+                                    "description": "ID của permission"
+                                }
+                            ]
+                        },
+                        "description": "Tìm permission theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"description\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Permissions By IDs",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"ids\": [\"permission_id_1\", \"permission_id_2\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/permission/find-by-ids",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["permission", "find-by-ids"]
+                        },
+                        "description": "Tìm nhiều permission theo danh sách ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- ids: Mảng các ID permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Permissions With Pagination",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/permission/find-with-pagination?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["permission", "find-with-pagination"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách permission có phân trang\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- page: Số trang\n- limit: Số lượng kết quả mỗi trang\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"string\",\n        \"name\": \"string\",\n        \"description\": \"string\",\n        \"createdAt\": \"string\"\n      }\n    ],\n    \"total\": \"number\",\n    \"page\": \"number\",\n    \"limit\": \"number\",\n    \"totalPages\": \"number\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Count Permissions",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/permission/count",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["permission", "count"]
+                        },
+                        "description": "Đếm số lượng permission\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đếm thành công\",\n  \"data\": {\n    \"count\": \"number\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Check Permission Exists",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/permission/exists",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["permission", "exists"]
+                        },
+                        "description": "Kiểm tra permission tồn tại\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- filter: Điều kiện kiểm tra\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Kiểm tra thành công\",\n  \"data\": {\n    \"exists\": \"boolean\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Get Distinct Permission Field",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/permission/distinct?field=name",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["permission", "distinct"],
+                            "query": [
+                                {
+                                    "key": "field",
+                                    "value": "name"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách giá trị duy nhất của một trường\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- field: Tên trường cần lấy giá trị duy nhất\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"values\": [\"string\"]\n  }\n}\n```"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. Role-Permission",
+            "item": [
+                {
+                    "name": "Find All Role-Permissions",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/find",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "find"]
+                        },
+                        "description": "Lấy danh sách tất cả các role-permission\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"roleId\": \"string\",\n      \"permissionId\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One Role-Permission",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/find-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "find-one"]
+                        },
+                        "description": "Tìm một role-permission theo điều kiện\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- filter: Điều kiện tìm kiếm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update Role Permissions",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"roleId\": \"role_id\",\n    \"permissionIds\": [\"permission_id_1\", \"permission_id_2\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/update-role",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "update-role"]
+                        },
+                        "description": "Cập nhật danh sách permission cho role\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- roleId: ID của role\n- permissionIds: Mảng các ID permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"roleId\": \"string\",\n    \"permissions\": [\n      {\n        \"id\": \"string\",\n        \"name\": \"string\",\n        \"description\": \"string\"\n      }\n    ],\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Role-Permission By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/find-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "find-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "role_permission_id",
+                                    "description": "ID của role-permission"
+                                }
+                            ]
+                        },
+                        "description": "Tìm role-permission theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của role-permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Role-Permissions By IDs",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"ids\": [\"role_permission_id_1\", \"role_permission_id_2\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/find-by-ids",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "find-by-ids"]
+                        },
+                        "description": "Tìm nhiều role-permission theo danh sách ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- ids: Mảng các ID role-permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"roleId\": \"string\",\n      \"permissionId\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Role-Permissions With Pagination",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/find-with-pagination?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "find-with-pagination"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách role-permission có phân trang\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- page: Số trang\n- limit: Số lượng kết quả mỗi trang\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"string\",\n        \"roleId\": \"string\",\n        \"permissionId\": \"string\",\n        \"createdAt\": \"string\"\n      }\n    ],\n    \"total\": \"number\",\n    \"page\": \"number\",\n    \"limit\": \"number\",\n    \"totalPages\": \"number\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Insert One Role-Permission",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"roleId\": \"role_id\",\n    \"permissionId\": \"permission_id\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/insert-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "insert-one"]
+                        },
+                        "description": "Tạo mới một role-permission\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- roleId: ID của role\n- permissionId: ID của permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tạo thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Insert Many Role-Permissions",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"items\": [\n        {\n            \"roleId\": \"role_id_1\",\n            \"permissionId\": \"permission_id_1\"\n        },\n        {\n            \"roleId\": \"role_id_2\",\n            \"permissionId\": \"permission_id_2\"\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/insert-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "insert-many"]
+                        },
+                        "description": "Tạo nhiều role-permission cùng lúc\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- items: Mảng các role-permission cần tạo\n  - roleId: ID của role\n  - permissionId: ID của permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tạo thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"roleId\": \"string\",\n      \"permissionId\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update One Role-Permission",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"id\": \"role_permission_id\"\n    },\n    \"update\": {\n        \"roleId\": \"new_role_id\",\n        \"permissionId\": \"new_permission_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/update-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "update-one"]
+                        },
+                        "description": "Cập nhật một role-permission\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm role-permission cần cập nhật\n- update: Thông tin cần cập nhật\n  - roleId: ID của role mới\n  - permissionId: ID của permission mới\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update Many Role-Permissions",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"roleId\": \"role_id\"\n    },\n    \"update\": {\n        \"permissionId\": \"new_permission_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/update-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "update-many"]
+                        },
+                        "description": "Cập nhật nhiều role-permission cùng lúc\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm các role-permission cần cập nhật\n- update: Thông tin cần cập nhật\n  - roleId: ID của role mới (tùy chọn)\n  - permissionId: ID của permission mới (tùy chọn)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"matchedCount\": \"number\",\n    \"modifiedCount\": \"number\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete One Role-Permission",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"id\": \"role_permission_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/delete-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "delete-one"]
+                        },
+                        "description": "Xóa một role-permission\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm role-permission cần xóa\n  - id: ID của role-permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete Many Role-Permissions",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"roleId\": \"role_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/delete-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "delete-many"]
+                        },
+                        "description": "Xóa nhiều role-permission cùng lúc\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm các role-permission cần xóa\n  - roleId: ID của role (tùy chọn)\n  - permissionId: ID của permission (tùy chọn)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"deletedCount\": \"number\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete Role-Permission By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/delete-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "delete-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "role_permission_id",
+                                    "description": "ID của role-permission"
+                                }
+                            ]
+                        },
+                        "description": "Xóa role-permission theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của role-permission\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Count Role-Permissions",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/count",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "count"]
+                        },
+                        "description": "Đếm số lượng role-permission\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đếm thành công\",\n  \"data\": {\n    \"count\": \"number\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Check Role-Permission Exists",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/exists",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "exists"]
+                        },
+                        "description": "Kiểm tra role-permission tồn tại\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- filter: Điều kiện kiểm tra\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Kiểm tra thành công\",\n  \"data\": {\n    \"exists\": \"boolean\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Get Distinct Role-Permission Field",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/distinct?field=roleId",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "distinct"],
+                            "query": [
+                                {
+                                    "key": "field",
+                                    "value": "roleId"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách giá trị duy nhất của một trường\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- field: Tên trường cần lấy giá trị duy nhất\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"values\": [\"string\"]\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Upsert Role-Permission",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"roleId\": \"role_id\",\n        \"permissionId\": \"permission_id\"\n    },\n    \"update\": {\n        \"scope\": \"read\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/upsert-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "upsert-one"]
+                        },
+                        "description": "Tạo mới hoặc cập nhật role-permission\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n  - roleId: ID của role\n  - permissionId: ID của permission\n- update: Thông tin cần cập nhật\n  - scope: Phạm vi quyền\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Upsert thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"roleId\": \"string\",\n    \"permissionId\": \"string\",\n    \"scope\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Upsert Many Role-Permissions",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"documents\": [\n        {\n            \"filter\": {\n                \"roleId\": \"role_id_1\",\n                \"permissionId\": \"permission_id_1\"\n            },\n            \"update\": {\n                \"scope\": \"read\"\n            }\n        },\n        {\n            \"filter\": {\n                \"roleId\": \"role_id_2\",\n                \"permissionId\": \"permission_id_2\"\n            },\n            \"update\": {\n                \"scope\": \"write\"\n            }\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/role-permission/upsert-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["role-permission", "upsert-many"]
+                        },
+                        "description": "Tạo mới hoặc cập nhật nhiều role-permission\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- documents: Mảng các document cần upsert\n  - filter: Điều kiện tìm kiếm\n    - roleId: ID của role\n    - permissionId: ID của permission\n  - update: Thông tin cần cập nhật\n    - scope: Phạm vi quyền\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Upsert thành công\",\n  \"data\": {\n    \"upsertedCount\": \"number\",\n    \"modifiedCount\": \"number\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "5. User-Role",
+            "item": [
+                {
+                    "name": "Find All User-Roles",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/find",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "find"]
+                        },
+                        "description": "Lấy danh sách tất cả user-role\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"userId\": \"string\",\n      \"roleId\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One User-Role",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/find-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "find-one"]
+                        },
+                        "description": "Tìm một user-role theo điều kiện\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- filter: Điều kiện tìm kiếm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"userId\": \"string\",\n    \"roleId\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Insert One User-Role",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"userId\": \"user_id\",\n    \"roleId\": \"role_id\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/insert-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "insert-one"]
+                        },
+                        "description": "Thêm một role cho user\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- userId: ID của user\n- roleId: ID của role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Thêm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"userId\": \"string\",\n    \"roleId\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete One User-Role",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"userId\": \"user_id\",\n        \"roleId\": \"role_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/delete-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "delete-one"]
+                        },
+                        "description": "Xóa một role của user\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện lọc\n  - userId: ID của user\n  - roleId: ID của role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"userId\": \"string\",\n    \"roleId\": \"string\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update User Roles",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"userId\": \"user_id\",\n    \"roleIds\": [\"role_id_1\", \"role_id_2\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/update-roles",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "update-roles"]
+                        },
+                        "description": "Cập nhật danh sách role cho user\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- userId: ID của user\n- roleIds: Mảng các ID role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"userId\": \"string\",\n    \"roleIds\": [\n      \"string\",\n      \"string\"\n    ],\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find User-Role By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/find-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "find-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "user_role_id",
+                                    "description": "ID của user-role"
+                                }
+                            ]
+                        },
+                        "description": "Tìm user-role theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của user-role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"userId\": \"string\",\n    \"roleId\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One And Update User-Role",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"userId\": \"user_id\",\n        \"roleId\": \"role_id\"\n    },\n    \"update\": {\n        \"roleId\": \"new_role_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/find-one-and-update",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "find-one-and-update"]
+                        },
+                        "description": "Tìm và cập nhật một user-role\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n- update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"userId\": \"string\",\n    \"roleId\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One And Delete User-Role",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"userId\": \"user_id\",\n        \"roleId\": \"role_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/find-one-and-delete",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "find-one-and-delete"]
+                        },
+                        "description": "Tìm và xóa một user-role\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"userId\": \"string\",\n    \"roleId\": \"string\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update User-Role By ID",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"roleId\": \"new_role_id\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/update-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "update-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "user_role_id",
+                                    "description": "ID của user-role"
+                                }
+                            ]
+                        },
+                        "description": "Cập nhật user-role theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của user-role\n\n**Body Parameters:**\n- roleId: ID mới của role\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"userId\": \"string\",\n    \"roleId\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Upsert User-Role",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"userId\": \"user_id\",\n        \"roleId\": \"role_id\"\n    },\n    \"update\": {\n        \"roleId\": \"new_role_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/upsert-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "upsert-one"]
+                        },
+                        "description": "Tạo mới hoặc cập nhật user-role\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n- update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Upsert thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"userId\": \"string\",\n    \"roleId\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Upsert Many User-Roles",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"documents\": [\n        {\n            \"filter\": {\n                \"userId\": \"user_id_1\",\n                \"roleId\": \"role_id_1\"\n            },\n            \"update\": {\n                \"roleId\": \"new_role_id_1\"\n            }\n        },\n        {\n            \"filter\": {\n                \"userId\": \"user_id_2\",\n                \"roleId\": \"role_id_2\"\n            },\n            \"update\": {\n                \"roleId\": \"new_role_id_2\"\n            }\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user-role/upsert-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["user-role", "upsert-many"]
+                        },
+                        "description": "Tạo mới hoặc cập nhật nhiều user-role\n\n**Headers:**\n- Authorization: Bearer token (bắt buộc)\n\n**Body Parameters:**\n- documents: Mảng các document cần upsert\n  - filter: Điều kiện tìm kiếm\n  - update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Upsert thành công\",\n  \"data\": {\n    \"upsertedCount\": \"number\",\n    \"modifiedCount\": \"number\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "6. Agent",
+            "item": [
+                {
+                    "name": "Insert One Agent",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Agent 1\",\n    \"status\": \"active\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/insert-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "insert-one"]
+                        },
+                        "description": "Tạo mới một agent\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- name: Tên agent\n- status: Trạng thái agent\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tạo agent thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"status\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Insert Many Agents",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"documents\": [\n        {\n            \"name\": \"Agent 1\",\n            \"status\": \"active\"\n        },\n        {\n            \"name\": \"Agent 2\",\n            \"status\": \"inactive\"\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/insert-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "insert-many"]
+                        },
+                        "description": "Tạo nhiều agent cùng lúc\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- documents: Mảng các agent cần tạo\n  - name: Tên agent\n  - status: Trạng thái agent\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tạo agent thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"status\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update One Agent",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"id\": \"agent_id\"\n    },\n    \"update\": {\n        \"name\": \"Updated Agent Name\",\n        \"status\": \"inactive\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/update-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "update-one"]
+                        },
+                        "description": "Cập nhật một agent\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm agent cần cập nhật\n  - id: ID của agent\n- update: Thông tin cần cập nhật\n  - name: Tên mới của agent\n  - status: Trạng thái mới của agent\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"status\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update Many Agents",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"status\": \"active\"\n    },\n    \"update\": {\n        \"status\": \"inactive\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/update-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "update-many"]
+                        },
+                        "description": "Cập nhật nhiều agent cùng lúc\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm các agent cần cập nhật\n- update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"matchedCount\": \"number\",\n    \"modifiedCount\": \"number\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete One Agent",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"id\": \"agent_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/delete-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "delete-one"]
+                        },
+                        "description": "Xóa một agent\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm agent cần xóa\n  - id: ID của agent\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"status\": \"string\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete Many Agents",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"status\": \"inactive\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/delete-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "delete-many"]
+                        },
+                        "description": "Xóa nhiều agent cùng lúc\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm các agent cần xóa\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"deletedCount\": \"number\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Agents With Pagination",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/find-with-pagination?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "find-with-pagination"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách agent có phân trang\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- page: Số trang\n- limit: Số lượng kết quả mỗi trang\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"string\",\n        \"name\": \"string\",\n        \"status\": \"string\",\n        \"createdAt\": \"string\"\n      }\n    ],\n    \"total\": \"number\",\n    \"page\": \"number\",\n    \"limit\": \"number\",\n    \"totalPages\": \"number\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Count Agents",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/count",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "count"]
+                        },
+                        "description": "Đếm số lượng agent\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Đếm thành công\",\n  \"data\": {\n    \"count\": \"number\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Check Agent Exists",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/exists",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "exists"]
+                        },
+                        "description": "Kiểm tra agent tồn tại\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- filter: Điều kiện kiểm tra\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Kiểm tra thành công\",\n  \"data\": {\n    \"exists\": \"boolean\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Get Distinct Agent Field",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/distinct?field=status",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "distinct"],
+                            "query": [
+                                {
+                                    "key": "field",
+                                    "value": "status"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách giá trị duy nhất của một trường\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- field: Tên trường cần lấy giá trị duy nhất\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": {\n    \"values\": [\"string\"]\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Agent By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/find-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "find-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "agent_id",
+                                    "description": "ID của agent"
+                                }
+                            ]
+                        },
+                        "description": "Tìm agent theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của agent\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"status\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One And Update Agent",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"id\": \"agent_id\"\n    },\n    \"update\": {\n        \"name\": \"Updated Agent Name\",\n        \"status\": \"inactive\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/find-one-and-update",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "find-one-and-update"]
+                        },
+                        "description": "Tìm và cập nhật một agent\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n- update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"status\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One And Delete Agent",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"id\": \"agent_id\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/find-one-and-delete",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "find-one-and-delete"]
+                        },
+                        "description": "Tìm và xóa một agent\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"status\": \"string\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Update Agent By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Updated Agent Name\",\n    \"status\": \"inactive\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/update-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "update-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "agent_id",
+                                    "description": "ID của agent"
+                                }
+                            ]
+                        },
+                        "description": "Cập nhật agent theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của agent\n\n**Body Parameters:**\n- name: Tên mới của agent\n- status: Trạng thái mới của agent\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Cập nhật thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"status\": \"string\",\n    \"updatedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Upsert Agent",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"name\": \"Agent Name\"\n    },\n    \"update\": {\n        \"status\": \"active\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/upsert-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "upsert-one"]
+                        },
+                        "description": "Tạo mới hoặc cập nhật agent\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n- update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Upsert thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"status\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Upsert Many Agents",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"documents\": [\n        {\n            \"filter\": {\n                \"name\": \"Agent 1\"\n            },\n            \"update\": {\n                \"status\": \"active\"\n            }\n        },\n        {\n            \"filter\": {\n                \"name\": \"Agent 2\"\n            },\n            \"update\": {\n                \"status\": \"inactive\"\n            }\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/upsert-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "upsert-many"]
+                        },
+                        "description": "Tạo mới hoặc cập nhật nhiều agent\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- documents: Mảng các document cần upsert\n  - filter: Điều kiện tìm kiếm\n  - update: Thông tin cần cập nhật\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Upsert thành công\",\n  \"data\": {\n    \"upsertedCount\": \"number\",\n    \"modifiedCount\": \"number\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Insert Many Agents",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"documents\": [\n        {\n            \"name\": \"Agent 1\",\n            \"status\": \"active\"\n        },\n        {\n            \"name\": \"Agent 2\",\n            \"status\": \"inactive\"\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/insert-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "insert-many"]
+                        },
+                        "description": "Tạo nhiều agent mới\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- documents: Mảng các agent cần tạo\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tạo thành công\",\n  \"data\": {\n    \"insertedCount\": \"number\",\n    \"insertedIds\": [\"string\"],\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find All Agents",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/find",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "find"]
+                        },
+                        "description": "Lấy danh sách tất cả agent\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Lấy danh sách thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"status\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find One Agent",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/find-one?name=Agent Name",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "find-one"],
+                            "query": [
+                                {
+                                    "key": "name",
+                                    "value": "Agent Name",
+                                    "description": "Tên agent cần tìm"
+                                }
+                            ]
+                        },
+                        "description": "Tìm một agent theo điều kiện\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Query Parameters:**\n- name: Tên agent (tùy chọn)\n- status: Trạng thái agent (tùy chọn)\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": {\n    \"id\": \"string\",\n    \"name\": \"string\",\n    \"status\": \"string\",\n    \"createdAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Find Many Agents By IDs",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"ids\": [\"agent_id_1\", \"agent_id_2\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/find-by-ids",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "find-by-ids"]
+                        },
+                        "description": "Tìm nhiều agent theo danh sách ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- ids: Mảng các ID cần tìm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Tìm thành công\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"name\": \"string\",\n      \"status\": \"string\",\n      \"createdAt\": \"string\"\n    }\n  ]\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete One Agent",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"name\": \"Agent Name\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/delete-one",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "delete-one"]
+                        },
+                        "description": "Xóa một agent theo điều kiện\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"deletedCount\": \"number\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete Many Agents",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"filter\": {\n        \"status\": \"inactive\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/delete-many",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "delete-many"]
+                        },
+                        "description": "Xóa nhiều agent theo điều kiện\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Body Parameters:**\n- filter: Điều kiện tìm kiếm\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"deletedCount\": \"number\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                },
+                {
+                    "name": "Delete Agent By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/delete-by-id/:id",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["agent", "delete-by-id", ":id"],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "agent_id",
+                                    "description": "ID của agent"
+                                }
+                            ]
+                        },
+                        "description": "Xóa agent theo ID\n\n**Authorization:**\n- Bearer token (bắt buộc)\n\n**Path Parameters:**\n- id: ID của agent\n\n**Response:**\n```json\n{\n  \"code\": \"SUCCESS\",\n  \"message\": \"Xóa thành công\",\n  \"data\": {\n    \"deletedCount\": \"number\",\n    \"deletedAt\": \"string\"\n  }\n}\n```"
+                    }
+                }
+            ]
+        }
+    ]
+} 
