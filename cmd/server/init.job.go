@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"meta_commerce/core/scheduler"
@@ -8,15 +9,17 @@ import (
 )
 
 func InitJobs(s *scheduler.Scheduler) error {
-	// Khởi tạo SyncFbPagesJob
-	syncFbPagesJob, err := jobs.NewSyncFbPagesJob()
+	// Khởi tạo SyncFbPagesJob với schedule động
+	schedule := "0 */5 * * * *" // Có thể thay đổi khi cần
+	syncFbPagesJob, err := jobs.NewSyncFbPagesJob(schedule)
 	if err != nil {
 		return fmt.Errorf("failed to create sync_fb_pages job: %v", err)
 	}
 
 	// Đăng ký job vào scheduler
-	err = s.AddJob(syncFbPagesJob.Name(), syncFbPagesJob.Schedule(), func() {
-		if err := syncFbPagesJob.Run(); err != nil {
+	err = s.AddJob(syncFbPagesJob.GetName(), syncFbPagesJob.GetSchedule(), func() {
+		ctx := context.Background()
+		if err := syncFbPagesJob.Execute(ctx); err != nil {
 			jobs.GetJobLogger().WithError(err).Error("Error running sync_fb_pages job")
 		}
 	})

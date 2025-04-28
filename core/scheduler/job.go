@@ -12,23 +12,9 @@ import (
 	"time"
 )
 
-// JobStatus đại diện cho trạng thái của một job.
-// Được sử dụng để theo dõi vòng đời của job từ khi được tạo đến khi hoàn thành.
-type JobStatus string
+// ================== INTERFACE ĐỊNH NGHĨA JOB ==================
 
-const (
-	// JobStatusPending: job đã được lập lịch nhưng chưa bắt đầu chạy
-	JobStatusPending JobStatus = "pending"
-	// JobStatusRunning: job đang trong quá trình thực thi
-	JobStatusRunning JobStatus = "running"
-	// JobStatusCompleted: job đã hoàn thành thành công
-	JobStatusCompleted JobStatus = "completed"
-	// JobStatusFailed: job thực thi thất bại, có thể cần retry
-	JobStatusFailed JobStatus = "failed"
-)
-
-// Job định nghĩa interface cho một cron job.
-// Mọi job trong hệ thống phải triển khai interface này.
+// Job là interface chuẩn cho mọi job trong hệ thống.
 type Job interface {
 	// Execute thực thi logic chính của job
 	// ctx: context để kiểm soát thời gian thực thi và hủy job
@@ -44,11 +30,44 @@ type Job interface {
 	GetSchedule() string
 }
 
-// JobMetadata chứa thông tin chi tiết về một lần chạy job.
-// Struct này được sử dụng để:
-// - Theo dõi trạng thái và tiến trình của job
-// - Lưu trữ thông tin thống kê và debug
-// - Quản lý retry trong trường hợp job thất bại
+// ================== BASE JOB ==================
+
+// BaseJob cung cấp sẵn name, schedule và các hàm mặc định.
+// Các job cụ thể chỉ cần nhúng *BaseJob và implement Execute.
+type BaseJob struct {
+	name     string
+	schedule string
+}
+
+// NewBaseJob khởi tạo BaseJob với tên và lịch chạy.
+func NewBaseJob(name, schedule string) *BaseJob {
+	return &BaseJob{name: name, schedule: schedule}
+}
+
+func (j *BaseJob) GetName() string     { return j.name }
+func (j *BaseJob) GetSchedule() string { return j.schedule }
+func (j *BaseJob) Execute(ctx context.Context) error {
+	// Mặc định không làm gì, job con phải override
+	return nil
+}
+
+// ================== TRẠNG THÁI & METADATA ==================
+
+// JobStatus là enum trạng thái job.
+type JobStatus string
+
+const (
+	// JobStatusPending: job đã được lập lịch nhưng chưa bắt đầu chạy
+	JobStatusPending JobStatus = "pending"
+	// JobStatusRunning: job đang trong quá trình thực thi
+	JobStatusRunning JobStatus = "running"
+	// JobStatusCompleted: job đã hoàn thành thành công
+	JobStatusCompleted JobStatus = "completed"
+	// JobStatusFailed: job thực thi thất bại, có thể cần retry
+	JobStatusFailed JobStatus = "failed"
+)
+
+// JobMetadata lưu thông tin về từng lần chạy job.
 type JobMetadata struct {
 	// Name: tên định danh của job
 	Name string `json:"name" bson:"name"`
@@ -72,41 +91,4 @@ type JobMetadata struct {
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 	// UpdatedAt: thời điểm cập nhật thông tin gần nhất
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
-}
-
-// BaseJob cung cấp triển khai cơ bản cho interface Job.
-// Struct này được sử dụng như một base struct để tạo các job cụ thể.
-type BaseJob struct {
-	// name: tên định danh của job
-	name string
-	// schedule: biểu thức cron định nghĩa lịch chạy
-	schedule string
-}
-
-// NewBaseJob tạo một instance mới của BaseJob.
-// Tham số:
-// - name: tên định danh của job
-// - schedule: biểu thức cron định nghĩa lịch chạy
-func NewBaseJob(name, schedule string) *BaseJob {
-	return &BaseJob{
-		name:     name,
-		schedule: schedule,
-	}
-}
-
-// GetName trả về tên của job
-func (j *BaseJob) GetName() string {
-	return j.name
-}
-
-// GetSchedule trả về biểu thức cron của job
-func (j *BaseJob) GetSchedule() string {
-	return j.schedule
-}
-
-// Execute là phương thức mặc định của BaseJob.
-// Phương thức này cần được override bởi các job cụ thể để triển khai logic thực tế.
-// Mặc định trả về nil để biểu thị không có lỗi.
-func (j *BaseJob) Execute(ctx context.Context) error {
-	return nil
 }
