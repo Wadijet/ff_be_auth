@@ -62,13 +62,19 @@ func NewAgentHandler() (*AgentHandler, error) {
 //   - 404: Không tìm thấy agent
 //   - 500: Lỗi server
 func (h *AgentHandler) HandleCheckIn(c fiber.Ctx) error {
-	userID := c.Locals("user_id")
-	if userID == nil {
-		h.HandleResponse(c, nil, common.NewError(common.ErrCodeAuth, "User not authenticated", common.StatusUnauthorized, nil))
+	// Lấy id từ param thông qua hàm tiện ích của BaseHandler
+	idParam := h.GetIDFromContext(c)
+	if idParam == "" {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Thiếu id agent", common.StatusBadRequest, nil))
 		return nil
 	}
 
-	objID := utility.String2ObjectID(userID.(string))
+	objID := utility.String2ObjectID(idParam)
+	if objID.IsZero() {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "ID agent không hợp lệ", common.StatusBadRequest, nil))
+		return nil
+	}
+
 	result, err := h.agentService.CheckIn(context.Background(), objID)
 	h.HandleResponse(c, result, err)
 	return nil
