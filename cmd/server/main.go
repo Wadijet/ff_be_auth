@@ -111,20 +111,6 @@ func main() {
 	// Khởi tạo dữ liệu mặc định
 	InitDefaultData()
 
-	// Khởi tạo và chạy background jobs trong goroutines
-	go func() {
-		logrus.Info("Initializing background jobs...")
-		if err := InitJobs(global.Scheduler); err != nil {
-			logrus.WithError(err).Error("Failed to initialize jobs")
-			return
-		}
-		logrus.Info("Background jobs initialized successfully")
-
-		// Start scheduler sau khi khởi tạo jobs thành công
-		global.Scheduler.Start()
-		logrus.Info("Scheduler started successfully")
-	}()
-
 	// Chạy Fiber server trên main thread
 	main_thread()
 }

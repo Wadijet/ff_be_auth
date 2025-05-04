@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"meta_commerce/config"
 	"meta_commerce/core/registry"
-	"meta_commerce/core/scheduler"
 
 	_ "github.com/go-sql-driver/mysql"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -37,6 +36,3 @@ var MySQL_Session *sql.DB                                                       
 // Các Registry
 var RegistryCollections = registry.NewRegistry[*mongo.Collection]() // Registry chứa các collections
 var RegistryDatabase = registry.NewRegistry[*mongo.Database]()      // Registry chứa các databases
-
-// Các Scheduler
-var Scheduler = scheduler.NewScheduler() // Scheduler chứa các jobs
