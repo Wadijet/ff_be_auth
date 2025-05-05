@@ -318,6 +318,9 @@ func (r *Router) registerRBACRoutes(router fiber.Router) error {
 	if err != nil {
 		return fmt.Errorf("failed to create agent handler: %v", err)
 	}
+	// Đăng ký các route đặc biệt cho agent: check-in/check-out
+	router.Post("/agent/check-in/:id", middleware.AuthMiddleware("Agent.CheckIn"), agentHandler.HandleCheckIn)    // Route check-in cho agent
+	router.Post("/agent/check-out/:id", middleware.AuthMiddleware("Agent.CheckOut"), agentHandler.HandleCheckOut) // Route check-out cho agent
 	r.registerCRUDRoutes(router, "/agent", agentHandler, agentConfig, "Agent")
 
 	return nil

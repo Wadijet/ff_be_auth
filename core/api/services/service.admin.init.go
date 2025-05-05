@@ -104,6 +104,7 @@ var InitialPermissions = []models.Permission{
 	{Name: "Agent.Update", Describe: "Quyền cập nhật thông tin đại lý", Group: "Auth", Category: "Agent"},
 	{Name: "Agent.Delete", Describe: "Quyền xóa đại lý", Group: "Auth", Category: "Agent"},
 	{Name: "Agent.CheckIn", Describe: "Quyền kiểm tra trạng thái đại lý", Group: "Auth", Category: "Agent"},
+	{Name: "Agent.CheckOut", Describe: "Quyền kiểm tra trạng thái đại lý", Group: "Auth", Category: "Agent"},
 
 	// ==================================== PANCAKE MODULE ===========================================
 	// Quản lý token truy cập: Thêm, xem, sửa, xóa token
