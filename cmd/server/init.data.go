@@ -8,6 +8,7 @@ import (
 
 func InitDefaultData() {
 	initDefaultPermissions()
+
 }
 
 // Hàm khởi tạo các quyền mặc định
@@ -17,4 +18,5 @@ func initDefaultPermissions() {
 		logrus.Fatalf("Failed to initialize init service: %v", err) // Ghi log lỗi nếu khởi tạo init service thất bại
 	}
 	initService.InitPermission()
+	initService.CheckPermissionForAdministrator()
 }
