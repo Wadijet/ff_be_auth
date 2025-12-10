@@ -1,0 +1,136 @@
+# 📚 Tài Liệu Hệ Thống FolkForm Auth Backend
+
+Chào mừng đến với tài liệu hệ thống FolkForm Auth Backend. Tài liệu này được tổ chức theo cấu trúc logic để giúp bạn dễ dàng tìm kiếm và sử dụng.
+
+## 📑 Mục Lục
+
+### 1. 🚀 Bắt Đầu (Getting Started)
+
+Tài liệu dành cho người mới bắt đầu:
+
+- [Cài Đặt và Cấu Hình](01-getting-started/cai-dat.md) - Hướng dẫn cài đặt từ đầu
+- [Cấu Hình Môi Trường](01-getting-started/cau-hinh.md) - Chi tiết về biến môi trường
+- [Khởi Tạo Hệ Thống](01-getting-started/khoi-tao.md) - Quy trình khởi tạo hệ thống lần đầu
+- [Tài Liệu Ngắn Gọn](01-getting-started/tai-lieu-he-thong.md) - Tổng quan nhanh về hệ thống
+
+### 2. 🏗️ Kiến Trúc (Architecture)
+
+Tài liệu về kiến trúc và thiết kế hệ thống:
+
+- [Tổng Quan Kiến Trúc](02-architecture/tong-quan.md) - Kiến trúc tổng thể
+- [Authentication Flow](02-architecture/authentication.md) - Luồng xác thực
+- [RBAC System](02-architecture/rbac.md) - Hệ thống phân quyền
+- [Database Schema](02-architecture/database.md) - Cấu trúc database
+- [Organization Structure](02-architecture/organization.md) - Cấu trúc tổ chức
+
+### 3. 🔌 API Reference
+
+Tài liệu về các API endpoints:
+
+- [Authentication APIs](03-api/authentication.md) - API đăng nhập, đăng xuất
+- [User Management APIs](03-api/user-management.md) - API quản lý người dùng
+- [RBAC APIs](03-api/rbac.md) - API quản lý role và permission
+- [Admin APIs](03-api/admin.md) - API quản trị hệ thống
+- [Facebook Integration APIs](03-api/facebook.md) - API tích hợp Facebook
+- [Pancake Integration APIs](03-api/pancake.md) - API tích hợp Pancake
+- [Agent Management APIs](03-api/agent.md) - API quản lý agent
+
+### 4. 🚢 Triển Khai (Deployment)
+
+Hướng dẫn triển khai hệ thống:
+
+- [Triển Khai Production](04-deployment/production.md) - Hướng dẫn deploy production
+- [Cấu Hình Server](04-deployment/cau-hinh-server.md) - Cấu hình server
+- [MongoDB Setup](04-deployment/mongodb.md) - Cài đặt và cấu hình MongoDB
+- [Firebase Setup](04-deployment/firebase.md) - Cài đặt và cấu hình Firebase
+- [Systemd Service](04-deployment/systemd.md) - Cấu hình systemd service
+
+### 5. 💻 Phát Triển (Development)
+
+Hướng dẫn cho developers:
+
+- [Cấu Trúc Code](05-development/cau-truc-code.md) - Cấu trúc và tổ chức code
+- [Thêm API Mới](05-development/them-api-moi.md) - Hướng dẫn thêm API endpoint
+- [Thêm Service Mới](05-development/them-service-moi.md) - Hướng dẫn thêm service
+- [Coding Standards](05-development/coding-standards.md) - Tiêu chuẩn code
+- [Git Workflow](05-development/git-workflow.md) - Quy trình làm việc với Git
+
+### 6. 🧪 Testing
+
+Hướng dẫn testing:
+
+- [Tổng Quan Testing](06-testing/tong-quan.md) - Tổng quan về testing
+- [Chạy Test Suite](06-testing/chay-test.md) - Hướng dẫn chạy test
+- [Viết Test Case](06-testing/viet-test.md) - Hướng dẫn viết test case
+- [Test Reports](06-testing/bao-cao-test.md) - Xem và phân tích báo cáo test
+
+### 7. 🔧 Xử Lý Sự Cố (Troubleshooting)
+
+Hướng dẫn xử lý các vấn đề thường gặp:
+
+- [Lỗi Thường Gặp](07-troubleshooting/loi-thuong-gap.md) - Các lỗi và cách xử lý
+- [Debug Guide](07-troubleshooting/debug.md) - Hướng dẫn debug
+- [Log Analysis](07-troubleshooting/phan-tich-log.md) - Phân tích log
+- [Performance Issues](07-troubleshooting/performance.md) - Vấn đề hiệu năng
+
+## 📖 Tài Liệu Tham Khảo
+
+### Tài Liệu Kỹ Thuật (Architecture)
+
+- [Firebase Authentication với Database](02-architecture/firebase-auth-voi-database.md)
+- [Multi-Provider Authentication](02-architecture/multi-provider-authentication.md)
+- [User Identifiers](02-architecture/user-identifiers.md)
+- [Xử Lý Trùng Lặp Tài Khoan](02-architecture/xu-ly-trung-lap-tai-khoan.md)
+
+### Tài Liệu Deployment
+
+- [Hướng Dẫn Cài Đặt Firebase](04-deployment/huong-dan-cai-dat-firebase.md)
+- [Hướng Dẫn Đăng Ký Firebase](04-deployment/huong-dan-dang-ky-firebase.md)
+
+### Tài Liệu Testing
+
+- [Hướng Dẫn Lấy Firebase Token cho Test](06-testing/huong-dan-lay-firebase-token-cho-test.md)
+
+### Tài Liệu Archive
+
+Các tài liệu phân tích và báo cáo cũ được lưu trong [08-archive/](08-archive/) để tham khảo.
+
+## 🔍 Tìm Kiếm Nhanh
+
+### Theo Chủ Đề
+
+- **Authentication**: [Authentication Flow](02-architecture/authentication.md), [Firebase Auth](02-architecture/firebase-auth-voi-database.md)
+- **RBAC**: [RBAC System](02-architecture/rbac.md), [RBAC APIs](03-api/rbac.md)
+- **Firebase**: [Firebase Setup](04-deployment/firebase.md), [Firebase Auth](02-architecture/firebase-auth-voi-database.md)
+- **Testing**: [Testing Guide](06-testing/tong-quan.md), [README_TEST.md](../README_TEST.md)
+- **Deployment**: [Production Deployment](04-deployment/production.md), [MongoDB Setup](04-deployment/mongodb.md)
+
+### Theo Vai Trò
+
+- **Developer Mới**: Bắt đầu với [Tài Liệu Ngắn Gọn](01-getting-started/tai-lieu-he-thong.md) và [Cài Đặt](01-getting-started/cai-dat.md)
+- **Backend Developer**: Xem [Kiến Trúc](02-architecture/), [API Reference](03-api/), và [Development Guide](05-development/)
+- **DevOps**: Xem [Deployment](04-deployment/) và [Troubleshooting](07-troubleshooting/)
+- **QA/Tester**: Xem [Testing Guide](06-testing/)
+
+## 📝 Ghi Chú
+
+- Tất cả tài liệu được viết bằng **Tiếng Việt**
+- Tài liệu được cập nhật thường xuyên, vui lòng kiểm tra phiên bản mới nhất
+- Nếu có câu hỏi hoặc đề xuất, vui lòng tạo issue hoặc liên hệ team
+
+## 🔄 Cập Nhật Gần Đây
+
+- ✅ Tổ chức lại hệ thống tài liệu theo cấu trúc chuẩn
+- ✅ Tạo README.md chính và docs/README.md
+- ✅ Xóa các tài liệu trùng lặp và không cần thiết
+- ✅ Tạo đầy đủ tài liệu API Reference (7 files)
+- ✅ Tạo đầy đủ tài liệu Architecture (5 files)
+- ✅ Tạo đầy đủ tài liệu Deployment (5 files)
+- ✅ Tạo đầy đủ tài liệu Development (5 files)
+- ✅ Tạo đầy đủ tài liệu Testing (4 files)
+- ✅ Tạo đầy đủ tài liệu Troubleshooting (4 files)
+
+---
+
+**Lưu ý**: Tất cả tài liệu mới đều nằm trong các thư mục con được tổ chức (01-getting-started, 02-architecture, v.v.). Các tài liệu cũ trong thư mục gốc vẫn được giữ lại để tham khảo.
+

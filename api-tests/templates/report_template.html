@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Kết Quả Test - {{REPORT_FILE}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .info-card label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-card value {
+            display: block;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .stat-card.total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .stat-card.passed {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .stat-card.failed {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+        
+        .stat-card.skipped {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .stat-card .number {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .status-badge {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .status-badge.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-badge.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status-badge.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status-badge.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .test-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .test-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .test-item.passed {
+            border-left-color: #38ef7d;
+        }
+        
+        .test-item.failed {
+            border-left-color: #f45c43;
+        }
+        
+        .test-item.skipped {
+            border-left-color: #f5576c;
+        }
+        
+        .test-item.running {
+            border-left-color: #667eea;
+        }
+        
+        .test-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .test-status {
+            margin-left: 10px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .test-status.passed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .test-status.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .test-status.skipped {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .test-duration {
+            color: #666;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .test-error {
+            margin-top: 8px;
+            padding: 8px;
+            background: #fff3cd;
+            border-left: 3px solid #f45c43;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #721c24;
+        }
+        
+        .recommendations {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .recommendations ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .recommendations li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+        
+        .log-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .log-output .pass {
+            color: #4ec9b0;
+        }
+        
+        .log-output .fail {
+            color: #f48771;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Báo Cáo Kết Quả Test Suite</h1>
+            <p>API Test Execution Report</p>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <div class="section-title">📋 Thông Tin Tổng Quan</div>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <label>Thời gian bắt đầu</label>
+                        <value>{{START_TIME}}</value>
+                    </div>
+                    <div class="info-card">
+                        <label>Thời gian kết thúc</label>
+                        <value>{{END_TIME}}</value>
+                    </div>
+                    <div class="info-card">
+                        <label>Thời lượng thực thi</label>
+                        <value>{{DURATION}}</value>
+                    </div>
+                    <div class="info-card">
+                        <label>File báo cáo</label>
+                        <value>{{REPORT_FILE}}</value>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">📈 Tổng Kết Kết Quả</div>
+                <div class="stats-grid">
+                    <div class="stat-card total">
+                        <div class="number">{{TOTAL_TESTS}}</div>
+                        <div class="label">Tổng số test</div>
+                    </div>
+                    <div class="stat-card passed">
+                        <div class="number">{{PASSED_TESTS}}</div>
+                        <div class="label">Test Passed</div>
+                    </div>
+                    <div class="stat-card failed">
+                        <div class="number">{{FAILED_TESTS}}</div>
+                        <div class="label">Test Failed</div>
+                    </div>
+                    <div class="stat-card skipped">
+                        <div class="number">{{SKIPPED_TESTS}}</div>
+                        <div class="label">Test Skipped</div>
+                    </div>
+                </div>
+                
+                <div class="status-badge {{STATUS_CLASS}}">
+                    {{STATUS_BADGE}}
+                </div>
+                
+                <div style="text-align: center; margin-top: 15px;">
+                    <div style="font-size: 48px; font-weight: bold; color: #667eea;">
+                        {{PASS_RATE}}%
+                    </div>
+                    <div style="color: #666; margin-top: 5px;">Tỉ lệ pass</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">📝 Chi Tiết Kết Quả Test</div>
+                <div class="test-list">
+                    {{TEST_DETAILS}}
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">💡 Khuyến Nghị</div>
+                <div class="recommendations">
+                    {{RECOMMENDATIONS}}
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">📄 Log Chi Tiết</div>
+                <div class="log-output">{{TEST_OUTPUT}}</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Generated by API Test Suite | {{END_TIME}}
+        </div>
+    </div>
+</body>
+</html>
+

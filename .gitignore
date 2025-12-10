@@ -24,4 +24,24 @@ pids
 *.pid.lock
 
 # Cursor specific
-.cursor/workspace/ 
+.cursor/workspace/
+
+# Environment files
+api/config/env/*.env
+*.env
+.env.local
+.env.*.local
+
+# Firebase Service Account (chứa private keys)
+api/config/firebase/service-account.json
+**/service-account.json
+**/*-firebase-adminsdk-*.json
+
+# Secrets and keys
+*.key
+*.pem
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.*.json 
