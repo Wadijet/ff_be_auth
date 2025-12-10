@@ -44,4 +44,21 @@ api/config/firebase/service-account.json
 !package.json
 !package-lock.json
 !tsconfig.json
-!tsconfig.*.json 
+!tsconfig.*.json
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Debug binaries
+**/__debug_bin*
+__debug_bin*
+
+# Server executables
+server.exe
+server_test.exe
+api/server.exe
+api/cmd/server/__debug_bin*
