@@ -17,6 +17,9 @@ func TestCRUDOperations(t *testing.T) {
 	baseURL := "http://localhost:8080/api/v1"
 	waitForHealth(baseURL, 10, 1*time.Second, t)
 
+	// Khởi tạo dữ liệu mặc định trước
+	initTestData(t, baseURL)
+
 	fixtures := utils.NewTestFixtures(baseURL)
 
 	// Tạo user với token

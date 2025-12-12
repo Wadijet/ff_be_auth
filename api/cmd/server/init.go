@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"meta_commerce/config"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/database"
 	"meta_commerce/core/global"
 	"meta_commerce/core/utility"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	validator "gopkg.in/go-playground/validator.v9"
@@ -48,10 +52,9 @@ func initValidator() {
 
 // Hàm khởi tạo cấu hình server
 func initConfig() {
-	var err error
 	global.MongoDB_ServerConfig = config.NewConfig()
-	if err != nil {
-		logrus.Fatalf("Failed to initialize config: %v", err) // Ghi log lỗi nếu khởi tạo cấu hình thất bại
+	if global.MongoDB_ServerConfig == nil {
+		logrus.Fatalf("Failed to initialize config: config is nil") // Ghi log lỗi nếu khởi tạo cấu hình thất bại
 	}
 	logrus.Info("Initialized server config") // Ghi log thông báo đã khởi tạo cấu hình server
 }
@@ -88,7 +91,49 @@ func initDatabase_MongoDB() {
 
 // initFirebase khởi tạo Firebase Admin SDK
 func initFirebase() {
+	// #region agent log
+	wd, _ := os.Getwd()
+	execPath, _ := os.Executable()
+	execDir := filepath.Dir(execPath)
+	logData, _ := json.Marshal(map[string]interface{}{
+		"sessionId":     "debug-session",
+		"runId":         "run1",
+		"hypothesisId":  "A",
+		"location":      "init.go:90",
+		"message":       "initFirebase entry - working directory và executable path",
+		"data": map[string]interface{}{
+			"workingDirectory": wd,
+			"executablePath":   execPath,
+			"executableDir":    execDir,
+		},
+		"timestamp": time.Now().UnixMilli(),
+	})
+	if f, err := os.OpenFile("d:\\Crossborder\\ff_be_auth\\.cursor\\debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+		f.WriteString(string(logData) + "\n")
+		f.Close()
+	}
+	// #endregion
+
 	cfg := global.MongoDB_ServerConfig
+
+	// #region agent log
+	logData2, _ := json.Marshal(map[string]interface{}{
+		"sessionId":    "debug-session",
+		"runId":        "run1",
+		"hypothesisId": "E",
+		"location":     "init.go:94",
+		"message":      "Firebase config values từ env",
+		"data": map[string]interface{}{
+			"firebaseProjectID":       cfg.FirebaseProjectID,
+			"firebaseCredentialsPath": cfg.FirebaseCredentialsPath,
+		},
+		"timestamp": time.Now().UnixMilli(),
+	})
+	if f, err := os.OpenFile("d:\\Crossborder\\ff_be_auth\\.cursor\\debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+		f.WriteString(string(logData2) + "\n")
+		f.Close()
+	}
+	// #endregion
 
 	// Kiểm tra Firebase config có đầy đủ không
 	if cfg.FirebaseProjectID == "" || cfg.FirebaseCredentialsPath == "" {

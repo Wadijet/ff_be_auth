@@ -73,7 +73,36 @@ func InitFiberApp() *fiber.App {
 				}
 			}
 
-			// Log error
+			// Kiểm tra xem có phải lỗi TLS handshake không (HTTPS đến HTTP server)
+			// TLS handshake bắt đầu với byte 0x16 0x03 0x01 (trong error message có thể hiển thị là \x16\x03\x01)
+			errMsg := err.Error()
+			isTLSHandshake := strings.Contains(errMsg, "unsupported http request method") &&
+				(strings.Contains(errMsg, "\\x16\\x03\\x01") || 
+				 strings.Contains(errMsg, "\x16\x03\x01") ||
+				 strings.Contains(errMsg, "error when reading request headers"))
+
+			// Nếu là TLS handshake, downgrade log level và trả về lỗi phù hợp
+			if isTLSHandshake {
+				// Log ở mức Debug thay vì Error vì đây là hành vi bình thường
+				logrus.WithFields(logrus.Fields{
+					"ip":        c.IP(),
+					"requestID": c.Get("X-Request-ID"),
+					"reason":    "TLS handshake to HTTP server",
+				}).Debug("Client attempted HTTPS connection to HTTP server")
+
+				// Trả về lỗi Bad Request với message hướng dẫn rõ ràng
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"code":    common.ErrCodeValidationInput.Code,
+					"message": "Server chỉ hỗ trợ HTTP. Vui lòng sử dụng http:// thay vì https://",
+					"status":  "error",
+					"details": fiber.Map{
+						"protocol": "HTTP only",
+						"suggestion": "Sử dụng URL: http://localhost:" + global.MongoDB_ServerConfig.Address,
+					},
+				})
+			}
+
+			// Log error cho các lỗi khác
 			logrus.WithFields(logrus.Fields{
 				"code":      code,
 				"errorCode": errorCode,

@@ -195,6 +195,27 @@ func (e *Error) Error() string {
 	return e.Message
 }
 
+// Is kiểm tra xem error có phải là target error không (hỗ trợ errors.Is)
+func (e *Error) Is(target error) bool {
+	if target == nil {
+		return false
+	}
+
+	// So sánh với ErrNotFound hoặc các error khác
+	if targetErr, ok := target.(*Error); ok {
+		return e.Code.Code == targetErr.Code.Code && e.Message == targetErr.Message
+	}
+
+	// Nếu target là ErrNotFound (kiểu error interface), so sánh trực tiếp
+	if target == ErrNotFound {
+		if errNotFound, ok := ErrNotFound.(*Error); ok {
+			return e.Code.Code == errNotFound.Code.Code && e.Message == errNotFound.Message
+		}
+	}
+
+	return false
+}
+
 // NewError tạo một error mới với đầy đủ thông tin
 func NewError(code ErrorCode, message string, statusCode int, details any) error {
 	return &Error{

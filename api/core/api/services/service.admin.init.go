@@ -188,20 +188,21 @@ func (h *InitService) InitPermission() error {
 	return nil
 }
 
-// InitRootOrganization khởi tạo Organization Root (Group - Level 0)
-// Organization Root là tổ chức cấp cao nhất, không có parent
+// InitRootOrganization khởi tạo Organization System (Level -1)
+// System organization là tổ chức cấp cao nhất, chứa Administrator, không có parent, không thể xóa
+// System thay thế ROOT_GROUP cũ
 // Returns:
 //   - error: Lỗi nếu có trong quá trình khởi tạo
 func (h *InitService) InitRootOrganization() error {
-	// Kiểm tra Organization Root đã tồn tại chưa
-	filter := bson.M{
-		"type":  "group",
-		"level": 0,
-		"code":  "ROOT_GROUP",
+	// Kiểm tra System Organization đã tồn tại chưa
+	systemFilter := bson.M{
+		"type":  models.OrganizationTypeSystem,
+		"level": -1,
+		"code":  "SYSTEM",
 	}
-	_, err := h.organizationService.FindOne(context.TODO(), filter, nil)
+	_, err := h.organizationService.FindOne(context.TODO(), systemFilter, nil)
 	if err != nil && err != common.ErrNotFound {
-		return fmt.Errorf("failed to check root organization: %v", err)
+		return fmt.Errorf("failed to check system organization: %v", err)
 	}
 
 	// Nếu đã tồn tại, không cần tạo mới
@@ -209,38 +210,38 @@ func (h *InitService) InitRootOrganization() error {
 		return nil
 	}
 
-	// Tạo mới Organization Root
-	rootOrg := models.Organization{
-		Name:     "Tập Đoàn Root",
-		Code:     "ROOT_GROUP",
-		Type:     "group",
-		ParentID: nil, // Root không có parent
-		Path:     "/root_group",
-		Level:    0,
+	// Tạo mới System Organization
+	systemOrgModel := models.Organization{
+		Name:     "Hệ Thống",
+		Code:     "SYSTEM",
+		Type:     models.OrganizationTypeSystem,
+		ParentID: nil, // System không có parent
+		Path:     "/system",
+		Level:    -1,
 		IsActive: true,
 	}
 
-	_, err = h.organizationService.InsertOne(context.TODO(), rootOrg)
+	_, err = h.organizationService.InsertOne(context.TODO(), systemOrgModel)
 	if err != nil {
-		return fmt.Errorf("failed to create root organization: %v", err)
+		return fmt.Errorf("failed to create system organization: %v", err)
 	}
 
 	return nil
 }
 
-// GetRootOrganization lấy Organization Root
+// GetRootOrganization lấy System Organization (Level -1) - tổ chức cấp cao nhất
 // Returns:
-//   - *models.Organization: Organization Root
+//   - *models.Organization: System Organization
 //   - error: Lỗi nếu có
 func (h *InitService) GetRootOrganization() (*models.Organization, error) {
 	filter := bson.M{
-		"type":  "group",
-		"level": 0,
-		"code":  "ROOT_GROUP",
+		"type":  models.OrganizationTypeSystem,
+		"level": -1,
+		"code":  "SYSTEM",
 	}
 	org, err := h.organizationService.FindOne(context.TODO(), filter, nil)
 	if err != nil {
-		return nil, fmt.Errorf("root organization not found: %v", err)
+		return nil, fmt.Errorf("system organization not found: %v", err)
 	}
 
 	var modelOrg models.Organization
@@ -255,12 +256,12 @@ func (h *InitService) GetRootOrganization() (*models.Organization, error) {
 
 // InitRole khởi tạo vai trò Administrator mặc định
 // Tạo vai trò và gán tất cả các quyền cho vai trò này
-// Role Administrator phải thuộc Organization Root
+// Role Administrator phải thuộc System Organization (Level -1)
 func (h *InitService) InitRole() error {
-	// Lấy Organization Root
+	// Lấy System Organization (Level -1)
 	rootOrg, err := h.GetRootOrganization()
 	if err != nil {
-		return fmt.Errorf("failed to get root organization: %v", err)
+		return fmt.Errorf("failed to get system organization: %v", err)
 	}
 
 	// Kiểm tra vai trò Administrator đã tồn tại chưa
@@ -268,12 +269,16 @@ func (h *InitService) InitRole() error {
 	if err != nil && err != common.ErrNotFound {
 		return err
 	}
+
+	var modelRole models.Role
+	roleExists := false
+
 	if err == nil {
 		// Nếu đã tồn tại, kiểm tra OrganizationID
-		var modelRole models.Role
 		bsonBytes, _ := bson.Marshal(adminRole)
 		err = bson.Unmarshal(bsonBytes, &modelRole)
 		if err == nil {
+			roleExists = true
 			// Nếu chưa có OrganizationID, cập nhật
 			if modelRole.OrganizationID.IsZero() {
 				updateData := bson.M{
@@ -287,40 +292,89 @@ func (h *InitService) InitRole() error {
 				}
 			}
 		}
-		return nil // Đã tồn tại, không cần tạo mới
 	}
 
-	// Tạo mới vai trò Administrator với OrganizationID
-	newAdminRole := models.Role{
-		Name:           "Administrator",
-		Describe:       "Vai trò quản trị hệ thống",
-		OrganizationID: rootOrg.ID, // Gán vào Organization Root
+	// Nếu chưa tồn tại, tạo mới vai trò Administrator với OrganizationID
+	if !roleExists {
+		newAdminRole := models.Role{
+			Name:           "Administrator",
+			Describe:       "Vai trò quản trị hệ thống",
+			OrganizationID: rootOrg.ID, // Gán vào Organization Root
+		}
+
+		// Lưu vai trò vào database
+		adminRole, err = h.roleService.InsertOne(context.TODO(), newAdminRole)
+		if err != nil {
+			return fmt.Errorf("failed to create administrator role: %v", err)
+		}
+
+		// Chuyển đổi sang model để sử dụng
+		bsonBytes, _ := bson.Marshal(adminRole)
+		err = bson.Unmarshal(bsonBytes, &modelRole)
+		if err != nil {
+			return fmt.Errorf("failed to decode administrator role: %v", err)
+		}
 	}
 
-	// Lưu vai trò vào database
-	adminRole, err = h.roleService.InsertOne(context.TODO(), newAdminRole)
-	if err != nil {
-		return fmt.Errorf("failed to create administrator role: %v", err)
-	}
-
+	// Đảm bảo role Administrator có đầy đủ tất cả permissions
 	// Lấy danh sách tất cả các quyền
 	permissions, err := h.permissionService.Find(context.TODO(), bson.M{}, nil)
 	if err != nil {
-		return common.ErrInvalidInput
+		return fmt.Errorf("failed to get permissions: %v", err)
 	}
 
-	// Gán tất cả quyền cho vai trò Administrator với Scope = 1
-	for _, permission := range permissions {
-		rolePermission := models.RolePermission{
-			RoleID:       adminRole.ID,
-			PermissionID: permission.ID,
-			Scope:        1, // Scope = 1 (Organization + Inherit) - Vì thuộc Root, sẽ xem tất cả
-		}
-		_, err = h.rolePermissionService.InsertOne(context.TODO(), rolePermission)
+	// Gán tất cả quyền cho vai trò Administrator với Scope = 1 (Tổ chức đó và tất cả các tổ chức con)
+	for _, permissionData := range permissions {
+		var modelPermission models.Permission
+		bsonBytes, _ := bson.Marshal(permissionData)
+		err := bson.Unmarshal(bsonBytes, &modelPermission)
 		if err != nil {
-			continue
+			continue // Bỏ qua permission không decode được
+		}
+
+		// Kiểm tra quyền đã được gán chưa
+		filter := bson.M{
+			"roleId":       modelRole.ID,
+			"permissionId": modelPermission.ID,
+		}
+
+		existingRP, err := h.rolePermissionService.FindOne(context.TODO(), filter, nil)
+		if err != nil && err != common.ErrNotFound {
+			continue // Bỏ qua nếu có lỗi khác ErrNotFound
+		}
+
+		// Nếu chưa có quyền, thêm mới với Scope = 1 (Tổ chức đó và tất cả các tổ chức con)
+		if err == common.ErrNotFound {
+			rolePermission := models.RolePermission{
+				RoleID:       modelRole.ID,
+				PermissionID: modelPermission.ID,
+				Scope:        1, // Scope = 1: Tổ chức đó và tất cả các tổ chức con - Vì thuộc Root, sẽ xem tất cả
+			}
+			_, err = h.rolePermissionService.InsertOne(context.TODO(), rolePermission)
+			if err != nil {
+				continue // Bỏ qua nếu insert thất bại
+			}
+		} else {
+			// Nếu đã có, kiểm tra scope - nếu là 0 thì cập nhật thành 1 (để admin có quyền xem tất cả)
+			var existingModelRP models.RolePermission
+			bsonBytes, _ := bson.Marshal(existingRP)
+			err = bson.Unmarshal(bsonBytes, &existingModelRP)
+			if err == nil && existingModelRP.Scope == 0 {
+				// Cập nhật scope từ 0 → 1 (chỉ tổ chức → tổ chức + các tổ chức con)
+				updateData := bson.M{
+					"$set": bson.M{
+						"scope": 1,
+					},
+				}
+				_, err = h.rolePermissionService.UpdateOne(context.TODO(), bson.M{"_id": existingModelRP.ID}, updateData, nil)
+				if err != nil {
+					// Log error nhưng tiếp tục với permission tiếp theo
+					continue
+				}
+			}
 		}
 	}
+
 	return nil
 }
 
@@ -373,12 +427,12 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 			continue
 		}
 
-		// Nếu chưa có quyền, thêm mới với Scope = 1
+		// Nếu chưa có quyền, thêm mới với Scope = 1 (Tổ chức đó và tất cả các tổ chức con)
 		if err == common.ErrNotFound {
 			rolePermission := models.RolePermission{
 				RoleID:       modelRole.ID,
 				PermissionID: modelPermission.ID,
-				Scope:        1, // Scope = 1 (Organization + Inherit) - Vì thuộc Root, sẽ xem tất cả
+				Scope:        1, // Scope = 1: Tổ chức đó và tất cả các tổ chức con - Vì thuộc Root, sẽ xem tất cả
 			}
 			_, err = h.rolePermissionService.InsertOne(context.TODO(), rolePermission)
 			if err != nil {
@@ -387,12 +441,12 @@ func (h *InitService) CheckPermissionForAdministrator() (err error) {
 				continue
 			}
 		} else {
-			// Nếu đã có, kiểm tra scope - nếu là 0 thì cập nhật thành 1
+			// Nếu đã có, kiểm tra scope - nếu là 0 thì cập nhật thành 1 (để admin có quyền xem tất cả)
 			var existingModelRP models.RolePermission
 			bsonBytes, _ := bson.Marshal(existingRP)
 			err = bson.Unmarshal(bsonBytes, &existingModelRP)
 			if err == nil && existingModelRP.Scope == 0 {
-				// Cập nhật scope từ 0 → 1
+				// Cập nhật scope từ 0 → 1 (chỉ tổ chức → tổ chức + các tổ chức con)
 				updateData := bson.M{
 					"$set": bson.M{
 						"scope": 1,
@@ -492,17 +546,17 @@ func (h *InitService) InitAdminUser(firebaseUID string) error {
 		// Tạo user mới
 		currentTime := time.Now().Unix()
 		newUser := &models.User{
-			FirebaseUID:    firebaseUID,
-			Email:          firebaseUser.Email,
-			EmailVerified:  firebaseUser.EmailVerified,
-			Phone:          firebaseUser.PhoneNumber,
-			PhoneVerified:  firebaseUser.PhoneNumber != "",
-			Name:           firebaseUser.DisplayName,
-			AvatarURL:      firebaseUser.PhotoURL,
-			IsBlock:        false,
-			Tokens:         []models.Token{},
-			CreatedAt:      currentTime,
-			UpdatedAt:      currentTime,
+			FirebaseUID:   firebaseUID,
+			Email:         firebaseUser.Email,
+			EmailVerified: firebaseUser.EmailVerified,
+			Phone:         firebaseUser.PhoneNumber,
+			PhoneVerified: firebaseUser.PhoneNumber != "",
+			Name:          firebaseUser.DisplayName,
+			AvatarURL:     firebaseUser.PhotoURL,
+			IsBlock:       false,
+			Tokens:        []models.Token{},
+			CreatedAt:     currentTime,
+			UpdatedAt:     currentTime,
 		}
 
 		createdUser, err := h.userService.InsertOne(context.TODO(), *newUser)
@@ -534,7 +588,13 @@ func (h *InitService) GetInitStatus() (map[string]interface{}, error) {
 	_, err := h.GetRootOrganization()
 	status["organization"] = map[string]interface{}{
 		"initialized": err == nil,
-		"error":       func() string { if err != nil { return err.Error() } else { return "" } }(),
+		"error": func() string {
+			if err != nil {
+				return err.Error()
+			} else {
+				return ""
+			}
+		}(),
 	}
 
 	// Kiểm tra Permissions
@@ -546,14 +606,26 @@ func (h *InitService) GetInitStatus() (map[string]interface{}, error) {
 	status["permissions"] = map[string]interface{}{
 		"initialized": err == nil && permissionCount > 0,
 		"count":       permissionCount,
-		"error":       func() string { if err != nil { return err.Error() } else { return "" } }(),
+		"error": func() string {
+			if err != nil {
+				return err.Error()
+			} else {
+				return ""
+			}
+		}(),
 	}
 
 	// Kiểm tra Role Administrator và admin users
 	adminRole, err := h.roleService.FindOne(context.TODO(), bson.M{"name": "Administrator"}, nil)
 	status["roles"] = map[string]interface{}{
 		"initialized": err == nil,
-		"error":       func() string { if err != nil && err != common.ErrNotFound { return err.Error() } else { return "" } }(),
+		"error": func() string {
+			if err != nil && err != common.ErrNotFound {
+				return err.Error()
+			} else {
+				return ""
+			}
+		}(),
 	}
 	adminUserCount := 0
 	if err == nil {
@@ -567,7 +639,7 @@ func (h *InitService) GetInitStatus() (map[string]interface{}, error) {
 		}
 	}
 	status["adminUsers"] = map[string]interface{}{
-		"count": adminUserCount,
+		"count":    adminUserCount,
 		"hasAdmin": adminUserCount > 0,
 	}
 

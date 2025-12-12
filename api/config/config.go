@@ -31,6 +31,10 @@ type Configuration struct {
 	FirebaseAdminUID         string `env:"FIREBASE_ADMIN_UID"`                     // Firebase UID của user admin (tự động tạo admin user trong init)
 	// Frontend URL
 	FrontendURL             string `env:"FRONTEND_URL" envDefault:"http://localhost:3000"` // URL frontend
+	// TLS/HTTPS Configuration
+	EnableTLS               bool   `env:"ENABLE_TLS" envDefault:"false"`           // Bật HTTPS
+	TLSCertFile             string `env:"TLS_CERT_FILE"`                          // Đường dẫn đến file certificate (.crt hoặc .pem)
+	TLSKeyFile              string `env:"TLS_KEY_FILE"`                           // Đường dẫn đến file private key (.key)
 }
 
 // getEnvPath trả về đường dẫn đến file env dựa trên môi trường

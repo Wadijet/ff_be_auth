@@ -75,6 +75,8 @@ func ValidateEmail(email string) error {
 }
 
 // ValidatePassword kiểm tra độ mạnh của mật khẩu
+// DEPRECATED: Không còn sử dụng - Firebase quản lý authentication và password
+// Giữ lại để tương thích ngược, nhưng không nên sử dụng
 func ValidatePassword(password string) error {
 	if len(password) < 8 {
 		return common.ErrWeakPassword

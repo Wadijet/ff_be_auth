@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"ff_be_auth_tests/utils"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,6 +54,26 @@ func getTestFirebaseIDToken(t *testing.T) string {
 		t.Skip("Skipping test: TEST_FIREBASE_ID_TOKEN environment variable not set")
 	}
 	return token
+}
+
+// initTestData khởi tạo dữ liệu mặc định cho test (Root Organization, Permissions, Roles)
+// Hàm này sẽ được gọi một lần và được cache để tránh init nhiều lần
+var initDataOnce = false
+
+func initTestData(t *testing.T, baseURL string) {
+	if initDataOnce {
+		return // Đã init rồi, không cần init lại
+	}
+
+	fixtures := utils.NewTestFixtures(baseURL)
+	err := fixtures.InitData()
+	if err != nil {
+		// Không fail test nếu đã init rồi hoặc có lỗi nhỏ
+		t.Logf("⚠️ Không thể init data (có thể đã init rồi): %v", err)
+	} else {
+		t.Logf("✅ Đã khởi tạo dữ liệu mặc định (Root Organization, Permissions, Roles)")
+	}
+	initDataOnce = true
 }
 
 // TestAuthFlow kiểm tra toàn bộ luồng xác thực với Firebase

@@ -79,9 +79,9 @@ func (tf *TestFixtures) CreateTestUser(firebaseIDToken string) (email, firebaseU
 func (tf *TestFixtures) GetRootOrganizationID(token string) (string, error) {
 	tf.client.SetToken(token)
 
-	// Tìm Organization Root (Code: ROOT_GROUP)
+	// Tìm Organization System (Code: SYSTEM)
 	// URL encode filter parameter
-	filter := `{"code":"ROOT_GROUP"}`
+	filter := `{"code":"SYSTEM"}`
 	encodedFilter := url.QueryEscape(filter)
 	resp, body, err := tf.client.GET(fmt.Sprintf("/organization/find?filter=%s", encodedFilter))
 	if err != nil {
@@ -277,4 +277,96 @@ func (tf *TestFixtures) CreateAdminUser(firebaseIDToken string) (email, firebase
 	// Nếu fail (403 - không có quyền), vẫn trả về token hiện tại
 	// Test sẽ phải xử lý trường hợp này
 	return email, firebaseUID, token, userID, nil
+}
+
+// InitData khởi tạo tất cả dữ liệu mặc định của hệ thống
+// Bao gồm: Root Organization, Permissions, Roles
+// API này chỉ hoạt động khi chưa có admin trong hệ thống
+func (tf *TestFixtures) InitData() error {
+	// Gọi API init/all để khởi tạo tất cả
+	resp, body, err := tf.client.POST("/init/all", nil)
+	if err != nil {
+		return fmt.Errorf("lỗi gọi init API: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		// Nếu đã có admin, API sẽ không được đăng ký (404) hoặc đã init rồi
+		if resp.StatusCode == http.StatusNotFound {
+			// Có thể đã có admin, thử kiểm tra status
+			return tf.checkInitStatus()
+		}
+		return fmt.Errorf("init data thất bại: %d - %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response để kiểm tra kết quả
+	var result map[string]interface{}
+	if err = json.Unmarshal(body, &result); err != nil {
+		// Không parse được cũng không sao, có thể đã init thành công
+		return nil
+	}
+
+	// Kiểm tra từng phần init
+	data, ok := result["data"].(map[string]interface{})
+	if !ok {
+		return nil // Không có data, có thể đã init rồi
+	}
+
+	// Kiểm tra status của từng phần
+	if orgStatus, ok := data["organization"].(map[string]interface{}); ok {
+		if status, ok := orgStatus["status"].(string); ok && status != "success" {
+			return fmt.Errorf("init organization thất bại: %v", orgStatus)
+		}
+	}
+
+	if permStatus, ok := data["permissions"].(map[string]interface{}); ok {
+		if status, ok := permStatus["status"].(string); ok && status != "success" {
+			return fmt.Errorf("init permissions thất bại: %v", permStatus)
+		}
+	}
+
+	if roleStatus, ok := data["roles"].(map[string]interface{}); ok {
+		if status, ok := roleStatus["status"].(string); ok && status != "success" {
+			return fmt.Errorf("init roles thất bại: %v", roleStatus)
+		}
+	}
+
+	return nil
+}
+
+// checkInitStatus kiểm tra trạng thái init của hệ thống
+func (tf *TestFixtures) checkInitStatus() error {
+	resp, body, err := tf.client.GET("/init/status")
+	if err != nil {
+		// Nếu không có endpoint (404), có thể đã có admin rồi
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil // Có thể đã init rồi
+		}
+		return fmt.Errorf("lỗi kiểm tra init status: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		// Nếu không OK, có thể đã có admin rồi
+		return nil
+	}
+
+	// Parse response
+	var result map[string]interface{}
+	if err = json.Unmarshal(body, &result); err != nil {
+		return nil // Không parse được, có thể đã init rồi
+	}
+
+	// Kiểm tra data
+	data, ok := result["data"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	// Kiểm tra các thành phần đã init chưa
+	hasOrg, _ := data["hasOrganization"].(bool)
+	hasPerm, _ := data["hasPermissions"].(bool)
+	hasRole, _ := data["hasRoles"].(bool)
+
+	if !hasOrg || !hasPerm || !hasRole {
+		return fmt.Errorf("chưa init đầy đủ: org=%v, perm=%v, role=%v", hasOrg, hasPerm, hasRole)
+	}
+
+	return nil
 }

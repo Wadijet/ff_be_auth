@@ -64,7 +64,7 @@ curl http://localhost:8080/api/v1/system/health
 
 ```
 ff_be_auth/
-├── api/                          # Module chính
+├── api/                          # Module chính (Backend Go)
 │   ├── cmd/
 │   │   └── server/              # Entry point của ứng dụng
 │   ├── core/
@@ -80,7 +80,7 @@ ff_be_auth/
 │   │   ├── logger/              # Logging utilities
 │   │   └── utility/              # Utility functions
 │   └── config/                  # Configuration files
-├── api-tests/                    # Module test
+├── api-tests/                    # Module test (Go tests)
 │   ├── cases/                   # Test cases
 │   ├── utils/                   # Test utilities
 │   └── scripts/                 # Test scripts

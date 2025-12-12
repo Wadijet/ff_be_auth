@@ -216,6 +216,16 @@ func (h *UserHandler) HandleLoginWithFirebase(c fiber.Ctx) error {
 	}
 
 	user, err := h.userService.LoginWithFirebase(context.Background(), &input)
-	h.HandleResponse(c, user, err)
+	if err != nil {
+		h.HandleResponse(c, nil, err)
+		return nil
+	}
+
+	// Loại bỏ thông tin nhạy cảm trước khi trả về
+	user.Password = ""
+	user.Salt = ""
+	user.Tokens = nil
+
+	h.HandleResponse(c, user, nil)
 	return nil
 }

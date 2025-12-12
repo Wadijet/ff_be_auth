@@ -1,13 +1,10 @@
 package router
 
 import (
-	"context"
 	"fmt"
 	"meta_commerce/core/api/handler"
 	"meta_commerce/core/api/middleware"
 	"meta_commerce/core/api/services"
-	"meta_commerce/core/global"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -246,37 +243,14 @@ func registerAdminRoutes(router fiber.Router) error {
 
 // registerSystemRoutes đăng ký các route cho system operations
 func registerSystemRoutes(router fiber.Router) error {
+	// Khởi tạo SystemHandler
+	systemHandler, err := handler.NewSystemHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create system handler: %v", err)
+	}
+
 	// System routes
-	router.Get("/system/health", func(c fiber.Ctx) error {
-		// Kiểm tra database connection
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-
-		healthStatus := fiber.Map{
-			"status":    "healthy",
-			"timestamp": time.Now().Format(time.RFC3339),
-			"services": fiber.Map{
-				"api": "ok",
-			},
-		}
-
-		// Kiểm tra MongoDB connection
-		if global.MongoDB_Session != nil {
-			err := global.MongoDB_Session.Ping(ctx, nil)
-			if err != nil {
-				healthStatus["status"] = "degraded"
-				healthStatus["services"].(fiber.Map)["database"] = "error"
-				healthStatus["database_error"] = err.Error()
-				return c.Status(fiber.StatusServiceUnavailable).JSON(healthStatus)
-			}
-			healthStatus["services"].(fiber.Map)["database"] = "ok"
-		} else {
-			healthStatus["status"] = "degraded"
-			healthStatus["services"].(fiber.Map)["database"] = "not_initialized"
-		}
-
-		return c.JSON(healthStatus)
-	})
+	router.Get("/system/health", systemHandler.HandleHealth)
 
 	return nil
 }

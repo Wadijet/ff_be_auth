@@ -280,6 +280,13 @@ func CreateIndexes(ctx context.Context, collection *mongo.Collection, model inte
 				indexName := bsonField + "_unique"
 				options := options.Index().SetName(indexName).SetUnique(true)
 
+				// Kiểm tra xem có sparse trong config không
+				// Sparse index cho phép nhiều document không có field này
+				// Quan trọng cho email/phone vì user có thể không có email/phone khi dùng Firebase
+				if _, hasSparse := config["sparse"]; hasSparse {
+					options = options.SetSparse(true)
+				}
+
 				if err := checkAndReplaceIndex(ctx, collection, existingIndexes, indexName, keys, options); err != nil {
 					return err
 				}

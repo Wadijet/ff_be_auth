@@ -84,6 +84,8 @@ func validateNoSQLInjection(fl validator.FieldLevel) bool {
 }
 
 // validateStrongPassword kiểm tra mật khẩu mạnh
+// DEPRECATED: Không còn sử dụng - Firebase quản lý authentication và password
+// Giữ lại để tương thích ngược, nhưng không nên sử dụng
 func validateStrongPassword(fl validator.FieldLevel) bool {
 	value := fl.Field().String()
 

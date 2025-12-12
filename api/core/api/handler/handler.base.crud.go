@@ -196,9 +196,10 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindManyByIds(c fiber.Ctx) er
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ctx) error {
 	return h.SafeHandler(c, func() error {
-		var filter map[string]interface{}
-		if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, common.MsgValidationError, common.StatusBadRequest, nil))
+		// Sử dụng processFilter để có normalizeFilter và validate
+		filter, err := h.processFilter(c)
+		if err != nil {
+			h.HandleResponse(c, nil, err)
 			return nil
 		}
 
@@ -253,7 +254,17 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error {
 		}
 
 		data, err := h.BaseService.Find(c.Context(), filter, options.(*mongoopts.FindOptions))
-		h.HandleResponse(c, data, err)
+		if err != nil {
+			h.HandleResponse(c, nil, err)
+			return nil
+		}
+
+		// Đảm bảo data không bao giờ là nil, luôn trả về mảng rỗng nếu không có kết quả
+		if data == nil {
+			data = []T{}
+		}
+
+		h.HandleResponse(c, data, nil)
 		return nil
 	})
 }

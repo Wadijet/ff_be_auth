@@ -28,11 +28,8 @@ system:
 
 auth:
   - method: POST
-    path: /api/v1/auth/register
-    mô_tả: Đăng ký tài khoản
-  - method: POST
-    path: /api/v1/auth/login
-    mô_tả: Đăng nhập
+    path: /api/v1/auth/login/firebase
+    mô_tả: Đăng nhập bằng Firebase ID token (Email/Google/Facebook/Phone OTP)
   - method: POST
     path: /api/v1/auth/logout
     mô_tả: Đăng xuất
@@ -44,10 +41,6 @@ auth:
   - method: PUT
     path: /api/v1/auth/profile
     mô_tả: Cập nhật thông tin cá nhân
-    quyền: Yêu cầu đăng nhập
-  - method: PUT
-    path: /api/v1/auth/password
-    mô_tả: Đổi mật khẩu
     quyền: Yêu cầu đăng nhập
   - method: GET
     path: /api/v1/auth/roles

@@ -14,7 +14,7 @@ type RolePermission struct {
 	ID              primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`                 // ID của quyền vai trò
 	RoleID          primitive.ObjectID `json:"roleId" bson:"roleId" index:"single:1"`             // ID của vai trò
 	PermissionID    primitive.ObjectID `json:"permissionId" bson:"permissionId" index:"single:1"` // ID của quyền
-	Scope           byte               `json:"scope" bson:"scope" index:"single:1"`               // Phạm vi của quyền (1: Organization + Inherit, 2: Organization chỉ nó)
+	Scope           byte               `json:"scope" bson:"scope" index:"single:1"`               // Phạm vi của quyền (0: Chỉ tổ chức role thuộc về - default, 1: Tổ chức đó và tất cả các tổ chức con)
 	CreatedByRoleID primitive.ObjectID `json:"createdByRoleId" bson:"createdByRoleId"`            // ID của vai trò tạo quyền này
 	CreatedByUserID primitive.ObjectID `json:"createdByUserId" bson:"createdByUserId"`            // ID của người dùng tạo quyền này
 	CreatedAt       int64              `json:"createdAt" bson:"createdAt"`                        // Thời gian tạo

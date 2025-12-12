@@ -171,19 +171,35 @@ Model cho RolePermission collection (liên kết Role-Permission).
 
 ```typescript
 interface RolePermission {
-  id: string;          // MongoDB ObjectID
-  roleId: string;      // Reference to Role
-  permissionId: string; // Reference to Permission
-  scope: number;       // Mức độ quyền: 0 = Read, 1 = Write, 2 = Delete
-  createdAt: number;   // Unix timestamp
-  updatedAt: number;  // Unix timestamp
+  id: string;              // MongoDB ObjectID
+  roleId: string;          // Reference to Role
+  permissionId: string;    // Reference to Permission
+  scope: number;           // Phạm vi áp dụng quyền: 0 = Chỉ tổ chức role thuộc về, 1 = Tổ chức đó và tất cả các tổ chức con
+  createdByRoleId?: string; // ID của role tạo quyền này
+  createdByUserId?: string; // ID của user tạo quyền này
+  createdAt: number;       // Unix timestamp
+  updatedAt: number;       // Unix timestamp
 }
 ```
 
-**Scope Values:**
-- `0` - Read: Chỉ đọc
-- `1` - Write: Đọc và ghi
-- `2` - Delete: Đọc, ghi và xóa
+**Scope Values (Phạm vi áp dụng quyền):**
+- **`0`** (Default): **Chỉ tổ chức role thuộc về**
+  - Quyền chỉ áp dụng cho tổ chức mà role thuộc về
+  - User với role này chỉ có thể thao tác trên dữ liệu của tổ chức đó
+  - Không thể truy cập dữ liệu của các tổ chức con
+  - **Ví dụ UI**: Hiển thị checkbox/radio "Chỉ tổ chức này" với tooltip "Quyền chỉ áp dụng cho tổ chức mà role thuộc về"
+  
+- **`1`**: **Tổ chức đó và tất cả các tổ chức con**
+  - Quyền áp dụng cho tổ chức mà role thuộc về VÀ tất cả các tổ chức con
+  - User với role này có thể thao tác trên dữ liệu của tổ chức đó và tất cả tổ chức con
+  - **Ví dụ UI**: Hiển thị checkbox/radio "Tổ chức này và các tổ chức con" với tooltip "Quyền áp dụng cho tổ chức này và tất cả các tổ chức con (phòng ban, bộ phận, team)"
+  - **Thường dùng cho**: Administrator role, Director, Manager cấp cao
+
+**Lưu ý cho Frontend:**
+- Scope mặc định là `0` - không cần set khi tạo mới
+- UI nên có 2 options rõ ràng với tooltip giải thích
+- Mặc định chọn scope = 0
+- Scope chỉ ảnh hưởng đến phạm vi dữ liệu, không ảnh hưởng đến loại thao tác (Read/Insert/Update/Delete)
 
 ### UserRole
 Model cho UserRole collection (liên kết User-Role).

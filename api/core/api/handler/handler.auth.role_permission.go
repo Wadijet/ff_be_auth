@@ -68,7 +68,7 @@ func NewRolePermissionHandler() (*RolePermissionHandler, error) {
 //
 // Request Body:
 //   - roleId: ID của vai trò cần cập nhật quyền
-//   - permissionIds: Danh sách ID của các quyền
+//   - permissions: Danh sách quyền với scope (mỗi item có permissionId và scope)
 //
 // Response:
 //   - 200: Cập nhật quyền thành công
@@ -113,8 +113,8 @@ func (h *RolePermissionHandler) HandleUpdateRolePermissions(c fiber.Ctx) error {
 	var rolePermissions []models.RolePermission
 	now := time.Now().Unix()
 
-	for _, permissionId := range input.PermissionIds {
-		permissionIdObj, err := primitive.ObjectIDFromHex(permissionId)
+	for _, perm := range input.Permissions {
+		permissionIdObj, err := primitive.ObjectIDFromHex(perm.PermissionID)
 		if err != nil {
 			continue // Bỏ qua các permissionId không hợp lệ
 		}
@@ -122,7 +122,7 @@ func (h *RolePermissionHandler) HandleUpdateRolePermissions(c fiber.Ctx) error {
 			ID:           primitive.NewObjectID(),
 			RoleID:       roleId,
 			PermissionID: permissionIdObj,
-			Scope:        0,
+			Scope:        perm.Scope, // Sử dụng scope từ request
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}

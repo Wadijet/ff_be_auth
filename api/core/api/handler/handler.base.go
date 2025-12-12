@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	mongoopts "go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -230,6 +231,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) processFilter(c fiber.Ctx) (m
 		)
 	}
 
+	// Normalize filter: chuyển đổi các string ObjectId thành ObjectID
+	filter = h.normalizeFilter(filter)
+
 	// Validate filter
 	if err := h.validateFilter(filter); err != nil {
 		return nil, err
@@ -238,13 +242,140 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) processFilter(c fiber.Ctx) (m
 	return filter, nil
 }
 
+// normalizeFilter chuyển đổi các string có format ObjectId thành ObjectID trong filter
+// Hỗ trợ các trường có tên kết thúc bằng "Id" hoặc "ID"
+func (h *BaseHandler[T, CreateInput, UpdateInput]) normalizeFilter(filter map[string]interface{}) map[string]interface{} {
+	if filter == nil {
+		return filter
+	}
+
+	normalized := make(map[string]interface{})
+	for field, value := range filter {
+		// Kiểm tra nếu field name kết thúc bằng "Id" hoặc "ID" (case-insensitive)
+		fieldLower := strings.ToLower(field)
+		isIDField := strings.HasSuffix(fieldLower, "id") && len(fieldLower) > 2
+
+		normalized[field] = h.normalizeFilterValue(value, isIDField)
+	}
+
+	return normalized
+}
+
+// normalizeFilterValue chuyển đổi giá trị trong filter, hỗ trợ nested structures
+func (h *BaseHandler[T, CreateInput, UpdateInput]) normalizeFilterValue(value interface{}, isIDField bool) interface{} {
+	if value == nil {
+		return value
+	}
+
+	// Hỗ trợ MongoDB Extended JSON format: {"$oid": "..."}
+	if mapValue, ok := value.(map[string]interface{}); ok {
+		if oidValue, hasOid := mapValue["$oid"]; hasOid {
+			if oidStr, ok := oidValue.(string); ok {
+				if primitive.IsValidObjectID(oidStr) {
+					objID, err := primitive.ObjectIDFromHex(oidStr)
+					if err == nil {
+						return objID
+					}
+				}
+			}
+			// Nếu $oid không hợp lệ, trả về giá trị gốc
+			return value
+		}
+	}
+
+	// Nếu là string và field là ID field, thử chuyển đổi thành ObjectID
+	if strValue, ok := value.(string); ok && isIDField {
+		if primitive.IsValidObjectID(strValue) {
+			objID, err := primitive.ObjectIDFromHex(strValue)
+			if err == nil {
+				return objID
+			}
+		}
+		return strValue
+	}
+
+	// Nếu là mảng, xử lý từng phần tử
+	if arrValue, ok := value.([]interface{}); ok {
+		normalizedArr := make([]interface{}, len(arrValue))
+		for i, item := range arrValue {
+			normalizedArr[i] = h.normalizeFilterValue(item, isIDField)
+		}
+		return normalizedArr
+	}
+
+	// Nếu là map (cho các operator như $in, $nin, $eq, etc.), xử lý đệ quy
+	if mapValue, ok := value.(map[string]interface{}); ok {
+		normalizedMap := make(map[string]interface{})
+		for key, val := range mapValue {
+			// Đặc biệt xử lý $in và $nin - các giá trị trong mảng cần được chuyển đổi
+			if (key == "$in" || key == "$nin") && isIDField {
+				if arrVal, ok := val.([]interface{}); ok {
+					normalizedArr := make([]interface{}, len(arrVal))
+					for i, item := range arrVal {
+						if strItem, ok := item.(string); ok && primitive.IsValidObjectID(strItem) {
+							objID, err := primitive.ObjectIDFromHex(strItem)
+							if err == nil {
+								normalizedArr[i] = objID
+							} else {
+								normalizedArr[i] = item
+							}
+						} else {
+							normalizedArr[i] = item
+						}
+					}
+					normalizedMap[key] = normalizedArr
+				} else {
+					normalizedMap[key] = val
+				}
+			} else {
+				// Xử lý các operator khác như $eq
+				normalizedMap[key] = h.normalizeFilterValue(val, isIDField)
+			}
+		}
+		return normalizedMap
+	}
+
+	return value
+}
+
 // validateFilter kiểm tra tính hợp lệ của filter
 func (h *BaseHandler[T, CreateInput, UpdateInput]) validateFilter(filter map[string]interface{}) error {
+	// Khởi tạo giá trị mặc định nếu filterOptions chưa được khởi tạo đúng cách
+	deniedFields := h.filterOptions.DeniedFields
+	if len(deniedFields) == 0 {
+		deniedFields = []string{
+			"password",
+			"token",
+			"secret",
+			"key",
+			"hash",
+		}
+	}
+
+	allowedOperators := h.filterOptions.AllowedOperators
+	if len(allowedOperators) == 0 {
+		allowedOperators = []string{
+			"$eq",
+			"$gt",
+			"$gte",
+			"$lt",
+			"$lte",
+			"$in",
+			"$nin",
+			"$exists",
+		}
+	}
+
+	maxFields := h.filterOptions.MaxFields
+	if maxFields == 0 {
+		maxFields = 10 // Giá trị mặc định
+	}
+
 	// Kiểm tra số lượng field
-	if len(filter) > h.filterOptions.MaxFields {
+	if len(filter) > maxFields {
 		return common.NewError(
 			common.ErrCodeValidationFormat,
-			fmt.Sprintf("Filter vượt quá số lượng trường cho phép. Tối đa %d trường, hiện tại có %d trường. Vui lòng giảm số lượng trường trong filter.", h.filterOptions.MaxFields, len(filter)),
+			fmt.Sprintf("Filter vượt quá số lượng trường cho phép. Tối đa %d trường, hiện tại có %d trường. Vui lòng giảm số lượng trường trong filter.", maxFields, len(filter)),
 			common.StatusBadRequest,
 			nil,
 		)
@@ -253,7 +384,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) validateFilter(filter map[str
 	// Kiểm tra từng field và operator
 	for field, value := range filter {
 		// Kiểm tra field có bị cấm không
-		if utility.Contains(h.filterOptions.DeniedFields, field) {
+		if utility.Contains(deniedFields, field) {
 			return common.NewError(
 				common.ErrCodeValidationFormat,
 				fmt.Sprintf("Trường '%s' không được phép sử dụng trong filter vì lý do bảo mật. Vui lòng sử dụng các trường khác.", field),
@@ -265,10 +396,10 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) validateFilter(filter map[str
 		// Kiểm tra operator nếu value là map
 		if mapValue, ok := value.(map[string]interface{}); ok {
 			for op := range mapValue {
-				if strings.HasPrefix(op, "$") && !utility.Contains(h.filterOptions.AllowedOperators, op) {
+				if strings.HasPrefix(op, "$") && !utility.Contains(allowedOperators, op) {
 					return common.NewError(
 						common.ErrCodeValidationFormat,
-						fmt.Sprintf("Toán tử MongoDB '%s' không được phép sử dụng. Các toán tử được phép: %v", op, h.filterOptions.AllowedOperators),
+						fmt.Sprintf("Toán tử MongoDB '%s' không được phép sử dụng. Các toán tử được phép: %v", op, allowedOperators),
 						common.StatusBadRequest,
 						nil,
 					)
@@ -330,6 +461,18 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) processMongoOptions(c fiber.C
 
 // validateMongoOptions kiểm tra tính hợp lệ của các options
 func (h *BaseHandler[T, CreateInput, UpdateInput]) validateMongoOptions(options map[string]interface{}) error {
+	// Khởi tạo giá trị mặc định nếu filterOptions chưa được khởi tạo đúng cách
+	deniedFields := h.filterOptions.DeniedFields
+	if len(deniedFields) == 0 {
+		deniedFields = []string{
+			"password",
+			"token",
+			"secret",
+			"key",
+			"hash",
+		}
+	}
+
 	// Danh sách các options được phép
 	allowedOptions := map[string]bool{
 		"projection": true,
@@ -354,7 +497,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) validateMongoOptions(options 
 	if projection, ok := options["projection"].(map[string]interface{}); ok {
 		for field := range projection {
 			// Kiểm tra các trường bị cấm
-			if utility.Contains(h.filterOptions.DeniedFields, field) {
+			if utility.Contains(deniedFields, field) {
 				return common.NewError(
 					common.ErrCodeValidationFormat,
 					fmt.Sprintf("Trường '%s' không được phép sử dụng trong projection vì lý do bảo mật", field),
@@ -369,7 +512,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) validateMongoOptions(options 
 	if sort, ok := options["sort"].(map[string]interface{}); ok {
 		for field, value := range sort {
 			// Kiểm tra các trường bị cấm
-			if utility.Contains(h.filterOptions.DeniedFields, field) {
+			if utility.Contains(deniedFields, field) {
 				return common.NewError(
 					common.ErrCodeValidationFormat,
 					fmt.Sprintf("Trường '%s' không được phép sử dụng trong sort vì lý do bảo mật", field),

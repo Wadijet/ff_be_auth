@@ -6,10 +6,8 @@ import (
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
 	"meta_commerce/core/common"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -104,39 +102,21 @@ func (h *UserRoleHandler) HandleUpdateUserRoles(c fiber.Ctx) error {
 		return nil
 	}
 
-	// Xóa tất cả user role cũ của user
-	filter := bson.M{"userId": userId}
-	if _, err := h.UserRoleService.DeleteMany(c.Context(), filter); err != nil {
+	// Chuyển đổi danh sách roleIDs sang ObjectID
+	var newRoleIDs []primitive.ObjectID
+	for _, roleIdStr := range input.RoleIDs {
+		roleIdObj, err := primitive.ObjectIDFromHex(roleIdStr)
+		if err == nil {
+			newRoleIDs = append(newRoleIDs, roleIdObj)
+		}
+	}
+
+	// Gọi service method để update user roles
+	// Service sẽ tự động xử lý toàn bộ logic bao gồm validation
+	userRoles, err := h.UserRoleService.UpdateUserRoles(c.Context(), userId, newRoleIDs)
+	if err != nil {
 		h.HandleResponse(c, nil, err)
 		return nil
-	}
-
-	// Tạo danh sách user role mới
-	var userRoles []models.UserRole
-	now := time.Now().Unix()
-
-	for _, roleId := range input.RoleIDs {
-		roleIdObj, err := primitive.ObjectIDFromHex(roleId)
-		if err != nil {
-			continue // Bỏ qua các roleId không hợp lệ
-		}
-		userRole := models.UserRole{
-			ID:        primitive.NewObjectID(),
-			UserID:    userId,
-			RoleID:    roleIdObj,
-			CreatedAt: now,
-			UpdatedAt: now,
-		}
-		userRoles = append(userRoles, userRole)
-	}
-
-	// Thêm các user role mới bằng InsertMany thay vì InsertOne
-	if len(userRoles) > 0 {
-		_, err = h.UserRoleService.InsertMany(c.Context(), userRoles)
-		if err != nil {
-			h.HandleResponse(c, nil, err)
-			return nil
-		}
 	}
 
 	h.HandleResponse(c, userRoles, nil)

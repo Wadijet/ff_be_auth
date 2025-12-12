@@ -3,8 +3,11 @@ package services
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,10 +20,11 @@ import (
 
 // UpdateData định nghĩa kiểu dữ liệu cho partial update
 type UpdateData struct {
-	Set      map[string]interface{} `bson:"$set,omitempty"`      // Các trường cần update
-	Unset    map[string]interface{} `bson:"$unset,omitempty"`    // Các trường cần xóa
-	Push     map[string]interface{} `bson:"$push,omitempty"`     // Các trường cần thêm vào array
-	AddToSet map[string]interface{} `bson:"$addToSet,omitempty"` // Các trường cần thêm vào set
+	Set         map[string]interface{} `bson:"$set,omitempty"`         // Các trường cần update
+	SetOnInsert map[string]interface{} `bson:"$setOnInsert,omitempty"` // Các trường chỉ set khi insert (upsert tạo mới)
+	Unset       map[string]interface{} `bson:"$unset,omitempty"`       // Các trường cần xóa
+	Push        map[string]interface{} `bson:"$push,omitempty"`        // Các trường cần thêm vào array
+	AddToSet    map[string]interface{} `bson:"$addToSet,omitempty"`    // Các trường cần thêm vào set
 }
 
 // ToUpdateData chuyển đổi interface{} thành UpdateData
@@ -142,6 +146,16 @@ func (s *BaseServiceMongoImpl[T]) InsertOne(ctx context.Context, data T) (T, err
 		return zero, common.ErrInvalidFormat
 	}
 
+	// Loại bỏ các field empty string để sparse unique index hoạt động đúng
+	// Sparse index chỉ bỏ qua null/không tồn tại, không bỏ qua empty string
+	// Nếu có nhiều document với empty string, sẽ bị duplicate key error
+	for key, value := range dataMap {
+		if strValue, ok := value.(string); ok && strValue == "" {
+			// Xóa field empty string để sparse index bỏ qua nó
+			delete(dataMap, key)
+		}
+	}
+
 	// Thêm timestamps
 	now := time.Now().UnixMilli()
 	dataMap["createdAt"] = now
@@ -216,14 +230,25 @@ func (s *BaseServiceMongoImpl[T]) FindOne(ctx context.Context, filter interface{
 
 	findResult := s.collection.FindOne(ctx, filter, opts)
 	if err := findResult.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return zero, common.ErrNotFound
 		}
 		return zero, common.ConvertMongoError(err)
 	}
 
 	if err := findResult.Decode(&result); err != nil {
-		return zero, common.ConvertMongoError(err)
+		// Kiểm tra xem có phải lỗi không tìm thấy document không
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return zero, common.ErrNotFound
+		}
+		// Lỗi decode BSON thường là lỗi format/validation, không phải lỗi MongoDB command
+		// Xử lý như lỗi format để tránh trả về DB02
+		return zero, common.NewError(
+			common.ErrCodeValidationFormat,
+			"Lỗi định dạng dữ liệu khi decode từ MongoDB",
+			common.StatusBadRequest,
+			err,
+		)
 	}
 
 	return result, nil
@@ -231,8 +256,14 @@ func (s *BaseServiceMongoImpl[T]) FindOne(ctx context.Context, filter interface{
 
 // Find tìm tất cả bản ghi theo điều kiện lọc
 func (s *BaseServiceMongoImpl[T]) Find(ctx context.Context, filter interface{}, opts *options.FindOptions) ([]T, error) {
+	// Xử lý filter rỗng hoặc nil
 	if filter == nil {
 		filter = bson.D{}
+	} else {
+		// Kiểm tra nếu filter là map rỗng, chuyển thành bson.D{}
+		if filterMap, ok := filter.(map[string]interface{}); ok && len(filterMap) == 0 {
+			filter = bson.D{}
+		}
 	}
 
 	if opts == nil {
@@ -248,6 +279,11 @@ func (s *BaseServiceMongoImpl[T]) Find(ctx context.Context, filter interface{}, 
 	var results []T
 	if err = cursor.All(ctx, &results); err != nil {
 		return nil, common.ConvertMongoError(err)
+	}
+
+	// Đảm bảo luôn trả về mảng, không phải nil
+	if results == nil {
+		results = []T{}
 	}
 
 	return results, nil
@@ -618,9 +654,15 @@ func (s *BaseServiceMongoImpl[T]) DeleteById(ctx context.Context, id primitive.O
 func (s *BaseServiceMongoImpl[T]) Upsert(ctx context.Context, filter interface{}, data interface{}) (T, error) {
 	var zero T
 
+	logrus.WithFields(logrus.Fields{
+		"collection": s.collection.Name(),
+		"filter":     filter,
+	}).Debug("Upsert: Bắt đầu upsert")
+
 	// Chuyển data thành UpdateData
 	updateData, err := ToUpdateData(data)
 	if err != nil {
+		logrus.WithError(err).Error("Upsert: Lỗi chuyển đổi data thành UpdateData")
 		return zero, common.ErrInvalidFormat
 	}
 
@@ -632,6 +674,69 @@ func (s *BaseServiceMongoImpl[T]) Upsert(ctx context.Context, filter interface{}
 	updateData.Set["updatedAt"] = now
 	updateData.Set["createdAt"] = now
 
+	// Xử lý các field empty string cho sparse unique index
+	// Sparse index chỉ bỏ qua null/không tồn tại, không bỏ qua empty string
+	// Nếu có nhiều document với empty string, sẽ bị duplicate key error
+	// Với email và phone: nếu empty string hoặc không có trong $set, cần dùng $unset để xóa field hoàn toàn
+	// (không chỉ xóa khỏi $set) để sparse index bỏ qua nó
+	removedFromSet := []string{}
+	unsetFields := []string{}
+	if updateData.Unset == nil {
+		updateData.Unset = make(map[string]interface{})
+	}
+
+	// Xử lý các field empty string trong $set
+	for key, value := range updateData.Set {
+		if strValue, ok := value.(string); ok && strValue == "" {
+			// Chỉ xử lý email và phone empty string (các field có sparse unique index)
+			if key == "email" || key == "phone" {
+				// Xóa khỏi $set
+				delete(updateData.Set, key)
+				removedFromSet = append(removedFromSet, key)
+				// Thêm vào $unset để đảm bảo field bị xóa hoàn toàn (không phải null)
+				// Điều này quan trọng khi upsert tạo document mới
+				updateData.Unset[key] = ""
+				unsetFields = append(unsetFields, key)
+			}
+		}
+	}
+
+	// Quan trọng: Kiểm tra xem email và phone có trong $set không
+	// Nếu không có, cần thêm vào $unset để đảm bảo khi upsert tạo document mới,
+	// các field này sẽ không tồn tại (không phải null)
+	// Điều này tránh duplicate key error với sparse unique index
+	// Lưu ý: Khi upsert tạo document mới, MongoDB có thể tự động set field = null
+	// nếu field không có trong $set. Do đó, cần đảm bảo $unset được áp dụng
+	sparseFields := []string{"email", "phone"}
+	for _, field := range sparseFields {
+		if _, exists := updateData.Set[field]; !exists {
+			// Field không có trong $set, thêm vào $unset để đảm bảo không tồn tại
+			// Khi upsert tạo document mới, $unset sẽ xóa field này
+			if _, alreadyUnset := updateData.Unset[field]; !alreadyUnset {
+				updateData.Unset[field] = ""
+				unsetFields = append(unsetFields, field)
+			}
+		}
+	}
+
+	// Nếu có lỗi duplicate key do document cũ có phone/email = null,
+	// cần xử lý bằng cách tìm và xóa field đó từ document cũ
+	// Nhưng điều này sẽ được xử lý trong error handling
+
+	if len(removedFromSet) > 0 || len(unsetFields) > 0 {
+		logrus.WithFields(logrus.Fields{
+			"removed_from_set": removedFromSet,
+			"unset_fields":     unsetFields,
+		}).Debug("Upsert: Đã xử lý các field sparse unique index (email/phone) để tránh lỗi duplicate key")
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"update_data_keys": getMapKeys(updateData.Set),
+		"unset_keys":       getMapKeys(updateData.Unset),
+		"removed_from_set": removedFromSet,
+		"unset_fields":     unsetFields,
+	}).Debug("Upsert: Dữ liệu update sau khi xử lý")
+
 	// Tạo options cho upsert với sort để đảm bảo chỉ update một document
 	opts := options.FindOneAndUpdate().
 		SetUpsert(true).
@@ -642,10 +747,74 @@ func (s *BaseServiceMongoImpl[T]) Upsert(ctx context.Context, filter interface{}
 	var upserted T
 	err = s.collection.FindOneAndUpdate(ctx, filter, updateData, opts).Decode(&upserted)
 	if err != nil {
+		// Kiểm tra xem có phải lỗi duplicate key với phone/email = null không
+		// Nếu có, cần xóa field đó từ document cũ và thử lại
+		if mongoErr, ok := err.(mongo.WriteException); ok {
+			for _, writeErr := range mongoErr.WriteErrors {
+				if writeErr.Code == 11000 { // Duplicate key error
+					// Kiểm tra xem có phải lỗi với phone hoặc email = null không
+					errMsg := writeErr.Message
+					if (strings.Contains(errMsg, "phone") || strings.Contains(errMsg, "email")) &&
+						strings.Contains(errMsg, "null") {
+						logrus.WithFields(logrus.Fields{
+							"error": errMsg,
+						}).Warn("Upsert: Phát hiện lỗi duplicate key với phone/email = null, thử xóa field từ document cũ")
+
+						// Tìm document cũ có phone/email = null và xóa field đó
+						// Sử dụng filter để tìm document có field = null
+						var fieldToClean string
+						if strings.Contains(errMsg, "phone") {
+							fieldToClean = "phone"
+						} else if strings.Contains(errMsg, "email") {
+							fieldToClean = "email"
+						}
+
+						if fieldToClean != "" {
+							// Tìm và xóa field từ document cũ
+							cleanFilter := bson.M{fieldToClean: nil}
+							cleanUpdate := bson.M{"$unset": bson.M{fieldToClean: ""}}
+							_, cleanErr := s.collection.UpdateMany(ctx, cleanFilter, cleanUpdate)
+							if cleanErr == nil {
+								logrus.WithFields(logrus.Fields{
+									"field": fieldToClean,
+								}).Info("Upsert: Đã xóa field từ document cũ, thử lại upsert")
+
+								// Thử lại upsert
+								err = s.collection.FindOneAndUpdate(ctx, filter, updateData, opts).Decode(&upserted)
+								if err == nil {
+									logrus.Debug("Upsert: Upsert thành công sau khi xóa field từ document cũ")
+									return upserted, nil
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		logrus.WithFields(logrus.Fields{
+			"filter":      filter,
+			"update_data": updateData.Set,
+			"error":       err.Error(),
+		}).Error("Upsert: Lỗi khi thực hiện FindOneAndUpdate")
 		return zero, common.ConvertMongoError(err)
 	}
 
+	// Log thành công (không log ID vì generic type khó lấy)
+	logrus.WithFields(logrus.Fields{
+		"collection": s.collection.Name(),
+	}).Debug("Upsert: Upsert thành công")
+
 	return upserted, nil
+}
+
+// getMapKeys lấy danh sách keys từ map
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // UpsertMany thực hiện thao tác upsert cho nhiều document
