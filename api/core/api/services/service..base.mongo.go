@@ -34,6 +34,20 @@ func ToUpdateData(data interface{}) (*UpdateData, error) {
 		return update, nil
 	}
 
+	// Nếu data là UpdateData (không phải pointer), chuyển đổi thành pointer
+	if update, ok := data.(UpdateData); ok {
+		return &update, nil
+	}
+
+	// Nếu data là []byte (BSON raw), unmarshal trực tiếp
+	if rawData, ok := data.([]byte); ok {
+		update := &UpdateData{}
+		if err := bson.Unmarshal(bson.Raw(rawData), update); err != nil {
+			return nil, err
+		}
+		return update, nil
+	}
+
 	// Chuyển data thành map
 	dataMap, err := utility.ToMap(data)
 	if err != nil {
@@ -41,10 +55,23 @@ func ToUpdateData(data interface{}) (*UpdateData, error) {
 	}
 
 	// Nếu data có sẵn các operator MongoDB ($set, $unset, etc)
-	if _, hasOperator := dataMap["$set"]; hasOperator {
+	// Xây dựng UpdateData từ map trực tiếp
+	if _, hasSet := dataMap["$set"]; hasSet {
 		update := &UpdateData{}
-		if err := bson.Unmarshal(bson.Raw(data.([]byte)), update); err != nil {
-			return nil, err
+		if setVal, ok := dataMap["$set"].(map[string]interface{}); ok {
+			update.Set = setVal
+		}
+		if unsetVal, ok := dataMap["$unset"].(map[string]interface{}); ok {
+			update.Unset = unsetVal
+		}
+		if setOnInsertVal, ok := dataMap["$setOnInsert"].(map[string]interface{}); ok {
+			update.SetOnInsert = setOnInsertVal
+		}
+		if pushVal, ok := dataMap["$push"].(map[string]interface{}); ok {
+			update.Push = pushVal
+		}
+		if addToSetVal, ok := dataMap["$addToSet"].(map[string]interface{}); ok {
+			update.AddToSet = addToSetVal
 		}
 		return update, nil
 	}
@@ -543,7 +570,18 @@ func (s *BaseServiceMongoImpl[T]) FindWithPagination(ctx context.Context, filter
 	}
 
 	// Ghi đè skip và limit cho phân trang
+	// Đảm bảo page >= 1 và limit > 0 để tránh skip âm
+	if page < 1 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
 	skip := (page - 1) * limit
+	// Đảm bảo skip >= 0 (phòng trường hợp edge case)
+	if skip < 0 {
+		skip = 0
+	}
 	opts.SetSkip(skip)
 	opts.SetLimit(limit)
 
@@ -565,13 +603,23 @@ func (s *BaseServiceMongoImpl[T]) FindWithPagination(ctx context.Context, filter
 		return nil, common.ConvertMongoError(err)
 	}
 
+	// Tính tổng số trang
+	// Nếu total = 0, thì totalPage = 0
+	// Nếu total > 0, tính bằng công thức làm tròn lên: (total + limit - 1) / limit
+	var totalPage int64
+	if total == 0 {
+		totalPage = 0
+	} else {
+		totalPage = (total + limit - 1) / limit
+	}
+
 	return &models.PaginateResult[T]{
 		Items:     items,
 		Page:      page,
 		Limit:     limit,
 		ItemCount: int64(len(items)),
 		Total:     total,
-		TotalPage: (total + limit - 1) / limit,
+		TotalPage: totalPage,
 	}, nil
 }
 

@@ -32,6 +32,18 @@ Quản lý Facebook Pages.
 - `PUT /api/v1/facebook/page/update-by-id/:id` - Cập nhật (Permission: `FbPage.Update`)
 - `DELETE /api/v1/facebook/page/delete-by-id/:id` - Xóa (Permission: `FbPage.Delete`)
 
+**Endpoints Đặc Biệt:**
+- `GET /api/v1/facebook/page/find-by-page-id/:id` - Tìm page theo Facebook PageID (Permission: `FbPage.Read`)
+- `PUT /api/v1/facebook/page/update-token` - Cập nhật Page Access Token (Permission: `FbPage.Update`)
+
+**Request Body cho update-token:**
+```json
+{
+  "pageId": "facebook-page-id",
+  "pageAccessToken": "new-page-access-token"
+}
+```
+
 ## 🔐 Facebook Post APIs
 
 Quản lý Facebook Posts.
@@ -44,6 +56,18 @@ Quản lý Facebook Posts.
 - `GET /api/v1/facebook/post/find-by-id/:id` - Tìm theo ID (Permission: `FbPost.Read`)
 - `PUT /api/v1/facebook/post/update-by-id/:id` - Cập nhật (Permission: `FbPost.Update`)
 - `DELETE /api/v1/facebook/post/delete-by-id/:id` - Xóa (Permission: `FbPost.Delete`)
+
+**Endpoints Đặc Biệt:**
+- `GET /api/v1/facebook/post/find-by-post-id/:id` - Tìm post theo Facebook PostID (Permission: `FbPost.Read`)
+- `PUT /api/v1/facebook/post/update-token` - Cập nhật token của post (Permission: `FbPost.Update`)
+
+**Request Body cho update-token:**
+```json
+{
+  "postId": "facebook-post-id",
+  "panCakeData": { /* dữ liệu từ Pancake API */ }
+}
+```
 
 ## 🔐 Facebook Conversation APIs
 

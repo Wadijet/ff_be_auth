@@ -295,6 +295,11 @@ func (r *Router) registerRBACRoutes(router fiber.Router) error {
 		return fmt.Errorf("failed to create permission handler: %v", err)
 	}
 	fmt.Printf("Registering permission routes with prefix: /permission\n")
+	// Route đặc biệt cho lấy permissions theo category
+	router.Get("/permission/by-category/:category", middleware.AuthMiddleware("Permission.Read"), permHandler.HandleGetPermissionsByCategory)
+	// Route đặc biệt cho lấy permissions theo group
+	router.Get("/permission/by-group/:group", middleware.AuthMiddleware("Permission.Read"), permHandler.HandleGetPermissionsByGroup)
+	// CRUD routes
 	r.registerCRUDRoutes(router, "/permission", permHandler, permConfig, "Permission")
 
 	// Role routes
@@ -319,6 +324,9 @@ func (r *Router) registerRBACRoutes(router fiber.Router) error {
 	if err != nil {
 		return fmt.Errorf("failed to create user role handler: %v", err)
 	}
+	// Route đặc biệt cho cập nhật vai trò của người dùng
+	router.Put("/user-role/update-user-roles", middleware.AuthMiddleware("UserRole.Update"), userRoleHandler.HandleUpdateUserRoles)
+	// CRUD routes
 	r.registerCRUDRoutes(router, "/user-role", userRoleHandler, userRoleConfig, "UserRole")
 
 	// Organization routes
@@ -357,6 +365,11 @@ func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 	if err != nil {
 		return fmt.Errorf("failed to create facebook page handler: %v", err)
 	}
+	// Route đặc biệt cho tìm page theo PageID
+	router.Get("/facebook/page/find-by-page-id/:id", middleware.AuthMiddleware("FbPage.Read"), fbPageHandler.HandleFindOneByPageID)
+	// Route đặc biệt cho cập nhật token của page
+	router.Put("/facebook/page/update-token", middleware.AuthMiddleware("FbPage.Update"), fbPageHandler.HandleUpdateToken)
+	// CRUD routes
 	r.registerCRUDRoutes(router, "/facebook/page", fbPageHandler, fbPageConfig, "FbPage")
 
 	// Facebook Post routes
@@ -364,6 +377,11 @@ func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 	if err != nil {
 		return fmt.Errorf("failed to create facebook post handler: %v", err)
 	}
+	// Route đặc biệt cho tìm post theo PostID
+	router.Get("/facebook/post/find-by-post-id/:id", middleware.AuthMiddleware("FbPost.Read"), fbPostHandler.HandleFindOneByPostID)
+	// Route đặc biệt cho cập nhật token của post
+	router.Put("/facebook/post/update-token", middleware.AuthMiddleware("FbPost.Update"), fbPostHandler.HandleUpdateToken)
+	// CRUD routes
 	r.registerCRUDRoutes(router, "/facebook/post", fbPostHandler, fbPostConfig, "FbPost")
 
 	// Facebook Conversation routes

@@ -2,6 +2,28 @@
 
 ## 📝 Changelog
 
+### Version 2.1 - 2025-12-12
+
+#### ✅ Routes Đặc Biệt Mới Được Thêm
+
+**Facebook Integration:**
+- `GET /api/v1/facebook/page/find-by-page-id/:id` - Tìm page theo Facebook PageID
+- `PUT /api/v1/facebook/page/update-token` - Cập nhật Page Access Token
+- `GET /api/v1/facebook/post/find-by-post-id/:id` - Tìm post theo Facebook PostID
+- `PUT /api/v1/facebook/post/update-token` - Cập nhật token của post
+
+**RBAC Module:**
+- `PUT /api/v1/user-role/update-user-roles` - Cập nhật hàng loạt roles cho user
+- `GET /api/v1/permission/by-category/:category` - Lấy permissions theo category
+- `GET /api/v1/permission/by-group/:group` - Lấy permissions theo group
+
+#### 📚 Tài Liệu Mới
+- Cập nhật endpoints đặc biệt cho Facebook Page và Post
+- Thêm hướng dẫn sử dụng endpoint update-user-roles
+- Thêm endpoints lọc permissions theo category và group
+
+---
+
 ### Version 2.0 - 2025-12-12
 
 #### 🔄 Thay Đổi Quan Trọng
@@ -364,6 +386,8 @@ interface Permission {
 **Endpoints:**
 - `/api/v1/permission/*` - CRUD operations (Read-only)
 - GET `/api/v1/permission` - Lấy danh sách tất cả permissions (có thể filter theo category, group)
+- `GET /api/v1/permission/by-category/:category` - **Đặc biệt**: Lấy permissions theo category (Permission: `Permission.Read`)
+- `GET /api/v1/permission/by-group/:group` - **Đặc biệt**: Lấy permissions theo group (Permission: `Permission.Read`)
 
 ---
 
@@ -502,10 +526,19 @@ interface UserRole {
   - `GET /api/v1/user-role/count` - Đếm số lượng user roles
   - `GET /api/v1/user-role/distinct` - Lấy danh sách giá trị duy nhất
   - `GET /api/v1/user-role/exists` - Kiểm tra user role có tồn tại không
+- `PUT /api/v1/user-role/update-user-roles` - **Đặc biệt**: Cập nhật hàng loạt roles cho user (Permission: `UserRole.Update`)
+
+**Request Body cho update-user-roles:**
+```json
+{
+  "userId": "user-id-objectid",
+  "roleIDs": ["role-id-1", "role-id-2", "role-id-3"]
+}
+```
 
 **Lưu ý:** 
-- Để cập nhật roles cho user, có thể sử dụng `PUT /api/v1/user-role/update-many` với filter `userId`
-- Hoặc sử dụng `DELETE` các roles cũ và `INSERT` các roles mới
+- Endpoint `update-user-roles` sẽ tự động xóa các roles cũ và thêm các roles mới cho user
+- Đây là cách tiện lợi nhất để cập nhật roles cho user
 
 ---
 
@@ -880,6 +913,8 @@ interface FbPage {
 
 **Endpoints:**
 - `/api/v1/facebook/page/*` - Full CRUD operations
+- `GET /api/v1/facebook/page/find-by-page-id/:id` - **Đặc biệt**: Tìm page theo PageID (Permission: `FbPage.Read`)
+- `PUT /api/v1/facebook/page/update-token` - **Đặc biệt**: Cập nhật Page Access Token (Permission: `FbPage.Update`)
 
 ---
 
@@ -906,6 +941,8 @@ interface FbPost {
 
 **Endpoints:**
 - `/api/v1/facebook/post/*` - Full CRUD operations
+- `GET /api/v1/facebook/post/find-by-post-id/:id` - **Đặc biệt**: Tìm post theo PostID (Permission: `FbPost.Read`)
+- `PUT /api/v1/facebook/post/update-token` - **Đặc biệt**: Cập nhật token của post (Permission: `FbPost.Update`)
 
 ---
 

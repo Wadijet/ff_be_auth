@@ -214,15 +214,23 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ct
 		if err != nil {
 			page = 1
 		}
+		// Đảm bảo page >= 1 để tránh skip âm
+		if page < 1 {
+			page = 1
+		}
+
 		limit, err := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
 		if err != nil {
 			limit = 10
 		}
+		// Đảm bảo limit > 0
+		if limit <= 0 {
+			limit = 10
+		}
 
-		// Thêm limit và skip vào options
+		// Không set limit và skip vào options ở đây
+		// Service sẽ tự tính toán và set vào options để đảm bảo tính nhất quán
 		findOptions := options.(*mongoopts.FindOptions)
-		findOptions.SetLimit(limit)
-		findOptions.SetSkip((page - 1) * limit)
 
 		data, err := h.BaseService.FindWithPagination(c.Context(), filter, page, limit, findOptions)
 		h.HandleResponse(c, data, err)

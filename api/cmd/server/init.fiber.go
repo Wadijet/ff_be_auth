@@ -43,8 +43,8 @@ func InitFiberApp() *fiber.App {
 		// =========================================
 		// 3. CẤU HÌNH TIMEOUT
 		// =========================================
-		ReadTimeout:  5 * time.Second,   // Timeout đọc request
-		WriteTimeout: 10 * time.Second,  // Timeout ghi response
+		ReadTimeout:  15 * time.Second,  // Timeout đọc request
+		WriteTimeout: 30 * time.Second,  // Timeout ghi response
 		IdleTimeout:  120 * time.Second, // Timeout cho idle connections
 
 		// =========================================
@@ -77,9 +77,9 @@ func InitFiberApp() *fiber.App {
 			// TLS handshake bắt đầu với byte 0x16 0x03 0x01 (trong error message có thể hiển thị là \x16\x03\x01)
 			errMsg := err.Error()
 			isTLSHandshake := strings.Contains(errMsg, "unsupported http request method") &&
-				(strings.Contains(errMsg, "\\x16\\x03\\x01") || 
-				 strings.Contains(errMsg, "\x16\x03\x01") ||
-				 strings.Contains(errMsg, "error when reading request headers"))
+				(strings.Contains(errMsg, "\\x16\\x03\\x01") ||
+					strings.Contains(errMsg, "\x16\x03\x01") ||
+					strings.Contains(errMsg, "error when reading request headers"))
 
 			// Nếu là TLS handshake, downgrade log level và trả về lỗi phù hợp
 			if isTLSHandshake {
@@ -96,7 +96,7 @@ func InitFiberApp() *fiber.App {
 					"message": "Server chỉ hỗ trợ HTTP. Vui lòng sử dụng http:// thay vì https://",
 					"status":  "error",
 					"details": fiber.Map{
-						"protocol": "HTTP only",
+						"protocol":   "HTTP only",
 						"suggestion": "Sử dụng URL: http://localhost:" + global.MongoDB_ServerConfig.Address,
 					},
 				})
@@ -107,9 +107,9 @@ func InitFiberApp() *fiber.App {
 				"code":      code,
 				"errorCode": errorCode,
 				"message":   message,
-				"path":     c.Path(),
-				"method":   c.Method(),
-				"ip":       c.IP(),
+				"path":      c.Path(),
+				"method":    c.Method(),
+				"ip":        c.IP(),
 				"requestID": c.Get("X-Request-ID"),
 			}).Error("Request error")
 
@@ -232,7 +232,7 @@ func InitFiberApp() *fiber.App {
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Request-ID"},
 		AllowCredentials: global.MongoDB_ServerConfig.CORS_AllowCredentials,
-		ExposeHeaders:   []string{"Content-Length", "Content-Range", "X-Request-ID"},
+		ExposeHeaders:    []string{"Content-Length", "Content-Range", "X-Request-ID"},
 		MaxAge:           24 * 60 * 60, // Thời gian cache preflight requests (24 giờ)
 	}))
 

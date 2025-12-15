@@ -33,7 +33,11 @@ func NewFbConversationHandler() (*FbConversationHandler, error) {
 	}
 	handler.FbConversationService = service
 
-	// Không cần gán service cho BaseHandler vì chúng ta sẽ sử dụng FbConversationService trực tiếp
+	// Gán BaseServiceMongoImpl cho BaseHandler để các method CRUD cơ bản hoạt động
+	// FbConversationService có method Upsert với signature khác nên không implement BaseServiceMongo
+	// Nhưng BaseServiceMongoImpl bên trong nó vẫn implement interface này
+	handler.BaseService = service.BaseServiceMongoImpl
+
 	return handler, nil
 }
 
