@@ -613,6 +613,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Distinct(c fiber.Ctx) error {
 // Upsert thêm mới hoặc cập nhật một document.
 // Filter được truyền qua query string, dữ liệu trong request body.
 // Nếu không tìm thấy document thỏa mãn filter sẽ tạo mới, ngược lại sẽ cập nhật.
+// Parse body thành struct T để struct tag `extract` có thể hoạt động tự động
 //
 // Parameters:
 // - c: Fiber context
@@ -621,25 +622,28 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Distinct(c fiber.Ctx) error {
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) error {
 	return h.SafeHandler(c, func() error {
-		var filter map[string]interface{}
-		if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
+		// Parse filter từ query string (sử dụng processFilter để có normalizeFilter và validate)
+		filter, err := h.processFilter(c)
+		if err != nil {
+			h.HandleResponse(c, nil, err)
 			return nil
 		}
 
-		// Parse input thành map để chỉ update các trường được chỉ định
-		var updateData map[string]interface{}
-		if err := json.NewDecoder(bytes.NewReader(c.Body())).Decode(&updateData); err != nil {
-			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Dữ liệu cập nhật không hợp lệ", common.StatusBadRequest, nil))
+		// Parse request body thành struct T (model) để struct tag `extract` có thể hoạt động
+		// Struct tag `extract` sẽ tự động extract dữ liệu từ PanCakeData, FacebookData, etc.
+		input := new(T)
+		if err := h.ParseRequestBody(c, input); err != nil {
+			h.HandleResponse(c, nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("Dữ liệu gửi lên không đúng định dạng JSON hoặc không khớp với cấu trúc yêu cầu. Chi tiết: %v", err),
+				common.StatusBadRequest,
+				err,
+			))
 			return nil
 		}
 
-		// Tạo update data với $set operator
-		update := &services.UpdateData{
-			Set: updateData,
-		}
-
-		data, err := h.BaseService.Upsert(c.Context(), filter, update)
+		// Gọi Upsert với struct T - extract sẽ tự động chạy trong ToMap() khi ToUpdateData() được gọi
+		data, err := h.BaseService.Upsert(c.Context(), filter, *input)
 		h.HandleResponse(c, data, err)
 		return nil
 	})

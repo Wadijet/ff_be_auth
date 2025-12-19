@@ -117,12 +117,14 @@ var (
 	agentConfig    = readWriteConfig
 
 	// Pancake Module Collections
-	accessTokenConfig = readWriteConfig
-	fbPageConfig      = readWriteConfig
-	fbPostConfig      = readWriteConfig
-	fbConvConfig      = readWriteConfig
-	fbMessageConfig   = readWriteConfig
-	pcOrderConfig     = readWriteConfig
+	accessTokenConfig   = readWriteConfig
+	fbPageConfig        = readWriteConfig
+	fbPostConfig        = readWriteConfig
+	fbConvConfig        = readWriteConfig
+	fbMessageConfig     = readWriteConfig
+	fbMessageItemConfig = readWriteConfig
+	pcOrderConfig       = readWriteConfig
+	customerConfig      = readWriteConfig
 )
 
 // RoutePrefix chứa các prefix cơ bản cho API
@@ -237,6 +239,8 @@ func registerAdminRoutes(router fiber.Router) error {
 	router.Post("/admin/user/role", middleware.AuthMiddleware("User.SetRole"), adminHandler.HandleSetRole)
 	// Thiết lập administrator (yêu cầu quyền Init.SetAdmin)
 	router.Post("/admin/user/set-administrator/:id", middleware.AuthMiddleware("Init.SetAdmin"), adminHandler.HandleAddAdministrator)
+	// Đồng bộ quyền cho Administrator (yêu cầu quyền Init.SetAdmin)
+	router.Post("/admin/sync-administrator-permissions", middleware.AuthMiddleware("Init.SetAdmin"), adminHandler.HandleSyncAdministratorPermissions)
 
 	return nil
 }
@@ -379,8 +383,7 @@ func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 	}
 	// Route đặc biệt cho tìm post theo PostID
 	router.Get("/facebook/post/find-by-post-id/:id", middleware.AuthMiddleware("FbPost.Read"), fbPostHandler.HandleFindOneByPostID)
-	// Route đặc biệt cho cập nhật token của post
-	router.Put("/facebook/post/update-token", middleware.AuthMiddleware("FbPost.Update"), fbPostHandler.HandleUpdateToken)
+
 	// CRUD routes
 	r.registerCRUDRoutes(router, "/facebook/post", fbPostHandler, fbPostConfig, "FbPost")
 
@@ -399,7 +402,36 @@ func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 	if err != nil {
 		return fmt.Errorf("failed to create facebook message handler: %v", err)
 	}
+
+	// ============================================
+	// ENDPOINT ĐẶC BIỆT: Upsert Messages (Tách biệt với CRUD)
+	// ============================================
+	// Endpoint này xử lý logic đặc biệt: tự động tách messages[] ra khỏi panCakeData
+	// và lưu vào 2 collections (fb_messages cho metadata, fb_message_items cho messages)
+	// Route: POST /api/v1/facebook/message/upsert-messages
+	// DTO: FbMessageUpsertMessagesInput (có field HasMore)
+	router.Post("/facebook/message/upsert-messages", middleware.AuthMiddleware("FbMessage.Update"), fbMessageHandler.HandleUpsertMessages)
+
+	// ============================================
+	// CRUD ROUTES: Giữ nguyên logic chung (không tách messages)
+	// ============================================
+	// Các endpoint CRUD (insert-one, update-one, find, delete, ...) hoạt động bình thường
+	// - Không có logic tách messages
+	// - PanCakeData có thể chứa messages[] (tương thích ngược)
+	// - DTO: FbMessageCreateInput (không có field HasMore)
 	r.registerCRUDRoutes(router, "/facebook/message", fbMessageHandler, fbMessageConfig, "FbMessage")
+
+	// Facebook Message Item routes
+	fbMessageItemHandler, err := handler.NewFbMessageItemHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create facebook message item handler: %v", err)
+	}
+	// Route đặc biệt cho lấy message items theo conversationId với phân trang
+	router.Get("/facebook/message-item/find-by-conversation/:conversationId", middleware.AuthMiddleware("FbMessageItem.Read"), fbMessageItemHandler.HandleFindByConversationId)
+	// Route đặc biệt cho tìm message item theo messageId
+	router.Get("/facebook/message-item/find-by-message-id/:messageId", middleware.AuthMiddleware("FbMessageItem.Read"), fbMessageItemHandler.HandleFindOneByMessageId)
+	// CRUD routes
+	r.registerCRUDRoutes(router, "/facebook/message-item", fbMessageItemHandler, fbMessageItemConfig, "FbMessageItem")
 
 	// Pancake Order routes
 	pcOrderHandler, err := handler.NewPcOrderHandler()
@@ -407,6 +439,78 @@ func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 		return fmt.Errorf("failed to create pancake order handler: %v", err)
 	}
 	r.registerCRUDRoutes(router, "/pancake/order", pcOrderHandler, pcOrderConfig, "PcOrder")
+
+	// Customer routes (deprecated - dùng fb-customer và pc-pos-customer)
+	customerHandler, err := handler.NewCustomerHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create customer handler: %v", err)
+	}
+	// CRUD routes chuẩn (bao gồm upsert-one với filter)
+	r.registerCRUDRoutes(router, "/customer", customerHandler, readWriteConfig, "Customer")
+
+	// Facebook Customer routes
+	fbCustomerHandler, err := handler.NewFbCustomerHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create fb customer handler: %v", err)
+	}
+	// CRUD routes chuẩn (bao gồm upsert-one với filter)
+	r.registerCRUDRoutes(router, "/fb-customer", fbCustomerHandler, readWriteConfig, "FbCustomer")
+
+	// Pancake POS Customer routes
+	pcPosCustomerHandler, err := handler.NewPcPosCustomerHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create pc pos customer handler: %v", err)
+	}
+	// CRUD routes chuẩn (bao gồm upsert-one với filter)
+	r.registerCRUDRoutes(router, "/pc-pos-customer", pcPosCustomerHandler, readWriteConfig, "PcPosCustomer")
+
+	// Pancake POS Shop routes
+	pcPosShopHandler, err := handler.NewPcPosShopHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create pancake pos shop handler: %v", err)
+	}
+	// CRUD routes chuẩn (bao gồm upsert-one với filter)
+	r.registerCRUDRoutes(router, "/pancake-pos/shop", pcPosShopHandler, readWriteConfig, "PcPosShop")
+
+	// Pancake POS Warehouse routes
+	pcPosWarehouseHandler, err := handler.NewPcPosWarehouseHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create pancake pos warehouse handler: %v", err)
+	}
+	// CRUD routes chuẩn (bao gồm upsert-one với filter)
+	r.registerCRUDRoutes(router, "/pancake-pos/warehouse", pcPosWarehouseHandler, readWriteConfig, "PcPosWarehouse")
+
+	// Pancake POS Product routes
+	pcPosProductHandler, err := handler.NewPcPosProductHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create pancake pos product handler: %v", err)
+	}
+	// CRUD routes chuẩn (bao gồm upsert-one với filter)
+	r.registerCRUDRoutes(router, "/pancake-pos/product", pcPosProductHandler, readWriteConfig, "PcPosProduct")
+
+	// Pancake POS Variation routes
+	pcPosVariationHandler, err := handler.NewPcPosVariationHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create pancake pos variation handler: %v", err)
+	}
+	// CRUD routes chuẩn (bao gồm upsert-one với filter)
+	r.registerCRUDRoutes(router, "/pancake-pos/variation", pcPosVariationHandler, readWriteConfig, "PcPosVariation")
+
+	// Pancake POS Category routes
+	pcPosCategoryHandler, err := handler.NewPcPosCategoryHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create pancake pos category handler: %v", err)
+	}
+	// CRUD routes chuẩn (bao gồm upsert-one với filter)
+	r.registerCRUDRoutes(router, "/pancake-pos/category", pcPosCategoryHandler, readWriteConfig, "PcPosCategory")
+
+	// Pancake POS Order routes
+	pcPosOrderHandler, err := handler.NewPcPosOrderHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create pancake pos order handler: %v", err)
+	}
+	// CRUD routes chuẩn (bao gồm upsert-one với filter)
+	r.registerCRUDRoutes(router, "/pancake-pos/order", pcPosOrderHandler, readWriteConfig, "PcPosOrder")
 
 	return nil
 }

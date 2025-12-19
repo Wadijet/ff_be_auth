@@ -22,9 +22,19 @@ type MongoDB_Auth_CollectionName struct {
 	AccessTokens    string // Tên collection cho token
 	FbPages         string // Tên collection cho trang Facebook
 	FbConvesations  string // Tên collection cho cuộc trò chuyện trên Facebook
-	FbMessages      string // Tên collection cho tin nhắn trên Facebook
+	FbMessages      string // Tên collection cho metadata tin nhắn trên Facebook
+	FbMessageItems  string // Tên collection cho từng message riêng lẻ trên Facebook
 	FbPosts         string // Tên collection cho bài viết trên Facebook
+	FbCustomers     string // Tên collection cho khách hàng từ Facebook (Pancake)
 	PcOrders        string // Tên collection cho đơn hàng trên PanCake
+	Customers       string // Tên collection cho khách hàng (deprecated - dùng FbCustomers và PcPosCustomers)
+	PcPosCustomers  string // Tên collection cho khách hàng từ Pancake POS
+	PcPosShops      string // Tên collection cho cửa hàng từ Pancake POS API
+	PcPosWarehouses string // Tên collection cho kho hàng từ Pancake POS API
+	PcPosProducts   string // Tên collection cho sản phẩm từ Pancake POS API
+	PcPosVariations string // Tên collection cho biến thể sản phẩm từ Pancake POS API
+	PcPosCategories string // Tên collection cho danh mục sản phẩm từ Pancake POS API
+	PcPosOrders     string // Tên collection cho đơn hàng từ Pancake POS API
 }
 
 // Các biến toàn cục

@@ -2,12 +2,8 @@ package services
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"time"
 
-	"meta_commerce/core/api/dto"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/common"
 	"meta_commerce/core/global"
@@ -77,61 +73,4 @@ func (s *PcOrderService) Update(ctx context.Context, id primitive.ObjectID, pcOr
 	}
 
 	return s.FindOne(ctx, id)
-}
-
-// ReviceData nhận data từ Pancake và lưu vào cơ sở dữ liệu
-func (s *PcOrderService) ReviceData(ctx context.Context, input *dto.PcOrderCreateInput) (*models.PcOrder, error) {
-	if input.PanCakeData == nil {
-		return nil, errors.New("ApiData is required")
-	}
-
-	// Lấy thông tin OrderID từ ApiData đưa vào biến
-	pancakeOrderId := input.PanCakeData["id"]
-	pancakeOrderNumber := pancakeOrderId.(json.Number)
-	pancakeOrderIdStr := pancakeOrderNumber.String()
-
-	// Kiểm tra PcOrder đã tồn tại chưa
-	exists, err := s.IsPancakeOrderIdExist(ctx, pancakeOrderIdStr)
-	if err != nil {
-		return nil, err
-	}
-
-	if !exists {
-		// Tạo một PcOrder mới
-		pcOrder := &models.PcOrder{
-			ID:             primitive.NewObjectID(),
-			PancakeOrderId: pancakeOrderIdStr,
-			PanCakeData:    input.PanCakeData,
-			Status:         0,
-			CreatedAt:      time.Now().Unix(),
-			UpdatedAt:      time.Now().Unix(),
-		}
-
-		// Lưu PcOrder
-		createdPcOrder, err := s.BaseServiceMongoImpl.InsertOne(ctx, *pcOrder)
-		if err != nil {
-			return nil, err
-		}
-
-		return &createdPcOrder, nil
-	} else {
-		// Lấy PcOrder hiện tại
-		filter := bson.M{"pancakeOrderId": pancakeOrderIdStr}
-		pcOrder, err := s.BaseServiceMongoImpl.FindOne(ctx, filter, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		// Cập nhật thông tin mới
-		pcOrder.PanCakeData = input.PanCakeData
-		pcOrder.UpdatedAt = time.Now().Unix()
-
-		// Cập nhật PcOrder
-		updatedPcOrder, err := s.BaseServiceMongoImpl.UpdateById(ctx, pcOrder.ID, pcOrder)
-		if err != nil {
-			return nil, err
-		}
-
-		return &updatedPcOrder, nil
-	}
 }

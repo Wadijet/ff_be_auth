@@ -2,11 +2,8 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"time"
 
-	"meta_commerce/core/api/dto"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/common"
 	"meta_commerce/core/global"
@@ -61,66 +58,21 @@ func (s *FbConversationService) IsConversationIdExist(ctx context.Context, conve
 	return true, nil
 }
 
-// Upsert thực hiện thao tác upsert dữ liệu conversation từ Facebook vào cơ sở dữ liệu
-func (s *FbConversationService) Upsert(ctx context.Context, input *dto.FbConversationCreateInput) (*models.FbConversation, error) {
-	if input.PanCakeData == nil {
-		return nil, errors.New("ApiData is required")
-	}
-
-	// Lấy thông tin ConversationID từ ApiData đưa vào biến
-	conversationId := input.PanCakeData["id"].(string)
-	customerId := input.PanCakeData["customer_id"].(string)
-	pancakeUpdatedAtStr := input.PanCakeData["updated_at"].(string)
-
-	// Chuyển đổi thời gian từ string sang time.Time
-	parsedTime, err := time.Parse("2006-01-02T15:04:05", pancakeUpdatedAtStr)
-	if err != nil {
-		return nil, fmt.Errorf("lỗi phân tích thời gian: %v", err)
-	}
-
-	// Chuyển sang kiểu float64 (Unix timestamp dạng float64)
-	pancakeUpdatedAt := int64(parsedTime.Unix())
-
-	// Tạo filter để tìm conversation theo conversationId
-	filter := bson.M{"conversationId": conversationId}
-
-	// Tạo conversation mới với dữ liệu từ input
-	conversation := &models.FbConversation{
-		PageId:           input.PageId,
-		PageUsername:     input.PageUsername,
-		PanCakeData:      input.PanCakeData,
-		ConversationId:   conversationId,
-		CustomerId:       customerId,
-		PanCakeUpdatedAt: pancakeUpdatedAt,
-	}
-
-	// Sử dụng Upsert để tạo mới hoặc cập nhật conversation
-	upsertedConversation, err := s.BaseServiceMongoImpl.Upsert(ctx, filter, *conversation)
-	if err != nil {
-		return nil, err
-	}
-
-	return &upsertedConversation, nil
-}
-
 // FindAllSortByApiUpdate tìm tất cả các FbConversation với phân trang sắp xếp theo thời gian cập nhật của dữ liệu API
 // Hàm này cần để lấy dữ liệu cũ nhất để đồng bộ lại conversation mới
-func (s *FbConversationService) FindAllSortByApiUpdate(ctx context.Context, page int64, limit int64, filter bson.M) ([]models.FbConversation, error) {
-	opts := options.Find().
-		SetSkip((page - 1) * limit).
-		SetLimit(limit).
-		SetSort(bson.D{{"panCakeUpdatedAt", -1}})
+// Parameters:
+//   - ctx: Context cho việc hủy bỏ hoặc timeout
+//   - page: Trang hiện tại (bắt đầu từ 1)
+//   - limit: Số lượng item trên mỗi trang
+//   - filter: Điều kiện lọc (có thể là nil hoặc bson.M rỗng)
+//
+// Returns:
+//   - *models.PaginateResult[models.FbConversation]: Kết quả phân trang với đầy đủ thông tin (page, limit, itemCount, items, total, totalPage)
+//   - error: Lỗi nếu có
+func (s *FbConversationService) FindAllSortByApiUpdate(ctx context.Context, page int64, limit int64, filter bson.M) (*models.PaginateResult[models.FbConversation], error) {
+	// Tạo options với sort theo panCakeUpdatedAt giảm dần (cũ nhất trước)
+	opts := options.Find().SetSort(bson.D{{Key: "panCakeUpdatedAt", Value: -1}})
 
-	cursor, err := s.BaseServiceMongoImpl.collection.Find(ctx, filter, opts)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var results []models.FbConversation
-	if err = cursor.All(ctx, &results); err != nil {
-		return nil, err
-	}
-
-	return results, nil
+	// Sử dụng FindWithPagination từ BaseServiceMongoImpl để có đầy đủ thông tin phân trang
+	return s.BaseServiceMongoImpl.FindWithPagination(ctx, filter, page, limit, opts)
 }

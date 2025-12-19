@@ -18,14 +18,18 @@ func InitDefaultData() {
 		logrus.Fatalf("Failed to initialize root organization: %v", err)
 	}
 
-	// 2. Khởi tạo Permissions
+	// 2. Khởi tạo Permissions (tạo các quyền mới nếu chưa có, bao gồm Customer, FbMessageItem, ...)
 	if err := initService.InitPermission(); err != nil {
 		logrus.Fatalf("Failed to initialize permissions: %v", err)
 	}
+	logrus.Info("Permissions initialized/updated successfully")
 
-	// 3. Tạo Role + Đảm bảo đầy đủ Permission (tự động gọi InitRole() nếu cần)
+	// 3. Tạo Role Administrator (nếu chưa có) + Đảm bảo đầy đủ Permission cho Administrator
+	// Tự động gán tất cả quyền trong hệ thống (bao gồm quyền mới) cho role Administrator
 	if err := initService.CheckPermissionForAdministrator(); err != nil {
 		logrus.Warnf("Failed to check permissions for administrator: %v", err)
+	} else {
+		logrus.Info("Administrator role permissions synchronized successfully")
 	}
 
 	// 4. Tạo user admin tự động từ Firebase UID (nếu có config) - Tùy chọn

@@ -11,7 +11,6 @@ import (
 	"meta_commerce/core/global"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -45,67 +44,6 @@ func (s *FbPageService) IsPageExist(ctx context.Context, pageId string) (bool, e
 		return false, common.ConvertMongoError(err)
 	}
 	return true, nil
-}
-
-// ReviceData nhận data từ Facebook và lưu vào cơ sở dữ liệu
-func (s *FbPageService) ReviceData(ctx context.Context, input *dto.FbPageCreateInput) (*models.FbPage, error) {
-	if input.PanCakeData == nil {
-		return nil, common.ErrInvalidInput
-	}
-
-	// Lấy thông tin PageID từ ApiData đưa vào biến
-	pageId := input.PanCakeData["id"].(string)
-
-	// Kiểm tra FbPage đã tồn tại chưa
-	exists, err := s.IsPageExist(ctx, pageId)
-	if err != nil {
-		return nil, err
-	}
-
-	if !exists {
-		// Tạo một FbPage mới
-		page := &models.FbPage{
-			ID:           primitive.NewObjectID(),
-			AccessToken:  input.AccessToken,
-			PanCakeData:  input.PanCakeData,
-			PageName:     input.PanCakeData["name"].(string),
-			PageUsername: input.PanCakeData["username"].(string),
-			PageId:       input.PanCakeData["id"].(string),
-			IsSync:       false,
-			CreatedAt:    time.Now().Unix(),
-			UpdatedAt:    time.Now().Unix(),
-		}
-
-		// Lưu FbPage
-		createdPage, err := s.BaseServiceMongoImpl.InsertOne(ctx, *page)
-		if err != nil {
-			return nil, common.ConvertMongoError(err)
-		}
-
-		return &createdPage, nil
-	} else {
-		// Lấy FbPage hiện tại
-		filter := bson.M{"pageId": pageId}
-		page, err := s.BaseServiceMongoImpl.FindOne(ctx, filter, nil)
-		if err != nil {
-			return nil, common.ConvertMongoError(err)
-		}
-
-		// Cập nhật thông tin mới
-		page.PanCakeData = input.PanCakeData
-		page.AccessToken = input.AccessToken
-		page.PageName = input.PanCakeData["name"].(string)
-		page.PageUsername = input.PanCakeData["username"].(string)
-		page.UpdatedAt = time.Now().Unix()
-
-		// Cập nhật FbPage
-		updatedPage, err := s.BaseServiceMongoImpl.UpdateById(ctx, page.ID, page)
-		if err != nil {
-			return nil, common.ConvertMongoError(err)
-		}
-
-		return &updatedPage, nil
-	}
 }
 
 // FindOneByPageID tìm một FbPage theo PageID

@@ -146,28 +146,34 @@ func InitFiberApp() *fiber.App {
 	})
 
 	// 3. Rate Limiting Middleware - Giới hạn số request
-	rateLimitMax := global.MongoDB_ServerConfig.RateLimit_Max
-	rateLimitWindow := time.Duration(global.MongoDB_ServerConfig.RateLimit_Window) * time.Second
-	app.Use(limiter.New(limiter.Config{
-		Max:        rateLimitMax,
-		Expiration: rateLimitWindow,
-		KeyGenerator: func(c fiber.Ctx) string {
-			return c.IP() // Giới hạn theo IP
-		},
-		LimitReached: func(c fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"code":    common.ErrCodeBusinessOperation.Code,
-				"message": "Quá nhiều yêu cầu, vui lòng thử lại sau",
-				"status":  "error",
-			})
-		},
-		SkipFailedRequests:     false,
-		SkipSuccessfulRequests: false,
-		Next: func(c fiber.Ctx) bool {
-			// Bỏ qua rate limit cho health check
-			return c.Path() == "/health" || c.Path() == "/api/v1/system/health"
-		},
-	}))
+	// Chỉ bật rate limit nếu được enable và Max > 0
+	if global.MongoDB_ServerConfig.RateLimit_Enabled && global.MongoDB_ServerConfig.RateLimit_Max > 0 {
+		rateLimitMax := global.MongoDB_ServerConfig.RateLimit_Max
+		rateLimitWindow := time.Duration(global.MongoDB_ServerConfig.RateLimit_Window) * time.Second
+		app.Use(limiter.New(limiter.Config{
+			Max:        rateLimitMax,
+			Expiration: rateLimitWindow,
+			KeyGenerator: func(c fiber.Ctx) string {
+				return c.IP() // Giới hạn theo IP
+			},
+			LimitReached: func(c fiber.Ctx) error {
+				return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+					"code":    common.ErrCodeBusinessOperation.Code,
+					"message": "Quá nhiều yêu cầu, vui lòng thử lại sau",
+					"status":  "error",
+				})
+			},
+			SkipFailedRequests:     false,
+			SkipSuccessfulRequests: false,
+			Next: func(c fiber.Ctx) bool {
+				// Bỏ qua rate limit cho health check
+				return c.Path() == "/health" || c.Path() == "/api/v1/system/health"
+			},
+		}))
+		logrus.Info(fmt.Sprintf("Rate limiting enabled: %d requests per %d seconds", rateLimitMax, global.MongoDB_ServerConfig.RateLimit_Window))
+	} else {
+		logrus.Info("Rate limiting disabled")
+	}
 
 	// 4. Recover Middleware
 	app.Use(recover.New(recover.Config{

@@ -1,6 +1,9 @@
 package utility
 
 import (
+	"fmt"
+	"reflect"
+
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -42,13 +45,42 @@ type BsonWrapper struct {
 
 // ToMap chuyển đổi interface thành bản đồ.
 // Nó nhận interface làm tham số và trả về bản đồ và lỗi nếu có
+// Hook: Tự động extract data từ source fields (PanCakeData, FacebookData, ...) vào typed fields
+// dựa trên tag extract trước khi convert sang map
 func ToMap(s interface{}) (map[string]interface{}, error) {
+	// Xử lý extract: Nếu là value, convert thành pointer để extract
+	val := reflect.ValueOf(s)
+	var toMarshal interface{} = s
+	var ptrVal reflect.Value
+
+	if val.Kind() != reflect.Ptr && val.Kind() == reflect.Struct {
+		// Nếu là value struct, tạo pointer mới để extract
+		ptrVal = reflect.New(val.Type())
+		ptrVal.Elem().Set(val)
+		toMarshal = ptrVal.Interface()
+	}
+
+	// Extract data từ source fields vào typed fields
+	// Hook tại đây để tự động extract cho tất cả CRUD operations
+	if err := ExtractDataIfExists(toMarshal); err != nil {
+		return nil, fmt.Errorf("extract data failed: %w", err)
+	}
+
+	// Nếu đã tạo pointer tạm thời, marshal struct bên trong (không phải pointer wrapper)
+	if ptrVal.IsValid() {
+		toMarshal = ptrVal.Elem().Interface()
+	}
+
+	// Convert sang map như bình thường
 	var stringInterfaceMap map[string]interface{}
-	itr, err := bson.Marshal(s)
+	itr, err := bson.Marshal(toMarshal)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("bson marshal failed: %w", err)
 	}
 	err = bson.Unmarshal(itr, &stringInterfaceMap)
+	if err != nil {
+		return nil, fmt.Errorf("bson unmarshal failed: %w", err)
+	}
 	return stringInterfaceMap, err
 }
 

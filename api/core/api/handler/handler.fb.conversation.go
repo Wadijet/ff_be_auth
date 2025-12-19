@@ -6,7 +6,6 @@ import (
 	"meta_commerce/core/api/dto"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
-	"meta_commerce/core/common"
 
 	"github.com/gofiber/fiber/v3"
 	"go.mongodb.org/mongo-driver/bson"
@@ -34,8 +33,8 @@ func NewFbConversationHandler() (*FbConversationHandler, error) {
 	handler.FbConversationService = service
 
 	// Gán BaseServiceMongoImpl cho BaseHandler để các method CRUD cơ bản hoạt động
-	// FbConversationService có method Upsert với signature khác nên không implement BaseServiceMongo
-	// Nhưng BaseServiceMongoImpl bên trong nó vẫn implement interface này
+	// FbConversationService sử dụng CRUD chuẩn từ BaseServiceMongoImpl
+	// Struct tag `extract` sẽ tự động extract dữ liệu từ PanCakeData khi cần
 	handler.BaseService = service.BaseServiceMongoImpl
 
 	return handler, nil
@@ -56,11 +55,15 @@ func NewFbConversationHandler() (*FbConversationHandler, error) {
 // Response:
 //   - 200: Lấy dữ liệu thành công
 //     {
+//     "code": 200,
 //     "message": "Thành công",
+//     "status": "success",
 //     "data": {
 //     "page": 1,
 //     "limit": 10,
 //     "itemCount": 5,
+//     "total": 50,
+//     "totalPage": 5,
 //     "items": [{
 //     "id": "...",
 //     "pageId": "...",
@@ -71,7 +74,18 @@ func NewFbConversationHandler() (*FbConversationHandler, error) {
 //     }
 //     }
 //   - 400: Tham số không hợp lệ
+//     {
+//     "code": "...",
+//     "message": "...",
+//     "details": {...},
+//     "status": "error"
+//     }
 //   - 500: Lỗi server
+//     {
+//     "code": "...",
+//     "message": "...",
+//     "status": "error"
+//     }
 func (h *FbConversationHandler) HandleFindAllSortByApiUpdate(c fiber.Ctx) error {
 	// Parse page và limit từ query params
 	pageInt, limitInt := h.ParsePagination(c)
@@ -86,22 +100,6 @@ func (h *FbConversationHandler) HandleFindAllSortByApiUpdate(c fiber.Ctx) error 
 
 	// Gọi service để lấy dữ liệu
 	result, err := h.FbConversationService.FindAllSortByApiUpdate(context.Background(), page, limit, filter)
-	if err != nil {
-		if customErr, ok := err.(*common.Error); ok {
-			return c.Status(customErr.StatusCode).JSON(fiber.Map{
-				"code":    customErr.Code,
-				"message": customErr.Message,
-				"details": customErr.Details,
-			})
-		}
-		return c.Status(common.StatusInternalServerError).JSON(fiber.Map{
-			"code":    common.ErrCodeDatabase,
-			"message": err.Error(),
-		})
-	}
-
-	return c.Status(common.StatusOK).JSON(fiber.Map{
-		"message": common.MsgSuccess,
-		"data":    result,
-	})
+	h.HandleResponse(c, result, err)
+	return nil
 }

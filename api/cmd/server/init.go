@@ -38,8 +38,18 @@ func initColNames() {
 	global.MongoDB_ColNames.FbPages = "fb_pages"
 	global.MongoDB_ColNames.FbConvesations = "fb_conversations"
 	global.MongoDB_ColNames.FbMessages = "fb_messages"
+	global.MongoDB_ColNames.FbMessageItems = "fb_message_items"
 	global.MongoDB_ColNames.FbPosts = "fb_posts"
+	global.MongoDB_ColNames.FbCustomers = "fb_customers"
 	global.MongoDB_ColNames.PcOrders = "pc_orders"
+	global.MongoDB_ColNames.Customers = "customers"
+	global.MongoDB_ColNames.PcPosCustomers = "pc_pos_customers"
+	global.MongoDB_ColNames.PcPosShops = "pc_pos_shops"
+	global.MongoDB_ColNames.PcPosWarehouses = "pc_pos_warehouses"
+	global.MongoDB_ColNames.PcPosProducts = "pc_pos_products"
+	global.MongoDB_ColNames.PcPosVariations = "pc_pos_variations"
+	global.MongoDB_ColNames.PcPosCategories = "pc_pos_categories"
+	global.MongoDB_ColNames.PcPosOrders = "pc_pos_orders"
 
 	logrus.Info("Initialized collection names") // Ghi log thông báo đã khởi tạo tên các collection
 }
@@ -85,8 +95,18 @@ func initDatabase_MongoDB() {
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.FbPages), models.FbPage{})
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.FbConvesations), models.FbConversation{})
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.FbMessages), models.FbMessage{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.FbMessageItems), models.FbMessageItem{})
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.FbPosts), models.FbPost{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.FbCustomers), models.FbCustomer{})
 	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcOrders), models.PcOrder{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.Customers), models.Customer{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcPosCustomers), models.PcPosCustomer{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcPosShops), models.PcPosShop{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcPosWarehouses), models.PcPosWarehouse{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcPosProducts), models.PcPosProduct{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcPosVariations), models.PcPosVariation{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcPosCategories), models.PcPosCategory{})
+	database.CreateIndexes(context.TODO(), global.MongoDB_Session.Database(dbName).Collection(global.MongoDB_ColNames.PcPosOrders), models.PcPosOrder{})
 }
 
 // initFirebase khởi tạo Firebase Admin SDK
@@ -96,11 +116,11 @@ func initFirebase() {
 	execPath, _ := os.Executable()
 	execDir := filepath.Dir(execPath)
 	logData, _ := json.Marshal(map[string]interface{}{
-		"sessionId":     "debug-session",
-		"runId":         "run1",
-		"hypothesisId":  "A",
-		"location":      "init.go:90",
-		"message":       "initFirebase entry - working directory và executable path",
+		"sessionId":    "debug-session",
+		"runId":        "run1",
+		"hypothesisId": "A",
+		"location":     "init.go:90",
+		"message":      "initFirebase entry - working directory và executable path",
 		"data": map[string]interface{}{
 			"workingDirectory": wd,
 			"executablePath":   execPath,

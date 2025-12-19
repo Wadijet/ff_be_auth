@@ -56,6 +56,26 @@ Các ví dụ code thực tế:
 
 **Sử dụng file này khi cần examples cụ thể.**
 
+### 5. [Pancake API Context](./pancake-api-context.md)
+Tài liệu về Pancake API (Pages API):
+- Quản lý Pages, Conversations, Messages
+- Statistics và Analytics
+- Customers và Tags
+- Export Data và Call Logs
+
+**Sử dụng file này khi tích hợp với Pancake Pages API.**
+
+### 6. [Pancake POS API Context](./pancake-pos-api-context.md) ⭐ **MỚI**
+Tài liệu về Pancake POS API (Point of Sale):
+- Quản lý Shop và Warehouses
+- Quản lý Orders và Customers
+- Quản lý Products và Inventory
+- Purchases, Transfers, Stocktakings
+- Promotions và Vouchers
+- Analytics và CRM
+
+**Sử dụng file này khi tích hợp với Pancake POS API.**
+
 ## 🚀 Cách Sử Dụng
 
 ### Cho AI Assistant (ChatGPT, Claude, Cursor AI, v.v.)

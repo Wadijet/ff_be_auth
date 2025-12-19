@@ -11,7 +11,6 @@ import (
 	"meta_commerce/core/global"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -52,62 +51,6 @@ func (s *FbPostService) IsPostExist(ctx context.Context, postId string) (bool, e
 		return false, common.ConvertMongoError(err)
 	}
 	return true, nil
-}
-
-// ReviceData nhận data từ Facebook và lưu vào cơ sở dữ liệu
-func (s *FbPostService) ReviceData(ctx context.Context, input *dto.FbPostCreateInput) (*models.FbPost, error) {
-	if input.PanCakeData == nil {
-		return nil, common.ErrInvalidInput
-	}
-
-	// Lấy thông tin PostId từ ApiData đưa vào biến
-	pageId := input.PanCakeData["page_id"].(string)
-	postId := input.PanCakeData["id"].(string)
-
-	// Kiểm tra FbPost đã tồn tại chưa
-	exists, err := s.IsPostExist(ctx, postId)
-	if err != nil {
-		return nil, err
-	}
-
-	if !exists {
-		// Tạo một FbPost mới
-		post := &models.FbPost{
-			ID:          primitive.NewObjectID(),
-			PageId:      pageId,
-			PostId:      postId,
-			PanCakeData: input.PanCakeData,
-			CreatedAt:   time.Now().Unix(),
-			UpdatedAt:   time.Now().Unix(),
-		}
-
-		// Lưu FbPost
-		createdPost, err := s.BaseServiceMongoImpl.InsertOne(ctx, *post)
-		if err != nil {
-			return nil, common.ConvertMongoError(err)
-		}
-
-		return &createdPost, nil
-	} else {
-		filter := bson.M{"postId": postId}
-		// Lấy FbPost hiện tại
-		post, err := s.BaseServiceMongoImpl.FindOne(ctx, filter, nil)
-		if err != nil {
-			return nil, common.ConvertMongoError(err)
-		}
-
-		// Cập nhật thông tin mới
-		post.PanCakeData = input.PanCakeData
-		post.UpdatedAt = time.Now().Unix()
-
-		// Cập nhật FbPost
-		updatedPost, err := s.BaseServiceMongoImpl.UpdateById(ctx, post.ID, post)
-		if err != nil {
-			return nil, common.ConvertMongoError(err)
-		}
-
-		return &updatedPost, nil
-	}
 }
 
 // FindOneByPostID tìm một FbPost theo PostID

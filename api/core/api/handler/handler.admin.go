@@ -219,3 +219,36 @@ func (h *AdminHandler) HandleAddAdministrator(c fiber.Ctx) error {
 	h.HandleResponse(c, result, err)
 	return nil
 }
+
+// HandleSyncAdministratorPermissions đồng bộ quyền cho Administrator
+// Endpoint này sẽ tạo các quyền mới (nếu chưa có) và đảm bảo Administrator có đầy đủ tất cả quyền
+// @Summary Đồng bộ quyền cho Administrator
+// @Description Tạo các quyền mới (nếu chưa có) và đảm bảo Administrator có đầy đủ tất cả quyền trong hệ thống
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.SuccessResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /admin/sync-administrator-permissions [post]
+func (h *AdminHandler) HandleSyncAdministratorPermissions(c fiber.Ctx) error {
+	// Sử dụng InitService để sync permissions
+	initService, err := services.NewInitService()
+	if err != nil {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeInternalServer, "Không thể khởi tạo InitService", common.StatusInternalServerError, err))
+		return nil
+	}
+
+	// 1. Tạo các quyền mới (nếu chưa có) - InitPermission chỉ tạo các quyền chưa tồn tại
+	if err := initService.InitPermission(); err != nil {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeInternalServer, "Không thể khởi tạo permissions", common.StatusInternalServerError, err))
+		return nil
+	}
+
+	// 2. Đảm bảo Administrator có đầy đủ tất cả quyền
+	if err := initService.CheckPermissionForAdministrator(); err != nil {
+		h.HandleResponse(c, nil, common.NewError(common.ErrCodeInternalServer, "Không thể đồng bộ quyền cho Administrator", common.StatusInternalServerError, err))
+		return nil
+	}
+
+	h.HandleResponse(c, map[string]string{"message": "Đã đồng bộ quyền cho Administrator thành công"}, nil)
+	return nil
+}

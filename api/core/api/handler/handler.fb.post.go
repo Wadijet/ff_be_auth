@@ -57,30 +57,3 @@ func (h *FbPostHandler) HandleFindOneByPostID(c fiber.Ctx) error {
 	h.HandleResponse(c, data, err)
 	return nil
 }
-
-// HandleUpdateToken cập nhật access token của một FbPost
-// Parameters:
-//   - c: Context của Fiber chứa thông tin request
-//
-// Request Body:
-//   - dto.FbPostUpdateTokenInput: Thông tin token cần cập nhật
-//
-// Returns:
-//   - error: Lỗi nếu có
-//
-// Response:
-//   - 200: Cập nhật token thành công
-//   - 400: Dữ liệu đầu vào không hợp lệ
-//   - 404: Không tìm thấy FbPost
-//   - 500: Lỗi server
-func (h *FbPostHandler) HandleUpdateToken(c fiber.Ctx) error {
-	input := new(dto.FbPostUpdateTokenInput)
-	if err := h.ParseRequestBody(c, input); err != nil {
-		h.HandleResponse(c, nil, err)
-		return nil
-	}
-
-	data, err := h.FbPostService.UpdateToken(context.Background(), input)
-	h.HandleResponse(c, data, err)
-	return nil
-}

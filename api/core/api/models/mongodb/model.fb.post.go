@@ -4,14 +4,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// Permission đại diện cho quyền trong hệ thống,
-// Các quyền được kết cấu theo các quyền gọi các API trong router.
-// Các quyèn này được tạo ra khi khởi tạo hệ thống và không thể thay đổi.
+// FbPost đại diện cho một bài viết Facebook từ Pancake
 type FbPost struct {
-	ID          primitive.ObjectID     `json:"id,omitempty" bson:"_id,omitempty"`        // ID của quyền
-	PageId      string                 `json:"pageId" bson:"pageId" index:"unique;text"` // ID của trang
-	PostId      string                 `json:"postId" bson:"postId" index:"unique;text"` // ID của bài viết
-	PanCakeData map[string]interface{} `json:"panCakeData" bson:"panCakeData"`           // Dữ liệu API
-	CreatedAt   int64                  `json:"createdAt" bson:"createdAt"`               // Thời gian tạo quyền
-	UpdatedAt   int64                  `json:"updatedAt" bson:"updatedAt"`               // Thời gian cập nhật quyền
+	ID          primitive.ObjectID     `json:"id,omitempty" bson:"_id,omitempty"`                                                                          // ID của bài viết
+	PageId      string                 `json:"pageId" bson:"pageId" index:"text" extract:"PanCakeData\\.page_id"`                                          // ID của trang (extract từ PanCakeData["page_id"])
+	PostId      string                 `json:"postId" bson:"postId" index:"unique;text" extract:"PanCakeData\\.id"`                                        // ID của bài viết (extract từ PanCakeData["id"])
+	InsertedAt  int64                  `json:"insertedAt" bson:"insertedAt" extract:"PanCakeData\\.inserted_at,converter=time,format=2006-01-02T15:04:05"` // Thời gian insert bài viết (extract từ PanCakeData["inserted_at"])
+	PanCakeData map[string]interface{} `json:"panCakeData" bson:"panCakeData"`                                                                             // Dữ liệu API
+	CreatedAt   int64                  `json:"createdAt" bson:"createdAt"`                                                                                 // Thời gian tạo bài viết
+	UpdatedAt   int64                  `json:"updatedAt" bson:"updatedAt"`                                                                                 // Thời gian cập nhật bài viết
 }

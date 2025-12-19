@@ -159,6 +159,66 @@ var InitialPermissions = []models.Permission{
 	{Name: "PcOrder.Read", Describe: "Quyền xem danh sách đơn hàng", Group: "Pancake", Category: "PcOrder"},
 	{Name: "PcOrder.Update", Describe: "Quyền cập nhật đơn hàng", Group: "Pancake", Category: "PcOrder"},
 	{Name: "PcOrder.Delete", Describe: "Quyền xóa đơn hàng", Group: "Pancake", Category: "PcOrder"},
+
+	// Quản lý tin nhắn Facebook Item: Thêm, xem, sửa, xóa
+	{Name: "FbMessageItem.Insert", Describe: "Quyền tạo tin nhắn item", Group: "Pancake", Category: "FbMessageItem"},
+	{Name: "FbMessageItem.Read", Describe: "Quyền xem danh sách tin nhắn item", Group: "Pancake", Category: "FbMessageItem"},
+	{Name: "FbMessageItem.Update", Describe: "Quyền cập nhật tin nhắn item", Group: "Pancake", Category: "FbMessageItem"},
+	{Name: "FbMessageItem.Delete", Describe: "Quyền xóa tin nhắn item", Group: "Pancake", Category: "FbMessageItem"},
+
+	// Quản lý khách hàng: Thêm, xem, sửa, xóa
+	{Name: "Customer.Insert", Describe: "Quyền tạo khách hàng", Group: "Pancake", Category: "Customer"},
+	{Name: "Customer.Read", Describe: "Quyền xem danh sách khách hàng", Group: "Pancake", Category: "Customer"},
+	{Name: "Customer.Update", Describe: "Quyền cập nhật thông tin khách hàng", Group: "Pancake", Category: "Customer"},
+	{Name: "Customer.Delete", Describe: "Quyền xóa khách hàng", Group: "Pancake", Category: "Customer"},
+
+	// Quản lý khách hàng Facebook: Thêm, xem, sửa, xóa
+	{Name: "FbCustomer.Insert", Describe: "Quyền tạo khách hàng Facebook", Group: "Pancake", Category: "FbCustomer"},
+	{Name: "FbCustomer.Read", Describe: "Quyền xem danh sách khách hàng Facebook", Group: "Pancake", Category: "FbCustomer"},
+	{Name: "FbCustomer.Update", Describe: "Quyền cập nhật thông tin khách hàng Facebook", Group: "Pancake", Category: "FbCustomer"},
+	{Name: "FbCustomer.Delete", Describe: "Quyền xóa khách hàng Facebook", Group: "Pancake", Category: "FbCustomer"},
+
+	// Quản lý khách hàng POS: Thêm, xem, sửa, xóa
+	{Name: "PcPosCustomer.Insert", Describe: "Quyền tạo khách hàng POS", Group: "Pancake", Category: "PcPosCustomer"},
+	{Name: "PcPosCustomer.Read", Describe: "Quyền xem danh sách khách hàng POS", Group: "Pancake", Category: "PcPosCustomer"},
+	{Name: "PcPosCustomer.Update", Describe: "Quyền cập nhật thông tin khách hàng POS", Group: "Pancake", Category: "PcPosCustomer"},
+	{Name: "PcPosCustomer.Delete", Describe: "Quyền xóa khách hàng POS", Group: "Pancake", Category: "PcPosCustomer"},
+
+	// Quản lý cửa hàng Pancake POS: Thêm, xem, sửa, xóa
+	{Name: "PcPosShop.Insert", Describe: "Quyền tạo cửa hàng từ Pancake POS", Group: "Pancake", Category: "PcPosShop"},
+	{Name: "PcPosShop.Read", Describe: "Quyền xem danh sách cửa hàng từ Pancake POS", Group: "Pancake", Category: "PcPosShop"},
+	{Name: "PcPosShop.Update", Describe: "Quyền cập nhật thông tin cửa hàng từ Pancake POS", Group: "Pancake", Category: "PcPosShop"},
+	{Name: "PcPosShop.Delete", Describe: "Quyền xóa cửa hàng từ Pancake POS", Group: "Pancake", Category: "PcPosShop"},
+
+	// Quản lý kho hàng Pancake POS: Thêm, xem, sửa, xóa
+	{Name: "PcPosWarehouse.Insert", Describe: "Quyền tạo kho hàng từ Pancake POS", Group: "Pancake", Category: "PcPosWarehouse"},
+	{Name: "PcPosWarehouse.Read", Describe: "Quyền xem danh sách kho hàng từ Pancake POS", Group: "Pancake", Category: "PcPosWarehouse"},
+	{Name: "PcPosWarehouse.Update", Describe: "Quyền cập nhật thông tin kho hàng từ Pancake POS", Group: "Pancake", Category: "PcPosWarehouse"},
+	{Name: "PcPosWarehouse.Delete", Describe: "Quyền xóa kho hàng từ Pancake POS", Group: "Pancake", Category: "PcPosWarehouse"},
+
+	// Quản lý sản phẩm Pancake POS: Thêm, xem, sửa, xóa
+	{Name: "PcPosProduct.Insert", Describe: "Quyền tạo sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosProduct"},
+	{Name: "PcPosProduct.Read", Describe: "Quyền xem danh sách sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosProduct"},
+	{Name: "PcPosProduct.Update", Describe: "Quyền cập nhật thông tin sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosProduct"},
+	{Name: "PcPosProduct.Delete", Describe: "Quyền xóa sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosProduct"},
+
+	// Quản lý biến thể sản phẩm Pancake POS: Thêm, xem, sửa, xóa
+	{Name: "PcPosVariation.Insert", Describe: "Quyền tạo biến thể sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosVariation"},
+	{Name: "PcPosVariation.Read", Describe: "Quyền xem danh sách biến thể sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosVariation"},
+	{Name: "PcPosVariation.Update", Describe: "Quyền cập nhật thông tin biến thể sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosVariation"},
+	{Name: "PcPosVariation.Delete", Describe: "Quyền xóa biến thể sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosVariation"},
+
+	// Quản lý danh mục sản phẩm Pancake POS: Thêm, xem, sửa, xóa
+	{Name: "PcPosCategory.Insert", Describe: "Quyền tạo danh mục sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosCategory"},
+	{Name: "PcPosCategory.Read", Describe: "Quyền xem danh sách danh mục sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosCategory"},
+	{Name: "PcPosCategory.Update", Describe: "Quyền cập nhật thông tin danh mục sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosCategory"},
+	{Name: "PcPosCategory.Delete", Describe: "Quyền xóa danh mục sản phẩm từ Pancake POS", Group: "Pancake", Category: "PcPosCategory"},
+
+	// Quản lý đơn hàng Pancake POS: Thêm, xem, sửa, xóa
+	{Name: "PcPosOrder.Insert", Describe: "Quyền tạo đơn hàng từ Pancake POS", Group: "Pancake", Category: "PcPosOrder"},
+	{Name: "PcPosOrder.Read", Describe: "Quyền xem danh sách đơn hàng từ Pancake POS", Group: "Pancake", Category: "PcPosOrder"},
+	{Name: "PcPosOrder.Update", Describe: "Quyền cập nhật thông tin đơn hàng từ Pancake POS", Group: "Pancake", Category: "PcPosOrder"},
+	{Name: "PcPosOrder.Delete", Describe: "Quyền xóa đơn hàng từ Pancake POS", Group: "Pancake", Category: "PcPosOrder"},
 }
 
 // InitPermission khởi tạo các quyền mặc định cho hệ thống
@@ -513,6 +573,15 @@ func (h *InitService) SetAdministrator(userID primitive.ObjectID) (result interf
 	result, err = h.userRoleService.InsertOne(context.TODO(), userRole)
 	if err != nil {
 		return nil, err
+	}
+
+	// Đảm bảo role Administrator có đầy đủ tất cả các quyền trong hệ thống
+	// Gọi CheckPermissionForAdministrator để cập nhật quyền cho role Administrator
+	err = h.CheckPermissionForAdministrator()
+	if err != nil {
+		// Log lỗi nhưng không fail việc set administrator
+		// Vì role đã được gán, chỉ là quyền có thể chưa được cập nhật đầy đủ
+		_ = fmt.Errorf("failed to check permissions for administrator: %v", err)
 	}
 
 	return result, nil

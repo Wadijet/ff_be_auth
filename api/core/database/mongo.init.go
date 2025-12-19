@@ -323,5 +323,52 @@ func CreateIndexes(ctx context.Context, collection *mongo.Collection, model inte
 		}
 	}
 
+	// Cleanup: Xóa các unique index không còn được định nghĩa trong model
+	// Tạo map các field có unique index từ model
+	fieldsWithUniqueIndex := make(map[string]bool)
+	for i := 0; i < modelType.NumField(); i++ {
+		field := modelType.Field(i)
+		tag, ok := field.Tag.Lookup("index")
+		if !ok {
+			continue
+		}
+
+		bsonField := field.Tag.Get("bson")
+		if bsonField == "" || bsonField == "-" {
+			continue
+		}
+
+		indexConfigs := parseIndexTag(tag)
+		for _, config := range indexConfigs {
+			if _, hasUnique := config["unique"]; hasUnique {
+				fieldsWithUniqueIndex[bsonField] = true
+				break
+			}
+		}
+	}
+
+	// Xóa các unique index không còn được định nghĩa
+	for indexName, indexInfo := range existingIndexes {
+		// Chỉ xóa index có pattern {field}_unique
+		if strings.HasSuffix(indexName, "_unique") {
+			// Lấy tên field từ index name (bỏ phần "_unique")
+			fieldName := strings.TrimSuffix(indexName, "_unique")
+
+			// Kiểm tra xem field này có unique index trong model không
+			if !fieldsWithUniqueIndex[fieldName] {
+				// Kiểm tra xem index này có phải là unique index không
+				if unique, ok := indexInfo["unique"].(bool); ok && unique {
+					fmt.Printf("Phát hiện unique index không còn được định nghĩa: %s, đang xóa...\n", indexName)
+					if _, err := collection.Indexes().DropOne(ctx, indexName); err != nil {
+						fmt.Printf("Cảnh báo: Không thể xóa index %s: %v\n", indexName, err)
+						// Không return error để không chặn việc tạo index khác
+					} else {
+						fmt.Printf("Đã xóa index không còn được định nghĩa: %s\n", indexName)
+					}
+				}
+			}
+		}
+	}
+
 	return nil
 }
