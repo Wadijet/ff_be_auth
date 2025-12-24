@@ -609,3 +609,5 @@ Với việc fix các gaps này, hệ thống sẽ có đủ dữ liệu để:
 - ✅ Phân tích địa lý và logistics
 - ✅ Ứng dụng AI cho insights kinh doanh
 
+
+

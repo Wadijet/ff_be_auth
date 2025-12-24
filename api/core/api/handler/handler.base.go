@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	mongoopts "go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -431,6 +432,114 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) processMongoOptions(c fiber.C
 		return nil, err
 	}
 
+	// Helper function để parse sort map thông thường (fallback)
+	parseSortMap := func(sortMap map[string]interface{}) bson.D {
+		sortBson := bson.D{}
+		for field, value := range sortMap {
+			var sortValue int
+			if v, ok := value.(float64); ok {
+				sortValue = int(v)
+			} else if v, ok := value.(int); ok {
+				sortValue = v
+			} else {
+				continue
+			}
+			// Validate sort value
+			if sortValue != 1 && sortValue != -1 {
+				continue
+			}
+			sortBson = append(sortBson, bson.E{Key: field, Value: sortValue})
+		}
+		return sortBson
+	}
+
+	// Parse sort với thứ tự được giữ nguyên từ JSON string gốc
+	parseSortWithOrder := func(sortMap map[string]interface{}, optionsJSON string) (bson.D, error) {
+		sortBson := bson.D{}
+		
+		// Parse lại phần sort từ JSON string gốc để giữ nguyên thứ tự
+		// Sử dụng json.Decoder với Token() để parse từng key theo thứ tự trong JSON
+		var tempOptions map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(optionsJSON), &tempOptions); err != nil {
+			// Fallback: sử dụng map thông thường nếu không parse được
+			return parseSortMap(sortMap), nil
+		}
+		
+		sortRaw, ok := tempOptions["sort"]
+		if !ok {
+			// Không có sort trong options
+			return sortBson, nil
+		}
+		
+		// Parse sort object với json.Decoder để giữ thứ tự các key
+		decoder := json.NewDecoder(bytes.NewReader(sortRaw))
+		decoder.UseNumber() // Sử dụng Number để tránh mất precision
+		
+		// Đọc token '{'
+		token, err := decoder.Token()
+		if err != nil || token != json.Delim('{') {
+			// Fallback: sử dụng map thông thường
+			return parseSortMap(sortMap), nil
+		}
+		
+		// Parse từng key-value pair theo thứ tự trong JSON
+		for decoder.More() {
+			// Đọc key
+			keyToken, err := decoder.Token()
+			if err != nil {
+				break
+			}
+			field, ok := keyToken.(string)
+			if !ok {
+				continue
+			}
+			
+			// Đọc value token (số)
+			valueToken, err := decoder.Token()
+			if err != nil {
+				break
+			}
+			
+			var sortValue int
+			switch v := valueToken.(type) {
+			case json.Number:
+				intVal, err := v.Int64()
+				if err != nil {
+					// Thử parse như float64
+					floatVal, err := v.Float64()
+					if err != nil {
+						continue
+					}
+					intVal = int64(floatVal)
+				}
+				sortValue = int(intVal)
+			case float64:
+				sortValue = int(v)
+			case int:
+				sortValue = v
+			default:
+				continue
+			}
+			
+			// Validate sort value (chỉ chấp nhận 1 hoặc -1)
+			if sortValue != 1 && sortValue != -1 {
+				continue
+			}
+			
+			sortBson = append(sortBson, bson.E{Key: field, Value: sortValue})
+		}
+		
+		// Đọc token '}'
+		_, _ = decoder.Token()
+		
+		// Nếu không parse được gì, fallback về map thông thường
+		if len(sortBson) == 0 {
+			return parseSortMap(sortMap), nil
+		}
+		
+		return sortBson, nil
+	}
+
 	// Chuyển đổi sang MongoDB options
 	if isFindOne {
 		opts := mongoopts.FindOne()
@@ -438,7 +547,16 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) processMongoOptions(c fiber.C
 			opts.SetProjection(projection)
 		}
 		if sort, ok := rawOptions["sort"].(map[string]interface{}); ok {
-			opts.SetSort(sort)
+			sortBson, err := parseSortWithOrder(sort, optionsStr)
+			if err != nil {
+				return nil, common.NewError(
+					common.ErrCodeValidationFormat,
+					fmt.Sprintf("Lỗi khi parse sort options: %v", err),
+					common.StatusBadRequest,
+					err,
+				)
+			}
+			opts.SetSort(sortBson)
 		}
 		return opts, nil
 	}
@@ -448,7 +566,16 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) processMongoOptions(c fiber.C
 		opts.SetProjection(projection)
 	}
 	if sort, ok := rawOptions["sort"].(map[string]interface{}); ok {
-		opts.SetSort(sort)
+		sortBson, err := parseSortWithOrder(sort, optionsStr)
+		if err != nil {
+			return nil, common.NewError(
+				common.ErrCodeValidationFormat,
+				fmt.Sprintf("Lỗi khi parse sort options: %v", err),
+				common.StatusBadRequest,
+				err,
+			)
+		}
+		opts.SetSort(sortBson)
 	}
 	if limit, ok := rawOptions["limit"].(float64); ok {
 		opts.SetLimit(int64(limit))
