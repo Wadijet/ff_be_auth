@@ -1,0 +1,30 @@
+package models
+
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+// NotificationChannelSender - Cấu hình sender (địa chỉ gửi)
+type NotificationChannelSender struct {
+	ID             primitive.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`
+	OrganizationID *primitive.ObjectID `json:"organizationId,omitempty" bson:"organizationId,omitempty" index:"single:1"` // null = global, có giá trị = company/group level
+	ChannelType    string              `json:"channelType" bson:"channelType" index:"single:1"`                          // email, telegram, webhook
+	Name           string              `json:"name" bson:"name" index:"single:1"`
+	IsActive       bool                `json:"isActive" bson:"isActive" index:"single:1"`
+
+	// Email sender config
+	SMTPHost     string `json:"smtpHost,omitempty" bson:"smtpHost,omitempty"`
+	SMTPPort     int    `json:"smtpPort,omitempty" bson:"smtpPort,omitempty"`
+	SMTPUsername string `json:"smtpUsername,omitempty" bson:"smtpUsername,omitempty"`
+	SMTPPassword string `json:"smtpPassword,omitempty" bson:"smtpPassword,omitempty"`
+	FromEmail    string `json:"fromEmail,omitempty" bson:"fromEmail,omitempty"`
+	FromName     string `json:"fromName,omitempty" bson:"fromName,omitempty"`
+
+	// Telegram sender config
+	BotToken    string `json:"botToken,omitempty" bson:"botToken,omitempty"`
+	BotUsername string `json:"botUsername,omitempty" bson:"botUsername,omitempty"`
+
+	CreatedAt int64 `json:"createdAt" bson:"createdAt"`
+	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"`
+}
+

@@ -1,0 +1,31 @@
+package models
+
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+// NotificationTemplate - Template thông báo
+type NotificationTemplate struct {
+	ID             primitive.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`
+	OrganizationID *primitive.ObjectID `json:"organizationId,omitempty" bson:"organizationId,omitempty" index:"single:1"` // null = global
+	EventType      string              `json:"eventType" bson:"eventType" index:"single:1"`                                // conversation_unreplied, order_created, ...
+	ChannelType    string              `json:"channelType" bson:"channelType" index:"single:1"`                           // email, telegram, webhook
+	Subject        string              `json:"subject,omitempty" bson:"subject,omitempty"`                                  // Cho email
+	Content        string              `json:"content" bson:"content"`                                                      // Có thể chứa {{variable}}
+	Variables      []string            `json:"variables" bson:"variables"`                                                  // ["conversationId", "minutes"]
+
+	// CTA buttons (optional)
+	CTAs []NotificationCTA `json:"ctas,omitempty" bson:"ctas,omitempty"`
+
+	IsActive  bool  `json:"isActive" bson:"isActive" index:"single:1"`
+	CreatedAt int64 `json:"createdAt" bson:"createdAt"`
+	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"`
+}
+
+// NotificationCTA - CTA button
+type NotificationCTA struct {
+	Label  string `json:"label" bson:"label"`         // "Xem chi tiết", "Phản hồi", "Đã xem"
+	Action string `json:"action" bson:"action"`       // URL (có thể chứa {{variable}})
+	Style  string `json:"style,omitempty" bson:"style,omitempty"` // "primary", "success", "secondary" (chỉ để styling)
+}
+

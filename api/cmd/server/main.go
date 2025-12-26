@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"meta_commerce/core/global"
+	"meta_commerce/core/notification"
 )
 
 // initLogger khởi tạo và cấu hình logger cho toàn bộ ứng dụng
@@ -192,6 +194,36 @@ func main() {
 
 	// Khởi tạo dữ liệu mặc định
 	InitDefaultData()
+
+	// Khởi tạo và chạy Notification Processor (background worker)
+	// Lấy base URL từ environment variable hoặc dùng default
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		// Default base URL nếu không có config
+		cfg := global.MongoDB_ServerConfig
+		protocol := "http"
+		if cfg.EnableTLS {
+			protocol = "https"
+		}
+		baseURL = fmt.Sprintf("%s://localhost:%s", protocol, cfg.Address)
+	}
+	
+	processor, err := notification.NewProcessor(baseURL)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to create notification processor, continuing without notification worker")
+	} else {
+		// Tạo context với cancel để có thể dừng processor khi cần
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		// Chạy processor trong goroutine riêng
+		go func() {
+			logrus.Info("Starting Notification Processor...")
+			processor.Start(ctx)
+		}()
+
+		logrus.Info("Notification Processor started successfully")
+	}
 
 	// Chạy Fiber server trên main thread
 	main_thread()

@@ -125,6 +125,13 @@ var (
 	fbMessageItemConfig = readWriteConfig
 	pcOrderConfig       = readWriteConfig
 	customerConfig      = readWriteConfig
+
+	// Notification Module Collections
+	notificationSenderConfig  = readWriteConfig
+	notificationChannelConfig = readWriteConfig
+	notificationTemplateConfig = readWriteConfig
+	notificationRoutingConfig = readWriteConfig
+	notificationHistoryConfig = readOnlyConfig // History chỉ đọc
 )
 
 // RoutePrefix chứa các prefix cơ bản cho API
@@ -552,6 +559,62 @@ func (r *Router) registerInitRoutes(router fiber.Router) error {
 	return nil
 }
 
+// registerNotificationRoutes đăng ký các route cho Notification Module
+func (r *Router) registerNotificationRoutes(router fiber.Router) error {
+	// Notification Sender routes
+	senderHandler, err := handler.NewNotificationSenderHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create notification sender handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/notification/sender", senderHandler, notificationSenderConfig, "NotificationSender")
+
+	// Notification Channel routes
+	channelHandler, err := handler.NewNotificationChannelHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create notification channel handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/notification/channel", channelHandler, notificationChannelConfig, "NotificationChannel")
+
+	// Notification Template routes
+	templateHandler, err := handler.NewNotificationTemplateHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create notification template handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/notification/template", templateHandler, notificationTemplateConfig, "NotificationTemplate")
+
+	// Notification Routing Rule routes
+	routingHandler, err := handler.NewNotificationRoutingHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create notification routing handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/notification/routing", routingHandler, notificationRoutingConfig, "NotificationRouting")
+
+	// Notification History routes (read-only)
+	historyHandler, err := handler.NewNotificationHistoryHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create notification history handler: %v", err)
+	}
+	r.registerCRUDRoutes(router, "/notification/history", historyHandler, notificationHistoryConfig, "NotificationHistory")
+
+	// Notification Trigger route
+	triggerHandler, err := handler.NewNotificationTriggerHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create notification trigger handler: %v", err)
+	}
+	router.Post("/notification/trigger", middleware.AuthMiddleware("Notification.Trigger"), triggerHandler.HandleTriggerNotification)
+
+	// Notification Tracking routes (public, không cần auth)
+	trackHandler, err := handler.NewNotificationTrackHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create notification track handler: %v", err)
+	}
+	router.Get("/notification/track/open/:historyId", trackHandler.HandleTrackOpen)
+	router.Get("/notification/track/:historyId/:ctaIndex", trackHandler.HandleTrackClick)
+	router.Get("/notification/confirm/:historyId", trackHandler.HandleTrackConfirm)
+
+	return nil
+}
+
 // SetupRoutes thiết lập tất cả các route cho ứng dụng
 func SetupRoutes(app *fiber.App) error {
 	// Khởi tạo route prefix
@@ -589,6 +652,11 @@ func SetupRoutes(app *fiber.App) error {
 	// 6. Facebook Routes
 	if err := router.registerFacebookRoutes(v1); err != nil {
 		return fmt.Errorf("failed to register Facebook routes: %v", err)
+	}
+
+	// 7. Notification Routes
+	if err := router.registerNotificationRoutes(v1); err != nil {
+		return fmt.Errorf("failed to register notification routes: %v", err)
 	}
 
 	return nil

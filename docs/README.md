@@ -93,13 +93,17 @@ Hướng dẫn xử lý các vấn đề thường gặp:
 
 ### 9. 🤖 AI Context Documentation
 
+**📍 Tài liệu AI Context đã được di chuyển lên workspace-level**
+
 Tài liệu context chi tiết, đầy đủ để cung cấp cho AI assistants (ChatGPT, Claude, Cursor AI, v.v.) để xây dựng frontend application:
 
-- [AI Context README](09-ai-context/README.md) - Hướng dẫn sử dụng tài liệu AI context
-- [Frontend API Context](09-ai-context/frontend-api-context.md) - Tài liệu chính về API (⭐ **BẮT ĐẦU TỪ ĐÂY**)
-- [TypeScript Types & Interfaces](09-ai-context/types-and-interfaces.md) - Tất cả TypeScript types
-- [Frontend Implementation Guide](09-ai-context/frontend-implementation-guide.md) - Hướng dẫn implementation
-- [Code Examples](09-ai-context/examples.md) - Ví dụ code cho React, Vue, Angular, Vanilla JS
+**Vị trí mới:** `../../docs/ai-context/` (Workspace-level)
+
+- [AI Context README](../../docs/ai-context/README.md) - Hướng dẫn sử dụng tài liệu AI context
+- [AI Context Frontend](../../docs/ai-context/AI_CONTEXT_FRONTEND.md) - Tài liệu chính về API (⭐ **BẮT ĐẦU TỪ ĐÂY**)
+- [TypeScript Types & Interfaces](../../docs/ai-context/types-and-interfaces.md) - Tất cả TypeScript types
+- [Frontend Implementation Guide](../../docs/ai-context/frontend-implementation-guide.md) - Hướng dẫn implementation
+- [Code Examples](../../docs/ai-context/examples.md) - Ví dụ code cho React, Vue, Angular, Vanilla JS
 
 ### Tài Liệu Archive
 
@@ -119,7 +123,7 @@ Các tài liệu phân tích và báo cáo cũ được lưu trong [08-archive/]
 
 - **Developer Mới**: Bắt đầu với [Tài Liệu Ngắn Gọn](01-getting-started/tai-lieu-he-thong.md) và [Cài Đặt](01-getting-started/cai-dat.md)
 - **Backend Developer**: Xem [Kiến Trúc](02-architecture/), [API Reference](03-api/), và [Development Guide](05-development/)
-- **Frontend Developer**: Xem [AI Context Documentation](09-ai-context/) - Tài liệu đầy đủ để xây dựng frontend
+- **Frontend Developer**: Xem [AI Context Documentation](../../docs/ai-context/) - Tài liệu đầy đủ để xây dựng frontend
 - **DevOps**: Xem [Deployment](04-deployment/) và [Troubleshooting](07-troubleshooting/)
 - **QA/Tester**: Xem [Testing Guide](06-testing/)
 

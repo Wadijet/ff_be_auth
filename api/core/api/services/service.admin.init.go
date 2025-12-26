@@ -219,6 +219,37 @@ var InitialPermissions = []models.Permission{
 	{Name: "PcPosOrder.Read", Describe: "Quyền xem danh sách đơn hàng từ Pancake POS", Group: "Pancake", Category: "PcPosOrder"},
 	{Name: "PcPosOrder.Update", Describe: "Quyền cập nhật thông tin đơn hàng từ Pancake POS", Group: "Pancake", Category: "PcPosOrder"},
 	{Name: "PcPosOrder.Delete", Describe: "Quyền xóa đơn hàng từ Pancake POS", Group: "Pancake", Category: "PcPosOrder"},
+
+	// ==================================== NOTIFICATION MODULE ===========================================
+	// Quản lý Notification Sender: Thêm, xem, sửa, xóa
+	{Name: "NotificationSender.Insert", Describe: "Quyền tạo cấu hình sender thông báo", Group: "Notification", Category: "NotificationSender"},
+	{Name: "NotificationSender.Read", Describe: "Quyền xem danh sách cấu hình sender thông báo", Group: "Notification", Category: "NotificationSender"},
+	{Name: "NotificationSender.Update", Describe: "Quyền cập nhật cấu hình sender thông báo", Group: "Notification", Category: "NotificationSender"},
+	{Name: "NotificationSender.Delete", Describe: "Quyền xóa cấu hình sender thông báo", Group: "Notification", Category: "NotificationSender"},
+
+	// Quản lý Notification Channel: Thêm, xem, sửa, xóa
+	{Name: "NotificationChannel.Insert", Describe: "Quyền tạo kênh thông báo cho team", Group: "Notification", Category: "NotificationChannel"},
+	{Name: "NotificationChannel.Read", Describe: "Quyền xem danh sách kênh thông báo", Group: "Notification", Category: "NotificationChannel"},
+	{Name: "NotificationChannel.Update", Describe: "Quyền cập nhật kênh thông báo", Group: "Notification", Category: "NotificationChannel"},
+	{Name: "NotificationChannel.Delete", Describe: "Quyền xóa kênh thông báo", Group: "Notification", Category: "NotificationChannel"},
+
+	// Quản lý Notification Template: Thêm, xem, sửa, xóa
+	{Name: "NotificationTemplate.Insert", Describe: "Quyền tạo template thông báo", Group: "Notification", Category: "NotificationTemplate"},
+	{Name: "NotificationTemplate.Read", Describe: "Quyền xem danh sách template thông báo", Group: "Notification", Category: "NotificationTemplate"},
+	{Name: "NotificationTemplate.Update", Describe: "Quyền cập nhật template thông báo", Group: "Notification", Category: "NotificationTemplate"},
+	{Name: "NotificationTemplate.Delete", Describe: "Quyền xóa template thông báo", Group: "Notification", Category: "NotificationTemplate"},
+
+	// Quản lý Notification Routing Rule: Thêm, xem, sửa, xóa
+	{Name: "NotificationRouting.Insert", Describe: "Quyền tạo routing rule thông báo", Group: "Notification", Category: "NotificationRouting"},
+	{Name: "NotificationRouting.Read", Describe: "Quyền xem danh sách routing rule thông báo", Group: "Notification", Category: "NotificationRouting"},
+	{Name: "NotificationRouting.Update", Describe: "Quyền cập nhật routing rule thông báo", Group: "Notification", Category: "NotificationRouting"},
+	{Name: "NotificationRouting.Delete", Describe: "Quyền xóa routing rule thông báo", Group: "Notification", Category: "NotificationRouting"},
+
+	// Quản lý Notification History: Chỉ xem
+	{Name: "NotificationHistory.Read", Describe: "Quyền xem lịch sử thông báo", Group: "Notification", Category: "NotificationHistory"},
+
+	// Trigger Notification: Gửi thông báo
+	{Name: "Notification.Trigger", Describe: "Quyền trigger/gửi thông báo", Group: "Notification", Category: "Notification"},
 }
 
 // InitPermission khởi tạo các quyền mặc định cho hệ thống
