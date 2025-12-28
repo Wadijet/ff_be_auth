@@ -18,6 +18,7 @@ type NotificationTemplate struct {
 	CTAs []NotificationCTA `json:"ctas,omitempty" bson:"ctas,omitempty"`
 
 	IsActive  bool  `json:"isActive" bson:"isActive" index:"single:1"`
+	IsSystem  bool  `json:"-" bson:"isSystem" index:"single:1"` // true = dữ liệu hệ thống, không thể xóa (chỉ dùng nội bộ, không expose ra API)
 	CreatedAt int64 `json:"createdAt" bson:"createdAt"`
 	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"`
 }

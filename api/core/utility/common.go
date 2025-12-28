@@ -2,13 +2,13 @@ package utility
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 	"time"
 
 	"encoding/json"
 
 	"meta_commerce/core/common"
+	"meta_commerce/core/logger"
 )
 
 // GoProtect là một hàm bao bọc (wrapper) giúp bảo vệ một hàm khác khỏi bị panic.
@@ -55,14 +55,16 @@ func CurrentTimeInMilli() int64 {
 
 // LogWarning ghi log cảnh báo với các thông tin bổ sung
 func LogWarning(msg string, args ...interface{}) {
-	// Tạo chuỗi thông tin bổ sung
-	details := ""
+	// Tạo map fields từ args
+	fields := make(map[string]interface{})
 	for i := 0; i < len(args); i += 2 {
 		if i+1 < len(args) {
-			details += fmt.Sprintf(" %s=%v", args[i], args[i+1])
+			if key, ok := args[i].(string); ok {
+				fields[key] = args[i+1]
+			}
 		}
 	}
-	log.Printf("WARNING: %s%s", msg, details)
+	logger.GetAppLogger().WithFields(fields).Warn(msg)
 }
 
 // ValidateEmail kiểm tra định dạng email

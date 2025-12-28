@@ -16,6 +16,10 @@ type FbMessage struct {
 	LastSyncedAt   int64                  `json:"lastSyncedAt" bson:"lastSyncedAt"`                                                                 // Thời gian sync cuối cùng
 	TotalMessages  int64                  `json:"totalMessages" bson:"totalMessages"`                                                               // Tổng số messages trong fb_message_items
 	HasMore        bool                   `json:"hasMore" bson:"hasMore"`                                                                           // Còn messages để sync không
-	CreatedAt      int64                  `json:"createdAt" bson:"createdAt"`                                                                       // Thời gian tạo document
-	UpdatedAt      int64                  `json:"updatedAt" bson:"updatedAt"`                                                                       // Thời gian cập nhật document
+
+	// ===== ORGANIZATION =====
+	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+
+	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo document
+	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật document
 }

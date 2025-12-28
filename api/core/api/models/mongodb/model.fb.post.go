@@ -11,6 +11,10 @@ type FbPost struct {
 	PostId      string                 `json:"postId" bson:"postId" index:"unique;text" extract:"PanCakeData\\.id"`                                        // ID của bài viết (extract từ PanCakeData["id"])
 	InsertedAt  int64                  `json:"insertedAt" bson:"insertedAt" extract:"PanCakeData\\.inserted_at,converter=time,format=2006-01-02T15:04:05"` // Thời gian insert bài viết (extract từ PanCakeData["inserted_at"])
 	PanCakeData map[string]interface{} `json:"panCakeData" bson:"panCakeData"`                                                                             // Dữ liệu API
-	CreatedAt   int64                  `json:"createdAt" bson:"createdAt"`                                                                                 // Thời gian tạo bài viết
-	UpdatedAt   int64                  `json:"updatedAt" bson:"updatedAt"`                                                                                 // Thời gian cập nhật bài viết
+
+	// ===== ORGANIZATION =====
+	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+
+	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo bài viết
+	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật bài viết
 }

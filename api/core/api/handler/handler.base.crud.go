@@ -13,6 +13,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	mongoopts "go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -39,7 +40,21 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertOne(c fiber.Ctx) error 
 			return nil
 		}
 
-		data, err := h.BaseService.InsertOne(c.Context(), *input)
+		// ✅ Tự động gán organizationId nếu model có field OrganizationID
+		activeOrgID := h.getActiveOrganizationID(c)
+		if activeOrgID != nil && !activeOrgID.IsZero() {
+			h.setOrganizationID(input, *activeOrgID)
+		}
+
+		// ✅ Lưu userID vào context để service có thể check admin
+		ctx := c.Context()
+		if userIDStr, ok := c.Locals("user_id").(string); ok && userIDStr != "" {
+			if userID, err := primitive.ObjectIDFromHex(userIDStr); err == nil {
+				ctx = services.SetUserIDToContext(ctx, userID)
+			}
+		}
+
+		data, err := h.BaseService.InsertOne(ctx, *input)
 		h.HandleResponse(c, data, err)
 		return nil
 	})
@@ -66,6 +81,14 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertMany(c fiber.Ctx) error
 			return nil
 		}
 
+		// ✅ Tự động gán organizationId cho tất cả items nếu model có field OrganizationID
+		activeOrgID := h.getActiveOrganizationID(c)
+		if activeOrgID != nil && !activeOrgID.IsZero() {
+			for i := range inputs {
+				h.setOrganizationID(&inputs[i], *activeOrgID)
+			}
+		}
+
 		data, err := h.BaseService.InsertMany(c.Context(), inputs)
 		h.HandleResponse(c, data, err)
 		return nil
@@ -88,6 +111,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOne(c fiber.Ctx) error {
 			h.HandleResponse(c, nil, err)
 			return nil
 		}
+
+		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		filter = h.applyOrganizationFilter(c, filter)
 
 		options, err := h.processMongoOptions(c, true)
 		if err != nil {
@@ -129,6 +155,12 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneById(c fiber.Ctx) erro
 				common.StatusBadRequest,
 				nil,
 			))
+			return nil
+		}
+
+		// ✅ Validate organizationId trước khi query nếu model có field OrganizationID
+		if err := h.validateOrganizationAccess(c, id); err != nil {
+			h.HandleResponse(c, nil, err)
 			return nil
 		}
 
@@ -203,6 +235,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ct
 			return nil
 		}
 
+		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		filter = h.applyOrganizationFilter(c, filter)
+
 		options, err := h.processMongoOptions(c, false)
 		if err != nil {
 			h.HandleResponse(c, nil, err)
@@ -248,12 +283,22 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ct
 // Returns:
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error {
+	// DEBUG: Log khi handler được gọi
+	fmt.Printf("[HANDLER] 🔵 Find handler called - Path: %s, Method: %s\n", c.Path(), c.Method())
+	logrus.WithFields(logrus.Fields{
+		"path":   c.Path(),
+		"method": c.Method(),
+	}).Info("🔵 Find handler called")
+	
 	return h.SafeHandler(c, func() error {
 		filter, err := h.processFilter(c)
 		if err != nil {
 			h.HandleResponse(c, nil, err)
 			return nil
 		}
+
+		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		filter = h.applyOrganizationFilter(c, filter)
 
 		options, err := h.processMongoOptions(c, false)
 		if err != nil {
@@ -294,12 +339,18 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateOne(c fiber.Ctx) error 
 			return nil
 		}
 
+		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		filter = h.applyOrganizationFilter(c, filter)
+
 		// Parse input thành map để chỉ update các trường được chỉ định
 		var updateData map[string]interface{}
 		if err := json.NewDecoder(bytes.NewReader(c.Body())).Decode(&updateData); err != nil {
 			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Dữ liệu cập nhật không hợp lệ", common.StatusBadRequest, nil))
 			return nil
 		}
+
+		// ✅ Không cho phép update organizationId trực tiếp (bảo mật)
+		delete(updateData, "organizationId")
 
 		// Tạo update data với $set operator
 		update := &services.UpdateData{
@@ -329,12 +380,18 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateMany(c fiber.Ctx) error
 			return nil
 		}
 
+		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		filter = h.applyOrganizationFilter(c, filter)
+
 		// Parse input thành map để chỉ update các trường được chỉ định
 		var updateData map[string]interface{}
 		if err := json.NewDecoder(bytes.NewReader(c.Body())).Decode(&updateData); err != nil {
 			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Dữ liệu cập nhật không hợp lệ", common.StatusBadRequest, nil))
 			return nil
 		}
+
+		// ✅ Không cho phép update organizationId trực tiếp (bảo mật)
+		delete(updateData, "organizationId")
 
 		// Tạo update data với $set operator
 		update := &services.UpdateData{
@@ -379,6 +436,12 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) error
 			return nil
 		}
 
+		// ✅ Validate organizationId trước khi update nếu model có field OrganizationID
+		if err := h.validateOrganizationAccess(c, id); err != nil {
+			h.HandleResponse(c, nil, err)
+			return nil
+		}
+
 		// Parse input thành map để chỉ update các trường được chỉ định
 		var updateData map[string]interface{}
 		if err := json.NewDecoder(bytes.NewReader(c.Body())).Decode(&updateData); err != nil {
@@ -391,12 +454,23 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) error
 			return nil
 		}
 
+		// ✅ Không cho phép update organizationId trực tiếp (bảo mật)
+		delete(updateData, "organizationId")
+
 		// Tạo update data với $set operator
 		update := &services.UpdateData{
 			Set: updateData,
 		}
 
-		data, err := h.BaseService.UpdateById(c.Context(), utility.String2ObjectID(id), update)
+		// ✅ Lưu userID vào context để service có thể check admin
+		ctx := c.Context()
+		if userIDStr, ok := c.Locals("user_id").(string); ok && userIDStr != "" {
+			if userID, err := primitive.ObjectIDFromHex(userIDStr); err == nil {
+				ctx = services.SetUserIDToContext(ctx, userID)
+			}
+		}
+
+		data, err := h.BaseService.UpdateById(ctx, utility.String2ObjectID(id), update)
 		h.HandleResponse(c, data, err)
 		return nil
 	})
@@ -440,6 +514,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteMany(c fiber.Ctx) error
 			return nil
 		}
 
+		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		filter = h.applyOrganizationFilter(c, filter)
+
 		count, err := h.BaseService.DeleteMany(c.Context(), filter)
 		h.HandleResponse(c, count, err)
 		return nil
@@ -477,7 +554,15 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteById(c fiber.Ctx) error
 			return nil
 		}
 
-		err := h.BaseService.DeleteById(c.Context(), utility.String2ObjectID(id))
+		// ✅ Lưu userID vào context để service có thể check admin
+		ctx := c.Context()
+		if userIDStr, ok := c.Locals("user_id").(string); ok && userIDStr != "" {
+			if userID, err := primitive.ObjectIDFromHex(userIDStr); err == nil {
+				ctx = services.SetUserIDToContext(ctx, userID)
+			}
+		}
+
+		err := h.BaseService.DeleteById(ctx, utility.String2ObjectID(id))
 		h.HandleResponse(c, nil, err)
 		return nil
 	})
@@ -555,13 +640,20 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) CountDocuments(c fiber.Ctx) e
 		// Lấy giá trị filter từ query string, mặc định là "{}" nếu không có
 		filterStr := c.Query("filter", "{}")
 
-		// Log giá trị filter để debug
-		fmt.Printf("Filter string từ query: %s\n", filterStr)
+		// Log giá trị filter để debug (chỉ log ở level Debug)
+		logrus.WithFields(logrus.Fields{
+			"filter_string": filterStr,
+			"endpoint":      c.Path(),
+		}).Debug("Filter string từ query")
 
 		// Chuyển đổi chuỗi JSON thành map
 		if err := json.Unmarshal([]byte(filterStr), &filter); err != nil {
 			// Log lỗi để debug
-			fmt.Printf("Lỗi khi parse filter: %v\n", err)
+			logrus.WithFields(logrus.Fields{
+				"filter_string": filterStr,
+				"endpoint":      c.Path(),
+				"error":         err,
+			}).Debug("Lỗi khi parse filter")
 
 			// Trả về lỗi cho client
 			h.HandleResponse(c, nil, common.NewError(
@@ -573,8 +665,11 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) CountDocuments(c fiber.Ctx) e
 			return nil
 		}
 
-		// Log filter sau khi parse thành công
-		fmt.Printf("Filter sau khi parse: %+v\n", filter)
+		// Log filter sau khi parse thành công (chỉ log ở level Debug)
+		logrus.WithFields(logrus.Fields{
+			"filter":   filter,
+			"endpoint": c.Path(),
+		}).Debug("Filter sau khi parse")
 
 		count, err := h.BaseService.CountDocuments(c.Context(), filter)
 		h.HandleResponse(c, count, err)
@@ -629,6 +724,9 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) error {
 			return nil
 		}
 
+		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		filter = h.applyOrganizationFilter(c, filter)
+
 		// Parse request body thành struct T (model) để struct tag `extract` có thể hoạt động
 		// Struct tag `extract` sẽ tự động extract dữ liệu từ PanCakeData, FacebookData, etc.
 		input := new(T)
@@ -640,6 +738,12 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) error {
 				err,
 			))
 			return nil
+		}
+
+		// ✅ Tự động gán organizationId nếu model có field OrganizationID
+		activeOrgID := h.getActiveOrganizationID(c)
+		if activeOrgID != nil && !activeOrgID.IsZero() {
+			h.setOrganizationID(input, *activeOrgID)
 		}
 
 		// Gọi Upsert với struct T - extract sẽ tự động chạy trong ToMap() khi ToUpdateData() được gọi
@@ -660,11 +764,15 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) error {
 // - error: Lỗi nếu có
 func (h *BaseHandler[T, CreateInput, UpdateInput]) UpsertMany(c fiber.Ctx) error {
 	return h.SafeHandler(c, func() error {
-		var filter map[string]interface{}
-		if err := json.Unmarshal([]byte(c.Query("filter", "{}")), &filter); err != nil {
-			h.HandleResponse(c, nil, common.NewError(common.ErrCodeValidationFormat, "Filter không hợp lệ", common.StatusBadRequest, nil))
+		// Parse filter từ query string (sử dụng processFilter để có normalizeFilter và validate)
+		filter, err := h.processFilter(c)
+		if err != nil {
+			h.HandleResponse(c, nil, err)
 			return nil
 		}
+
+		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		filter = h.applyOrganizationFilter(c, filter)
 
 		var inputs []T
 		if err := h.ParseRequestBody(c, &inputs); err != nil {
@@ -672,7 +780,23 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpsertMany(c fiber.Ctx) error
 			return nil
 		}
 
-		data, err := h.BaseService.UpsertMany(c.Context(), filter, inputs)
+		// ✅ Tự động gán organizationId cho tất cả items nếu model có field OrganizationID
+		activeOrgID := h.getActiveOrganizationID(c)
+		if activeOrgID != nil && !activeOrgID.IsZero() {
+			for i := range inputs {
+				h.setOrganizationID(&inputs[i], *activeOrgID)
+			}
+		}
+
+		// Convert filter từ bson.M sang map[string]interface{} cho UpsertMany
+		filterMap := make(map[string]interface{})
+		if filter != nil {
+			for k, v := range filter {
+				filterMap[k] = v
+			}
+		}
+
+		data, err := h.BaseService.UpsertMany(c.Context(), filterMap, inputs)
 		h.HandleResponse(c, data, err)
 		return nil
 	})

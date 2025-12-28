@@ -8,8 +8,10 @@ import (
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
 	"meta_commerce/core/common"
+	"meta_commerce/core/logger"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -152,19 +154,38 @@ func (h *UserHandler) HandleUpdateProfile(c fiber.Ctx) error {
 	return nil
 }
 
-// HandleGetUserRoles lấy danh sách tất cả các role của người dùng
+// HandleGetUserRoles lấy danh sách tất cả các role của người dùng với thông tin organization
 // @Summary Lấy danh sách role của người dùng
-// @Description Trả về danh sách các role mà người dùng hiện có
+// @Description Trả về danh sách các role mà người dùng hiện có kèm thông tin organization.
+// @Description QUAN TRỌNG: Context làm việc là ROLE, không phải organization.
+// @Description CHỈ trả về các role trực tiếp của user, KHÔNG bao gồm children/parents organizations.
+// @Description Đây là danh sách "context làm việc" - user sẽ chọn một ROLE trong danh sách này để làm việc.
+// @Description Frontend sẽ gửi ROLE ID trong header X-Active-Role-ID, không phải organization ID.
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Role
+// @Success 200 {array} map[string]interface{}
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
 // @Router /auth/roles [get]
 func (h *UserHandler) HandleGetUserRoles(c fiber.Ctx) error {
+	// Log để debug - kiểm tra handler có được gọi không
+	logger.GetAppLogger().WithFields(logrus.Fields{
+		"path":   c.Path(),
+		"method": c.Method(),
+	}).Error("🔵 [HANDLER] HandleGetUserRoles called - FORCE LOG")
+	
 	// Lấy user ID từ context
 	userID := c.Locals("user_id")
+	logger.GetAppLogger().WithFields(logrus.Fields{
+		"path":       c.Path(),
+		"user_id":    userID,
+		"has_user_id": userID != nil,
+	}).Error("🔵 [HANDLER] Checking user_id in context - FORCE LOG")
+	
 	if userID == nil {
+		logger.GetAppLogger().WithFields(logrus.Fields{
+			"path": c.Path(),
+		}).Error("❌ [HANDLER] User not authenticated - returning 401 - FORCE LOG")
 		h.HandleResponse(c, nil, common.NewError(common.ErrCodeAuth, "User not authenticated", common.StatusUnauthorized, nil))
 		return nil
 	}
@@ -176,7 +197,8 @@ func (h *UserHandler) HandleGetUserRoles(c fiber.Ctx) error {
 		return nil
 	}
 
-	// Lấy danh sách user role
+	// Lấy danh sách user role - CHỈ lấy các role trực tiếp của user
+	// KHÔNG lấy children/parents organizations
 	filter := bson.M{"userId": objID}
 	userRoles, err := h.userRoleService.Find(context.Background(), filter, nil)
 	if err != nil {
@@ -184,17 +206,44 @@ func (h *UserHandler) HandleGetUserRoles(c fiber.Ctx) error {
 		return nil
 	}
 
-	// Lấy thông tin chi tiết của từng role
-	var roles []models.Role
+	// Lấy thông tin chi tiết của từng role với organization
+	// Mỗi role tương ứng với một organization - đây là "context làm việc"
+	result := make([]map[string]interface{}, 0, len(userRoles))
 	for _, userRole := range userRoles {
+		// Lấy role
 		role, err := h.roleService.FindOneById(context.Background(), userRole.RoleID)
 		if err != nil {
-			continue // Bỏ qua role không tìm thấy
+			continue
 		}
-		roles = append(roles, role)
+
+		// Lấy organization - CHỈ lấy organization trực tiếp của role
+		// KHÔNG lấy children/parents organizations
+		organizationService, err := services.NewOrganizationService()
+		if err != nil {
+			continue
+		}
+		org, err := organizationService.FindOneById(context.Background(), role.OrganizationID)
+		if err != nil {
+			continue
+		}
+
+		// Trả về thông tin role và organization trực tiếp
+		// Frontend sẽ dùng danh sách này để user chọn "context làm việc"
+		// QUAN TRỌNG: Context làm việc là ROLE, không phải organization
+		// Mỗi role = một context làm việc
+		// Organization được tự động suy ra từ role khi user chọn role
+		result = append(result, map[string]interface{}{
+			"roleId":            role.ID.Hex(),
+			"roleName":          role.Name,
+			"organizationId":    org.ID.Hex(),
+			"organizationName":  org.Name,
+			"organizationCode":  org.Code,
+			"organizationType":  org.Type,
+			"organizationLevel": org.Level,
+		})
 	}
 
-	h.HandleResponse(c, roles, nil)
+	h.HandleResponse(c, result, nil)
 	return nil
 }
 

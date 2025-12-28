@@ -21,6 +21,197 @@ import (
 	mongoopts "go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// ====================================
+// ORGANIZATION HELPER FUNCTIONS
+// ====================================
+
+// hasOrganizationIDField kiểm tra model có field OrganizationID không (dùng reflection)
+func (h *BaseHandler[T, CreateInput, UpdateInput]) hasOrganizationIDField() bool {
+	var zero T
+	val := reflect.ValueOf(zero)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct {
+		return false
+	}
+
+	field := val.FieldByName("OrganizationID")
+	return field.IsValid()
+}
+
+// getActiveOrganizationID lấy active organization ID từ context
+func (h *BaseHandler[T, CreateInput, UpdateInput]) getActiveOrganizationID(c fiber.Ctx) *primitive.ObjectID {
+	orgIDStr, ok := c.Locals("active_organization_id").(string)
+	if !ok || orgIDStr == "" {
+		return nil
+	}
+	orgID, err := primitive.ObjectIDFromHex(orgIDStr)
+	if err != nil {
+		return nil
+	}
+	return &orgID
+}
+
+// setOrganizationID tự động gán organizationId vào model (dùng reflection)
+// CHỈ gán nếu model có field OrganizationID
+// LUÔN override organizationId, kể cả khi field đã có giá trị (để tránh zero ObjectID từ JSON unmarshal)
+func (h *BaseHandler[T, CreateInput, UpdateInput]) setOrganizationID(model interface{}, orgID primitive.ObjectID) {
+	// Kiểm tra model có field OrganizationID không
+	if !h.hasOrganizationIDField() {
+		return // Model không có OrganizationID, không cần gán
+	}
+
+	// Kiểm tra organizationId không phải zero value
+	if orgID.IsZero() {
+		return // Không gán zero ObjectID
+	}
+
+	val := reflect.ValueOf(model)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	field := val.FieldByName("OrganizationID")
+	if field.IsValid() && field.CanSet() {
+		// Xử lý cả primitive.ObjectID và *primitive.ObjectID
+		if field.Kind() == reflect.Ptr {
+			// Field là pointer
+			field.Set(reflect.ValueOf(&orgID))
+		} else {
+			// Field là value - LUÔN override, kể cả khi đã có giá trị (có thể là zero từ JSON unmarshal)
+			field.Set(reflect.ValueOf(orgID))
+		}
+	}
+}
+
+// getOrganizationIDFromModel lấy organizationId từ model (dùng reflection)
+func (h *BaseHandler[T, CreateInput, UpdateInput]) getOrganizationIDFromModel(model T) *primitive.ObjectID {
+	// Kiểm tra model có field OrganizationID không
+	if !h.hasOrganizationIDField() {
+		return nil // Model không có OrganizationID
+	}
+
+	val := reflect.ValueOf(model)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	field := val.FieldByName("OrganizationID")
+	if !field.IsValid() {
+		return nil
+	}
+
+	// Xử lý cả primitive.ObjectID và *primitive.ObjectID
+	if field.Kind() == reflect.Ptr {
+		if field.IsNil() {
+			return nil
+		}
+		orgID := field.Interface().(*primitive.ObjectID)
+		return orgID
+	} else {
+		orgID := field.Interface().(primitive.ObjectID)
+		return &orgID
+	}
+}
+
+// getPermissionNameFromRoute lấy permission name từ route (nếu có)
+// Có thể lấy từ route path hoặc từ context
+func (h *BaseHandler[T, CreateInput, UpdateInput]) getPermissionNameFromRoute(c fiber.Ctx) string {
+	// Có thể lấy từ route path hoặc từ context
+	// Hiện tại trả về rỗng, có thể mở rộng sau
+	return ""
+}
+
+// applyOrganizationFilter tự động thêm filter organizationId
+// CHỈ áp dụng nếu model có field OrganizationID
+func (h *BaseHandler[T, CreateInput, UpdateInput]) applyOrganizationFilter(c fiber.Ctx, baseFilter bson.M) bson.M {
+	// ✅ QUAN TRỌNG: Kiểm tra model có field OrganizationID không
+	if !h.hasOrganizationIDField() {
+		return baseFilter // Model không có OrganizationID, không cần filter
+	}
+
+	// Lấy permission name từ route (nếu có)
+	permissionName := h.getPermissionNameFromRoute(c)
+
+	// Lấy user ID
+	userIDStr, ok := c.Locals("user_id").(string)
+	if !ok {
+		return baseFilter // Không có user ID, không filter
+	}
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return baseFilter
+	}
+
+	// Lấy allowed organization IDs (bao gồm cả parent)
+	allowedOrgIDs, err := services.GetUserAllowedOrganizationIDs(c.Context(), userID, permissionName)
+	if err != nil || len(allowedOrgIDs) == 0 {
+		return baseFilter
+	}
+
+	// Thêm filter organizationId
+	orgFilter := bson.M{"organizationId": bson.M{"$in": allowedOrgIDs}}
+
+	// Kết hợp với baseFilter
+	if len(baseFilter) == 0 {
+		return orgFilter
+	}
+
+	return bson.M{
+		"$and": []bson.M{
+			baseFilter,
+			orgFilter,
+		},
+	}
+}
+
+// validateOrganizationAccess validate user có quyền truy cập document này không
+// CHỈ validate nếu model có field OrganizationID
+func (h *BaseHandler[T, CreateInput, UpdateInput]) validateOrganizationAccess(c fiber.Ctx, documentID string) error {
+	// ✅ QUAN TRỌNG: Kiểm tra model có field OrganizationID không
+	if !h.hasOrganizationIDField() {
+		return nil // Model không có OrganizationID, không cần validate
+	}
+
+	// Lấy document
+	id, err := primitive.ObjectIDFromHex(documentID)
+	if err != nil {
+		return common.NewError(common.ErrCodeValidationInput, "ID không hợp lệ", common.StatusBadRequest, err)
+	}
+
+	doc, err := h.BaseService.FindOneById(c.Context(), id)
+	if err != nil {
+		return err
+	}
+
+	// Lấy organizationId từ document (dùng reflection)
+	docOrgID := h.getOrganizationIDFromModel(doc)
+	if docOrgID == nil {
+		return nil // Không có organizationId, không cần validate
+	}
+
+	// Lấy allowed organization IDs
+	userIDStr, _ := c.Locals("user_id").(string)
+	userID, _ := primitive.ObjectIDFromHex(userIDStr)
+	permissionName := h.getPermissionNameFromRoute(c)
+
+	allowedOrgIDs, err := services.GetUserAllowedOrganizationIDs(c.Context(), userID, permissionName)
+	if err != nil {
+		return err
+	}
+
+	// Kiểm tra document có thuộc allowed organizations không
+	for _, allowedOrgID := range allowedOrgIDs {
+		if allowedOrgID == *docOrgID {
+			return nil // Có quyền truy cập
+		}
+	}
+
+	return common.NewError(common.ErrCodeAuthRole, "Không có quyền truy cập", common.StatusForbidden, nil)
+}
+
 // FilterOptions cấu hình cho việc validate filter
 type FilterOptions struct {
 	DeniedFields     []string // Các trường bị cấm filter

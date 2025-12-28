@@ -9,6 +9,40 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
+// ============================================================================
+// ⚠️ QUAN TRỌNG: BUG FIBER V3 - CÁCH ĐĂNG KÝ MIDDLEWARE
+// ============================================================================
+//
+// Fiber v3 có BUG nghiêm trọng với cách đăng ký middleware trực tiếp trong route.
+// Middleware sẽ KHÔNG được gọi nếu dùng cách trực tiếp!
+//
+// ❌ CÁCH SAI (KHÔNG HOẠT ĐỘNG):
+//    router.Get("/path", middleware.AuthMiddleware(""), handler)
+//    router.Post("/path", middleware.AuthMiddleware(""), handler)
+//    → Middleware sẽ KHÔNG được gọi, request sẽ bỏ qua middleware!
+//
+// ✅ CÁCH ĐÚNG (PHẢI DÙNG):
+//    authMiddleware := middleware.AuthMiddleware("")
+//    registerRouteWithMiddleware(router, "/prefix", "GET", "/path", []fiber.Handler{authMiddleware}, handler)
+//    → Middleware sẽ được gọi đúng cách thông qua .Use() method
+//
+// 📝 LỊCH SỬ:
+//    - Ngày: 2025-12-28
+//    - Vấn đề: Endpoint /api/v1/auth/roles trả về 401 mặc dù token hợp lệ
+//    - Nguyên nhân: Dùng cách trực tiếp router.Get(path, middleware, handler)
+//    - Giải pháp: Đã test 7 cách khác nhau, chỉ có registerRouteWithMiddleware hoạt động
+//    - Kết quả: Đã sửa tất cả 21 routes trong file này
+//
+// 📚 TÀI LIỆU:
+//    - Xem chi tiết: docs/06-testing/fiber-v3-middleware-registration.md
+//    - Hàm đúng: registerRouteWithMiddleware() (dòng 159-195)
+//
+// 🔍 KIỂM TRA:
+//    Nếu thấy route nào dùng cách trực tiếp router.Get/Post/Put/Delete(path, middleware, handler)
+//    → PHẢI SỬA NGAY thành registerRouteWithMiddleware!
+//
+// ============================================================================
+
 // CONFIGS
 
 // CRUDHandler định nghĩa interface cho các handler CRUD
@@ -127,11 +161,11 @@ var (
 	customerConfig      = readWriteConfig
 
 	// Notification Module Collections
-	notificationSenderConfig  = readWriteConfig
-	notificationChannelConfig = readWriteConfig
+	notificationSenderConfig   = readWriteConfig
+	notificationChannelConfig  = readWriteConfig
 	notificationTemplateConfig = readWriteConfig
-	notificationRoutingConfig = readWriteConfig
-	notificationHistoryConfig = readOnlyConfig // History chỉ đọc
+	notificationRoutingConfig  = readWriteConfig
+	notificationHistoryConfig  = readOnlyConfig // History chỉ đọc
 )
 
 // RoutePrefix chứa các prefix cơ bản cho API
@@ -156,83 +190,132 @@ func NewRouter(app *fiber.App) *Router {
 	}
 }
 
+// registerRouteWithMiddleware đăng ký route với middleware sử dụng .Use() method (cách đúng theo Fiber v3)
+//
+// ⚠️ QUAN TRỌNG: Đây là CÁCH DUY NHẤT hoạt động đúng trong Fiber v3!
+//
+// ❌ KHÔNG DÙNG cách trực tiếp: router.Get(path, middleware, handler) - middleware sẽ KHÔNG được gọi!
+// ✅ PHẢI DÙNG cách này: registerRouteWithMiddleware với .Use() method
+//
+// Lịch sử: Đã test 7 cách khác nhau (2025-12-28) và chỉ có cách này hoạt động.
+// Xem thêm: docs/06-testing/fiber-v3-middleware-registration.md
+//
+// Ví dụ sử dụng:
+//
+//	authMiddleware := middleware.AuthMiddleware("")
+//	registerRouteWithMiddleware(router, "/auth", "GET", "/roles", []fiber.Handler{authMiddleware}, handler)
+func registerRouteWithMiddleware(router fiber.Router, prefix string, method string, path string, middlewares []fiber.Handler, handler fiber.Handler) {
+	// Tạo group với prefix, middleware sẽ chỉ áp dụng cho routes trong group này
+	routeGroup := router.Group(prefix)
+	for _, mw := range middlewares {
+		routeGroup.Use(mw) // ← ĐÂY LÀ CÁCH ĐÚNG - dùng .Use() thay vì truyền trực tiếp
+	}
+
+	// Đăng ký route với path tương đối (không có prefix vì đã có trong group)
+	switch method {
+	case "GET":
+		routeGroup.Get(path, handler)
+	case "POST":
+		routeGroup.Post(path, handler)
+	case "PUT":
+		routeGroup.Put(path, handler)
+	case "DELETE":
+		routeGroup.Delete(path, handler)
+	}
+}
+
 // registerCRUDRoutes đăng ký các route CRUD cho một collection
+//
+// ⚠️ LƯU Ý: Hàm này đã dùng registerRouteWithMiddleware (cách đúng), không cần sửa.
+// Nếu thêm route mới bên ngoài hàm này, PHẢI dùng registerRouteWithMiddleware (xem comment ở đầu file)
 func (r *Router) registerCRUDRoutes(router fiber.Router, prefix string, h CRUDHandler, config CRUDConfig, permissionPrefix string) {
+	// Tạo middleware chain: AuthMiddleware → OrganizationContextMiddleware
+	fmt.Printf("[ROUTER] Registering CRUD routes for prefix: %s, permissionPrefix: %s\n", prefix, permissionPrefix)
+	authMiddleware := middleware.AuthMiddleware(permissionPrefix + ".Insert")
+	orgContextMiddleware := middleware.OrganizationContextMiddleware()
+	authReadMiddleware := middleware.AuthMiddleware(permissionPrefix + ".Read")
+	authUpdateMiddleware := middleware.AuthMiddleware(permissionPrefix + ".Update")
+	authDeleteMiddleware := middleware.AuthMiddleware(permissionPrefix + ".Delete")
+	fmt.Printf("[ROUTER] Middleware created for prefix: %s\n", prefix)
+
 	// Create operations
 	if config.InsOne {
-		router.Post(fmt.Sprintf("%s/insert-one", prefix), h.InsertOne, middleware.AuthMiddleware(permissionPrefix+".Insert"))
+		registerRouteWithMiddleware(router, prefix, "POST", "/insert-one", []fiber.Handler{authMiddleware, orgContextMiddleware}, h.InsertOne)
 	}
 	if config.InsMany {
-		router.Post(fmt.Sprintf("%s/insert-many", prefix), h.InsertMany, middleware.AuthMiddleware(permissionPrefix+".Insert"))
+		registerRouteWithMiddleware(router, prefix, "POST", "/insert-many", []fiber.Handler{authMiddleware, orgContextMiddleware}, h.InsertMany)
 	}
 
 	// Read operations
 	if config.Find {
-		router.Get(fmt.Sprintf("%s/find", prefix), h.Find, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		registerRouteWithMiddleware(router, prefix, "GET", "/find", []fiber.Handler{authReadMiddleware, orgContextMiddleware}, h.Find)
 	}
 	if config.FindOne {
-		router.Get(fmt.Sprintf("%s/find-one", prefix), h.FindOne, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		registerRouteWithMiddleware(router, prefix, "GET", "/find-one", []fiber.Handler{authReadMiddleware, orgContextMiddleware}, h.FindOne)
 	}
 	if config.FindById {
-		router.Get(fmt.Sprintf("%s/find-by-id/:id", prefix), h.FindOneById, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		registerRouteWithMiddleware(router, prefix, "GET", "/find-by-id/:id", []fiber.Handler{authReadMiddleware, orgContextMiddleware}, h.FindOneById)
 	}
 	if config.FindIds {
-		router.Post(fmt.Sprintf("%s/find-by-ids", prefix), h.FindManyByIds, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		registerRouteWithMiddleware(router, prefix, "POST", "/find-by-ids", []fiber.Handler{authReadMiddleware, orgContextMiddleware}, h.FindManyByIds)
 	}
 	if config.Paginate {
-		router.Get(fmt.Sprintf("%s/find-with-pagination", prefix), h.FindWithPagination, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		registerRouteWithMiddleware(router, prefix, "GET", "/find-with-pagination", []fiber.Handler{authReadMiddleware, orgContextMiddleware}, h.FindWithPagination)
 	}
 
 	// Update operations
 	if config.UpdOne {
-		router.Put(fmt.Sprintf("%s/update-one", prefix), h.UpdateOne, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		registerRouteWithMiddleware(router, prefix, "PUT", "/update-one", []fiber.Handler{authUpdateMiddleware, orgContextMiddleware}, h.UpdateOne)
 	}
 	if config.UpdMany {
-		router.Put(fmt.Sprintf("%s/update-many", prefix), h.UpdateMany, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		registerRouteWithMiddleware(router, prefix, "PUT", "/update-many", []fiber.Handler{authUpdateMiddleware, orgContextMiddleware}, h.UpdateMany)
 	}
 	if config.UpdById {
-		router.Put(fmt.Sprintf("%s/update-by-id/:id", prefix), h.UpdateById, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		registerRouteWithMiddleware(router, prefix, "PUT", "/update-by-id/:id", []fiber.Handler{authUpdateMiddleware, orgContextMiddleware}, h.UpdateById)
 	}
 	if config.FindUpd {
-		router.Put(fmt.Sprintf("%s/find-one-and-update", prefix), h.FindOneAndUpdate, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		registerRouteWithMiddleware(router, prefix, "PUT", "/find-one-and-update", []fiber.Handler{authUpdateMiddleware, orgContextMiddleware}, h.FindOneAndUpdate)
 	}
 
 	// Delete operations
 	if config.DelOne {
-		router.Delete(fmt.Sprintf("%s/delete-one", prefix), h.DeleteOne, middleware.AuthMiddleware(permissionPrefix+".Delete"))
+		registerRouteWithMiddleware(router, prefix, "DELETE", "/delete-one", []fiber.Handler{authDeleteMiddleware, orgContextMiddleware}, h.DeleteOne)
 	}
 	if config.DelMany {
-		router.Delete(fmt.Sprintf("%s/delete-many", prefix), h.DeleteMany, middleware.AuthMiddleware(permissionPrefix+".Delete"))
+		registerRouteWithMiddleware(router, prefix, "DELETE", "/delete-many", []fiber.Handler{authDeleteMiddleware, orgContextMiddleware}, h.DeleteMany)
 	}
 	if config.DelById {
-		router.Delete(fmt.Sprintf("%s/delete-by-id/:id", prefix), h.DeleteById, middleware.AuthMiddleware(permissionPrefix+".Delete"))
+		registerRouteWithMiddleware(router, prefix, "DELETE", "/delete-by-id/:id", []fiber.Handler{authDeleteMiddleware, orgContextMiddleware}, h.DeleteById)
 	}
 	if config.FindDel {
-		router.Delete(fmt.Sprintf("%s/find-one-and-delete", prefix), h.FindOneAndDelete, middleware.AuthMiddleware(permissionPrefix+".Delete"))
+		registerRouteWithMiddleware(router, prefix, "DELETE", "/find-one-and-delete", []fiber.Handler{authDeleteMiddleware, orgContextMiddleware}, h.FindOneAndDelete)
 	}
 
 	// Other operations
 	if config.Count {
-		fmt.Printf("Registering COUNT route: %s/count\n", prefix)
-		router.Get(fmt.Sprintf("%s/count", prefix), h.CountDocuments, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		// Count chỉ cần đăng nhập, không cần permission cụ thể
+		authOnlyMiddleware := middleware.AuthMiddleware("")
+		registerRouteWithMiddleware(router, prefix, "GET", "/count", []fiber.Handler{authOnlyMiddleware}, h.CountDocuments)
 	}
 	if config.Distinct {
-		router.Get(fmt.Sprintf("%s/distinct", prefix), h.Distinct, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		registerRouteWithMiddleware(router, prefix, "GET", "/distinct", []fiber.Handler{authReadMiddleware, orgContextMiddleware}, h.Distinct)
 	}
 	if config.Upsert {
-		router.Post(fmt.Sprintf("%s/upsert-one", prefix), h.Upsert, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		registerRouteWithMiddleware(router, prefix, "POST", "/upsert-one", []fiber.Handler{authUpdateMiddleware, orgContextMiddleware}, h.Upsert)
 	}
 	if config.UpsMany {
-		router.Post(fmt.Sprintf("%s/upsert-many", prefix), h.UpsertMany, middleware.AuthMiddleware(permissionPrefix+".Update"))
+		registerRouteWithMiddleware(router, prefix, "POST", "/upsert-many", []fiber.Handler{authUpdateMiddleware, orgContextMiddleware}, h.UpsertMany)
 	}
 	if config.Exists {
-		router.Get(fmt.Sprintf("%s/exists", prefix), h.DocumentExists, middleware.AuthMiddleware(permissionPrefix+".Read"))
+		registerRouteWithMiddleware(router, prefix, "GET", "/exists", []fiber.Handler{authReadMiddleware, orgContextMiddleware}, h.DocumentExists)
 	}
 }
 
 // CÁC HÀM ĐĂNG KÝ ROUTES
 
 // registerAdminRoutes đăng ký các route cho admin operations
+//
+// ⚠️ LƯU Ý: Tất cả routes ở đây PHẢI dùng registerRouteWithMiddleware (xem comment ở đầu file)
 func registerAdminRoutes(router fiber.Router) error {
 	// Admin routes
 	adminHandler, err := handler.NewAdminHandler()
@@ -241,13 +324,19 @@ func registerAdminRoutes(router fiber.Router) error {
 	}
 
 	// Các route đặc biệt cho quản trị viên
-	router.Post("/admin/user/block", middleware.AuthMiddleware("User.Block"), adminHandler.HandleBlockUser)
-	router.Post("/admin/user/unblock", middleware.AuthMiddleware("User.Block"), adminHandler.HandleUnBlockUser)
-	router.Post("/admin/user/role", middleware.AuthMiddleware("User.SetRole"), adminHandler.HandleSetRole)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	blockMiddleware := middleware.AuthMiddleware("User.Block")
+	registerRouteWithMiddleware(router, "/admin/user", "POST", "/block", []fiber.Handler{blockMiddleware}, adminHandler.HandleBlockUser)
+	registerRouteWithMiddleware(router, "/admin/user", "POST", "/unblock", []fiber.Handler{blockMiddleware}, adminHandler.HandleUnBlockUser)
+
+	setRoleMiddleware := middleware.AuthMiddleware("User.SetRole")
+	registerRouteWithMiddleware(router, "/admin/user", "POST", "/role", []fiber.Handler{setRoleMiddleware}, adminHandler.HandleSetRole)
+
 	// Thiết lập administrator (yêu cầu quyền Init.SetAdmin)
-	router.Post("/admin/user/set-administrator/:id", middleware.AuthMiddleware("Init.SetAdmin"), adminHandler.HandleAddAdministrator)
+	setAdminMiddleware := middleware.AuthMiddleware("Init.SetAdmin")
+	registerRouteWithMiddleware(router, "/admin/user", "POST", "/set-administrator/:id", []fiber.Handler{setAdminMiddleware}, adminHandler.HandleAddAdministrator)
 	// Đồng bộ quyền cho Administrator (yêu cầu quyền Init.SetAdmin)
-	router.Post("/admin/sync-administrator-permissions", middleware.AuthMiddleware("Init.SetAdmin"), adminHandler.HandleSyncAdministratorPermissions)
+	registerRouteWithMiddleware(router, "/admin", "POST", "/sync-administrator-permissions", []fiber.Handler{setAdminMiddleware}, adminHandler.HandleSyncAdministratorPermissions)
 
 	return nil
 }
@@ -267,6 +356,8 @@ func registerSystemRoutes(router fiber.Router) error {
 }
 
 // registerAuthRoutes đăng ký các route cho authentication cá nhân
+//
+// ⚠️ LƯU Ý: Tất cả routes ở đây PHẢI dùng registerRouteWithMiddleware (xem comment ở đầu file)
 func (r *Router) registerAuthRoutes(router fiber.Router) error {
 	// User routes
 	userHandler, err := handler.NewUserHandler()
@@ -279,19 +370,28 @@ func (r *Router) registerAuthRoutes(router fiber.Router) error {
 	router.Post("/auth/login/firebase", userHandler.HandleLoginWithFirebase)
 
 	// Logout - Xóa JWT token
-	router.Post("/auth/logout", userHandler.HandleLogout, middleware.AuthMiddleware(""))
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	authOnlyMiddleware := middleware.AuthMiddleware("")
+	registerRouteWithMiddleware(router, "/auth", "POST", "/logout", []fiber.Handler{authOnlyMiddleware}, userHandler.HandleLogout)
 
 	// Profile - Lấy và cập nhật thông tin user
-	router.Get("/auth/profile", userHandler.HandleGetProfile, middleware.AuthMiddleware(""))
-	router.Put("/auth/profile", userHandler.HandleUpdateProfile, middleware.AuthMiddleware(""))
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	registerRouteWithMiddleware(router, "/auth", "GET", "/profile", []fiber.Handler{authOnlyMiddleware}, userHandler.HandleGetProfile)
+	registerRouteWithMiddleware(router, "/auth", "PUT", "/profile", []fiber.Handler{authOnlyMiddleware}, userHandler.HandleUpdateProfile)
 
-	// Roles - Lấy danh sách roles của user
-	router.Get("/auth/roles", userHandler.HandleGetUserRoles, middleware.AuthMiddleware(""))
+	// Roles - Lấy danh sách tất cả roles của user hiện tại
+	// Endpoint đặc biệt: Có xác thực (cần token) nhưng KHÔNG yêu cầu permission
+	// Mục đích: Cho phép user xem tất cả roles của mình để chọn context làm việc
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng đã test) thay vì cách trực tiếp có bug trong Fiber v3
+	authRolesMiddleware := middleware.AuthMiddleware("")
+	registerRouteWithMiddleware(router, "/auth", "GET", "/roles", []fiber.Handler{authRolesMiddleware}, userHandler.HandleGetUserRoles)
 
 	return nil
 }
 
 // registerRBACRoutes đăng ký các route cho Role-Based Access Control
+//
+// ⚠️ LƯU Ý: Tất cả routes ở đây PHẢI dùng registerRouteWithMiddleware (xem comment ở đầu file)
 func (r *Router) registerRBACRoutes(router fiber.Router) error {
 	// User routes (Quản lý người dùng)
 	userHandler, err := handler.NewUserHandler()
@@ -307,9 +407,11 @@ func (r *Router) registerRBACRoutes(router fiber.Router) error {
 	}
 	fmt.Printf("Registering permission routes with prefix: /permission\n")
 	// Route đặc biệt cho lấy permissions theo category
-	router.Get("/permission/by-category/:category", middleware.AuthMiddleware("Permission.Read"), permHandler.HandleGetPermissionsByCategory)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	permReadMiddleware := middleware.AuthMiddleware("Permission.Read")
+	registerRouteWithMiddleware(router, "/permission", "GET", "/by-category/:category", []fiber.Handler{permReadMiddleware}, permHandler.HandleGetPermissionsByCategory)
 	// Route đặc biệt cho lấy permissions theo group
-	router.Get("/permission/by-group/:group", middleware.AuthMiddleware("Permission.Read"), permHandler.HandleGetPermissionsByGroup)
+	registerRouteWithMiddleware(router, "/permission", "GET", "/by-group/:group", []fiber.Handler{permReadMiddleware}, permHandler.HandleGetPermissionsByGroup)
 	// CRUD routes
 	r.registerCRUDRoutes(router, "/permission", permHandler, permConfig, "Permission")
 
@@ -326,7 +428,9 @@ func (r *Router) registerRBACRoutes(router fiber.Router) error {
 		return fmt.Errorf("failed to create role permission handler: %v", err)
 	}
 	// Route đặc biệt cho cập nhật quyền của vai trò
-	router.Put("/role-permission/update-role", middleware.AuthMiddleware("RolePermission.Update"), rolePermHandler.HandleUpdateRolePermissions)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	rolePermUpdateMiddleware := middleware.AuthMiddleware("RolePermission.Update")
+	registerRouteWithMiddleware(router, "/role-permission", "PUT", "/update-role", []fiber.Handler{rolePermUpdateMiddleware}, rolePermHandler.HandleUpdateRolePermissions)
 	// CRUD routes
 	r.registerCRUDRoutes(router, "/role-permission", rolePermHandler, rolePermConfig, "RolePermission")
 
@@ -336,7 +440,9 @@ func (r *Router) registerRBACRoutes(router fiber.Router) error {
 		return fmt.Errorf("failed to create user role handler: %v", err)
 	}
 	// Route đặc biệt cho cập nhật vai trò của người dùng
-	router.Put("/user-role/update-user-roles", middleware.AuthMiddleware("UserRole.Update"), userRoleHandler.HandleUpdateUserRoles)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	userRoleUpdateMiddleware := middleware.AuthMiddleware("UserRole.Update")
+	registerRouteWithMiddleware(router, "/user-role", "PUT", "/update-user-roles", []fiber.Handler{userRoleUpdateMiddleware}, userRoleHandler.HandleUpdateUserRoles)
 	// CRUD routes
 	r.registerCRUDRoutes(router, "/user-role", userRoleHandler, userRoleConfig, "UserRole")
 
@@ -355,14 +461,19 @@ func (r *Router) registerRBACRoutes(router fiber.Router) error {
 		return fmt.Errorf("failed to create agent handler: %v", err)
 	}
 	// Đăng ký các route đặc biệt cho agent: check-in/check-out
-	router.Post("/agent/check-in/:id", middleware.AuthMiddleware("Agent.CheckIn"), agentHandler.HandleCheckIn)    // Route check-in cho agent
-	router.Post("/agent/check-out/:id", middleware.AuthMiddleware("Agent.CheckOut"), agentHandler.HandleCheckOut) // Route check-out cho agent
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	agentCheckInMiddleware := middleware.AuthMiddleware("Agent.CheckIn")
+	agentCheckOutMiddleware := middleware.AuthMiddleware("Agent.CheckOut")
+	registerRouteWithMiddleware(router, "/agent", "POST", "/check-in/:id", []fiber.Handler{agentCheckInMiddleware}, agentHandler.HandleCheckIn)    // Route check-in cho agent
+	registerRouteWithMiddleware(router, "/agent", "POST", "/check-out/:id", []fiber.Handler{agentCheckOutMiddleware}, agentHandler.HandleCheckOut) // Route check-out cho agent
 	r.registerCRUDRoutes(router, "/agent", agentHandler, agentConfig, "Agent")
 
 	return nil
 }
 
 // registerFacebookRoutes đăng ký các route cho Facebook integration
+//
+// ⚠️ LƯU Ý: Tất cả routes ở đây PHẢI dùng registerRouteWithMiddleware (xem comment ở đầu file)
 func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 	// Access Token routes
 	accessTokenHandler, err := handler.NewAccessTokenHandler()
@@ -377,9 +488,12 @@ func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 		return fmt.Errorf("failed to create facebook page handler: %v", err)
 	}
 	// Route đặc biệt cho tìm page theo PageID
-	router.Get("/facebook/page/find-by-page-id/:id", middleware.AuthMiddleware("FbPage.Read"), fbPageHandler.HandleFindOneByPageID)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	fbPageReadMiddleware := middleware.AuthMiddleware("FbPage.Read")
+	fbPageUpdateMiddleware := middleware.AuthMiddleware("FbPage.Update")
+	registerRouteWithMiddleware(router, "/facebook/page", "GET", "/find-by-page-id/:id", []fiber.Handler{fbPageReadMiddleware}, fbPageHandler.HandleFindOneByPageID)
 	// Route đặc biệt cho cập nhật token của page
-	router.Put("/facebook/page/update-token", middleware.AuthMiddleware("FbPage.Update"), fbPageHandler.HandleUpdateToken)
+	registerRouteWithMiddleware(router, "/facebook/page", "PUT", "/update-token", []fiber.Handler{fbPageUpdateMiddleware}, fbPageHandler.HandleUpdateToken)
 	// CRUD routes
 	r.registerCRUDRoutes(router, "/facebook/page", fbPageHandler, fbPageConfig, "FbPage")
 
@@ -389,7 +503,9 @@ func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 		return fmt.Errorf("failed to create facebook post handler: %v", err)
 	}
 	// Route đặc biệt cho tìm post theo PostID
-	router.Get("/facebook/post/find-by-post-id/:id", middleware.AuthMiddleware("FbPost.Read"), fbPostHandler.HandleFindOneByPostID)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	fbPostReadMiddleware := middleware.AuthMiddleware("FbPost.Read")
+	registerRouteWithMiddleware(router, "/facebook/post", "GET", "/find-by-post-id/:id", []fiber.Handler{fbPostReadMiddleware}, fbPostHandler.HandleFindOneByPostID)
 
 	// CRUD routes
 	r.registerCRUDRoutes(router, "/facebook/post", fbPostHandler, fbPostConfig, "FbPost")
@@ -400,7 +516,9 @@ func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 		return fmt.Errorf("failed to create facebook conversation handler: %v", err)
 	}
 	// Route đặc biệt cho lấy cuộc trò chuyện sắp xếp theo thời gian cập nhật API
-	router.Get("/facebook/conversation/sort-by-api-update", middleware.AuthMiddleware("FbConversation.Read"), fbConvHandler.HandleFindAllSortByApiUpdate)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	fbConvReadMiddleware := middleware.AuthMiddleware("FbConversation.Read")
+	registerRouteWithMiddleware(router, "/facebook/conversation", "GET", "/sort-by-api-update", []fiber.Handler{fbConvReadMiddleware}, fbConvHandler.HandleFindAllSortByApiUpdate)
 	// CRUD routes
 	r.registerCRUDRoutes(router, "/facebook/conversation", fbConvHandler, fbConvConfig, "FbConversation")
 
@@ -417,7 +535,9 @@ func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 	// và lưu vào 2 collections (fb_messages cho metadata, fb_message_items cho messages)
 	// Route: POST /api/v1/facebook/message/upsert-messages
 	// DTO: FbMessageUpsertMessagesInput (có field HasMore)
-	router.Post("/facebook/message/upsert-messages", middleware.AuthMiddleware("FbMessage.Update"), fbMessageHandler.HandleUpsertMessages)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	fbMessageUpdateMiddleware := middleware.AuthMiddleware("FbMessage.Update")
+	registerRouteWithMiddleware(router, "/facebook/message", "POST", "/upsert-messages", []fiber.Handler{fbMessageUpdateMiddleware}, fbMessageHandler.HandleUpsertMessages)
 
 	// ============================================
 	// CRUD ROUTES: Giữ nguyên logic chung (không tách messages)
@@ -434,9 +554,11 @@ func (r *Router) registerFacebookRoutes(router fiber.Router) error {
 		return fmt.Errorf("failed to create facebook message item handler: %v", err)
 	}
 	// Route đặc biệt cho lấy message items theo conversationId với phân trang
-	router.Get("/facebook/message-item/find-by-conversation/:conversationId", middleware.AuthMiddleware("FbMessageItem.Read"), fbMessageItemHandler.HandleFindByConversationId)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	fbMessageItemReadMiddleware := middleware.AuthMiddleware("FbMessageItem.Read")
+	registerRouteWithMiddleware(router, "/facebook/message-item", "GET", "/find-by-conversation/:conversationId", []fiber.Handler{fbMessageItemReadMiddleware}, fbMessageItemHandler.HandleFindByConversationId)
 	// Route đặc biệt cho tìm message item theo messageId
-	router.Get("/facebook/message-item/find-by-message-id/:messageId", middleware.AuthMiddleware("FbMessageItem.Read"), fbMessageItemHandler.HandleFindOneByMessageId)
+	registerRouteWithMiddleware(router, "/facebook/message-item", "GET", "/find-by-message-id/:messageId", []fiber.Handler{fbMessageItemReadMiddleware}, fbMessageItemHandler.HandleFindOneByMessageId)
 	// CRUD routes
 	r.registerCRUDRoutes(router, "/facebook/message-item", fbMessageItemHandler, fbMessageItemConfig, "FbMessageItem")
 
@@ -560,6 +682,8 @@ func (r *Router) registerInitRoutes(router fiber.Router) error {
 }
 
 // registerNotificationRoutes đăng ký các route cho Notification Module
+//
+// ⚠️ LƯU Ý: Tất cả routes ở đây PHẢI dùng registerRouteWithMiddleware (xem comment ở đầu file)
 func (r *Router) registerNotificationRoutes(router fiber.Router) error {
 	// Notification Sender routes
 	senderHandler, err := handler.NewNotificationSenderHandler()
@@ -601,7 +725,9 @@ func (r *Router) registerNotificationRoutes(router fiber.Router) error {
 	if err != nil {
 		return fmt.Errorf("failed to create notification trigger handler: %v", err)
 	}
-	router.Post("/notification/trigger", middleware.AuthMiddleware("Notification.Trigger"), triggerHandler.HandleTriggerNotification)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	notificationTriggerMiddleware := middleware.AuthMiddleware("Notification.Trigger")
+	registerRouteWithMiddleware(router, "/notification", "POST", "/trigger", []fiber.Handler{notificationTriggerMiddleware}, triggerHandler.HandleTriggerNotification)
 
 	// Notification Tracking routes (public, không cần auth)
 	trackHandler, err := handler.NewNotificationTrackHandler()

@@ -16,6 +16,10 @@ type PcPosProduct struct {
 	NoteProduct       string                 `json:"noteProduct" bson:"noteProduct" extract:"PosData\\.note_product,converter=string,optional"`  // Ghi chú sản phẩm (extract từ PosData["note_product"])
 	ProductAttributes []interface{}          `json:"productAttributes" bson:"productAttributes" extract:"PosData\\.product_attributes,optional"` // Thuộc tính sản phẩm (extract từ PosData["product_attributes"])
 	PosData           map[string]interface{} `json:"posData" bson:"posData"`                                                                     // Dữ liệu gốc từ Pancake POS API
-	CreatedAt         int64                  `json:"createdAt" bson:"createdAt"`                                                                 // Thời gian tạo
-	UpdatedAt         int64                  `json:"updatedAt" bson:"updatedAt"`                                                                 // Thời gian cập nhật
+
+	// ===== ORGANIZATION =====
+	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+
+	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo
+	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật
 }

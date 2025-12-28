@@ -63,6 +63,44 @@ func (s *OrganizationService) GetChildrenIDs(ctx context.Context, parentID primi
 	return ids, nil
 }
 
+// GetParentIDs lấy tất cả ID của organization cha (dùng cho inverse lookup - xem dữ liệu cấp trên)
+// Đi ngược lên cây organization để lấy tất cả parent IDs
+func (s *OrganizationService) GetParentIDs(ctx context.Context, childID primitive.ObjectID) ([]primitive.ObjectID, error) {
+	// Lấy organization con
+	child, err := s.FindOneById(ctx, childID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Nếu không có parent (root), trả về mảng rỗng
+	if child.ParentID == nil {
+		return []primitive.ObjectID{}, nil
+	}
+
+	parentIDs := make([]primitive.ObjectID, 0)
+	currentID := *child.ParentID
+
+	// Đi ngược lên cây để lấy tất cả parents
+	for {
+		parent, err := s.FindOneById(ctx, currentID)
+		if err != nil {
+			// Nếu không tìm thấy parent, dừng lại
+			break
+		}
+
+		parentIDs = append(parentIDs, parent.ID)
+
+		// Nếu không có parent nữa (đã đến root), dừng lại
+		if parent.ParentID == nil {
+			break
+		}
+
+		currentID = *parent.ParentID
+	}
+
+	return parentIDs, nil
+}
+
 // validateBeforeDelete kiểm tra các điều kiện trước khi xóa organization
 // - Không cho phép xóa System organization
 // - Không cho phép xóa nếu có tổ chức con

@@ -12,10 +12,10 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
-	"github.com/gofiber/fiber/v3/middleware/logger"
+	fiberlogger "github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
-	"github.com/sirupsen/logrus"
+	"meta_commerce/core/logger"
 )
 
 // InitFiberApp khởi tạo ứng dụng Fiber với các middleware cần thiết
@@ -84,10 +84,8 @@ func InitFiberApp() *fiber.App {
 			// Nếu là TLS handshake, downgrade log level và trả về lỗi phù hợp
 			if isTLSHandshake {
 				// Log ở mức Debug thay vì Error vì đây là hành vi bình thường
-				logrus.WithFields(logrus.Fields{
-					"ip":        c.IP(),
-					"requestID": c.Get("X-Request-ID"),
-					"reason":    "TLS handshake to HTTP server",
+				logger.WithRequest(c).WithFields(map[string]interface{}{
+					"reason": "TLS handshake to HTTP server",
 				}).Debug("Client attempted HTTPS connection to HTTP server")
 
 				// Trả về lỗi Bad Request với message hướng dẫn rõ ràng
@@ -103,14 +101,10 @@ func InitFiberApp() *fiber.App {
 			}
 
 			// Log error cho các lỗi khác
-			logrus.WithFields(logrus.Fields{
+			logger.WithRequest(c).WithFields(map[string]interface{}{
 				"code":      code,
 				"errorCode": errorCode,
 				"message":   message,
-				"path":      c.Path(),
-				"method":    c.Method(),
-				"ip":        c.IP(),
-				"requestID": c.Get("X-Request-ID"),
 			}).Error("Request error")
 
 			// Return JSON error với format thống nhất
@@ -134,7 +128,66 @@ func InitFiberApp() *fiber.App {
 		},
 	}))
 
-	// 2. Security Headers Middleware - Thêm các security headers
+	// 2. Debug Middleware - Log tất cả requests và responses (tạm thời để debug CORS)
+	app.Use(func(c fiber.Ctx) error {
+		// Log request
+		logger.WithRequest(c).WithFields(map[string]interface{}{
+			"origin":  c.Get("Origin"),
+			"headers": c.GetReqHeaders(),
+		}).Debug("Incoming request")
+		
+		// Execute next middleware/handler
+		err := c.Next()
+		
+		// Log response
+		logger.WithRequest(c).WithFields(map[string]interface{}{
+			"status":        c.Response().StatusCode(),
+			"response_size": len(c.Response().Body()),
+			"cors_headers": map[string]string{
+				"Access-Control-Allow-Origin":      c.Get("Access-Control-Allow-Origin"),
+				"Access-Control-Allow-Methods":   c.Get("Access-Control-Allow-Methods"),
+				"Access-Control-Allow-Headers":   c.Get("Access-Control-Allow-Headers"),
+				"Access-Control-Allow-Credentials": c.Get("Access-Control-Allow-Credentials"),
+			},
+		}).Debug("Outgoing response")
+		
+		return err
+	})
+
+	// 3. CORS Middleware - PHẢI ĐẶT Ở ĐẦU để xử lý preflight requests trước các middleware khác
+	corsOrigins := global.MongoDB_ServerConfig.CORS_Origins
+	var allowOrigins []string
+	if corsOrigins == "*" {
+		// Development mode: cho phép tất cả
+		allowOrigins = []string{"*"}
+	} else {
+		// Production mode: chỉ cho phép các origins cụ thể
+		allowOrigins = strings.Split(corsOrigins, ",")
+		// Trim spaces
+		for i, origin := range allowOrigins {
+			allowOrigins[i] = strings.TrimSpace(origin)
+		}
+	}
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     allowOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+			"X-Request-ID",
+			"X-Requested-With",
+			"X-Active-Role-ID", // Header cho role context (quan trọng)
+		},
+		AllowCredentials: global.MongoDB_ServerConfig.CORS_AllowCredentials,
+		ExposeHeaders:    []string{"Content-Length", "Content-Range", "X-Request-ID"},
+		MaxAge:           24 * 60 * 60, // Thời gian cache preflight requests (24 giờ)
+		// Fiber v3 tự động trả về 204 No Content cho OPTIONS requests
+	}))
+
+	// 4. Security Headers Middleware - Thêm các security headers
 	app.Use(func(c fiber.Ctx) error {
 		c.Set("X-Content-Type-Options", "nosniff")
 		c.Set("X-Frame-Options", "DENY")
@@ -145,7 +198,7 @@ func InitFiberApp() *fiber.App {
 		return c.Next()
 	})
 
-	// 3. Rate Limiting Middleware - Giới hạn số request
+	// 5. Rate Limiting Middleware - Giới hạn số request
 	// Chỉ bật rate limit nếu được enable và Max > 0
 	if global.MongoDB_ServerConfig.RateLimit_Enabled && global.MongoDB_ServerConfig.RateLimit_Max > 0 {
 		rateLimitMax := global.MongoDB_ServerConfig.RateLimit_Max
@@ -166,28 +219,28 @@ func InitFiberApp() *fiber.App {
 			SkipFailedRequests:     false,
 			SkipSuccessfulRequests: false,
 			Next: func(c fiber.Ctx) bool {
-				// Bỏ qua rate limit cho health check
-				return c.Path() == "/health" || c.Path() == "/api/v1/system/health"
+				// Bỏ qua rate limit cho health check và OPTIONS requests (preflight)
+				return c.Path() == "/health" || 
+					c.Path() == "/api/v1/system/health" ||
+					c.Method() == "OPTIONS"
 			},
 		}))
-		logrus.Info(fmt.Sprintf("Rate limiting enabled: %d requests per %d seconds", rateLimitMax, global.MongoDB_ServerConfig.RateLimit_Window))
+		log := logger.GetAppLogger()
+		log.Infof("Rate limiting enabled: %d requests per %d seconds", rateLimitMax, global.MongoDB_ServerConfig.RateLimit_Window)
 	} else {
-		logrus.Info("Rate limiting disabled")
+		log := logger.GetAppLogger()
+		log.Info("Rate limiting disabled")
 	}
 
-	// 4. Recover Middleware
+	// 6. Recover Middleware
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 		StackTraceHandler: func(c fiber.Ctx, e interface{}) {
 			// Log panic với stack trace
-			logrus.WithFields(logrus.Fields{
-				"panic":     e,
-				"path":      c.Path(),
-				"method":    c.Method(),
-				"ip":        c.IP(),
-				"requestID": c.Get("X-Request-ID"),
-				"headers":   c.GetReqHeaders(),
-				"body":      string(c.Body()),
+			logger.WithRequest(c).WithFields(map[string]interface{}{
+				"panic":   e,
+				"headers": c.GetReqHeaders(),
+				"body":    string(c.Body()),
 			}).Error("Panic recovered")
 
 			// Trả về response với format chuẩn
@@ -207,8 +260,8 @@ func InitFiberApp() *fiber.App {
 		},
 	}))
 
-	// 5. Logger Middleware
-	app.Use(logger.New(logger.Config{
+	// 7. Logger Middleware
+	app.Use(fiberlogger.New(fiberlogger.Config{
 		Format:     "${time} | ${ip} | ${status} | ${latency} | ${method} | ${path} | ${requestID} | ${error}\n",
 		TimeFormat: "2006-01-02 15:04:05",
 		TimeZone:   "Asia/Ho_Chi_Minh",
@@ -216,30 +269,6 @@ func InitFiberApp() *fiber.App {
 		Next: func(c fiber.Ctx) bool {
 			return c.Path() == "/health" || c.Path() == "/api/v1/system/health"
 		},
-	}))
-
-	// 6. CORS Middleware - Cấu hình từ environment variable
-	corsOrigins := global.MongoDB_ServerConfig.CORS_Origins
-	var allowOrigins []string
-	if corsOrigins == "*" {
-		// Development mode: cho phép tất cả
-		allowOrigins = []string{"*"}
-	} else {
-		// Production mode: chỉ cho phép các origins cụ thể
-		allowOrigins = strings.Split(corsOrigins, ",")
-		// Trim spaces
-		for i, origin := range allowOrigins {
-			allowOrigins[i] = strings.TrimSpace(origin)
-		}
-	}
-
-	app.Use(cors.New(cors.Config{
-		AllowOrigins:     allowOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Request-ID"},
-		AllowCredentials: global.MongoDB_ServerConfig.CORS_AllowCredentials,
-		ExposeHeaders:    []string{"Content-Length", "Content-Range", "X-Request-ID"},
-		MaxAge:           24 * 60 * 60, // Thời gian cache preflight requests (24 giờ)
 	}))
 
 	// Khởi tạo routes trước khi đăng ký response middleware

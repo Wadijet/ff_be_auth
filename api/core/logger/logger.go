@@ -10,69 +10,213 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
+	// loggers map lưu các logger instances
 	loggers   = make(map[string]*logrus.Logger)
 	loggersMu sync.Mutex
-	rootDir   string
+
+	// config chứa cấu hình logging
+	config *LogConfig
+
+	// rootDir lưu đường dẫn gốc của project
+	rootDir string
 )
 
-// Lấy rootDir của project (2 cấp trên thư mục cmd)
-func getRootDir() string {
-	if rootDir != "" {
-		return rootDir
+// Init khởi tạo hệ thống logging với cấu hình
+func Init(cfg *LogConfig) error {
+	if cfg == nil {
+		cfg = DefaultConfig()
 	}
-	executable, err := os.Executable()
-	if err != nil {
-		panic(fmt.Sprintf("Could not get executable path: %v", err))
+	config = cfg
+
+	// Lấy rootDir
+	if err := initRootDir(); err != nil {
+		return fmt.Errorf("failed to initialize root directory: %w", err)
 	}
-	rootDir = filepath.Dir(filepath.Dir(filepath.Dir(executable)))
-	return rootDir
+
+	// Tạo thư mục logs nếu chưa tồn tại
+	logPath := getLogPath()
+	if err := os.MkdirAll(logPath, 0755); err != nil {
+		return fmt.Errorf("failed to create logs directory: %w", err)
+	}
+
+	return nil
 }
 
-// GetLogger trả về logger theo tên (app, jobs, ...)
+// initRootDir khởi tạo rootDir của project
+func initRootDir() error {
+	if rootDir != "" {
+		return nil
+	}
+
+	executable, err := os.Executable()
+	if err != nil {
+		// Fallback: sử dụng working directory
+		wd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("could not get executable or working directory: %v", err)
+		}
+		// Tìm thư mục api (2 cấp trên cmd)
+		rootDir = filepath.Dir(filepath.Dir(wd))
+		return nil
+	}
+
+	// Lấy đường dẫn gốc của project (2 cấp trên thư mục cmd)
+	rootDir = filepath.Dir(filepath.Dir(filepath.Dir(executable)))
+	return nil
+}
+
+// getLogPath trả về đường dẫn thư mục logs
+func getLogPath() string {
+	if filepath.IsAbs(config.LogPath) {
+		return config.LogPath
+	}
+	return filepath.Join(rootDir, config.LogPath)
+}
+
+// GetLogger trả về logger theo tên (app, audit, performance, error)
 func GetLogger(name string) *logrus.Logger {
 	loggersMu.Lock()
 	defer loggersMu.Unlock()
 
+	// Nếu chưa init, init với config mặc định
+	if config == nil {
+		if err := Init(nil); err != nil {
+			panic(fmt.Sprintf("Failed to initialize logger: %v", err))
+		}
+	}
+
+	// Trả về logger đã tồn tại
 	if logger, ok := loggers[name]; ok {
 		return logger
 	}
 
-	// Tạo logger mới nếu chưa có
-	logPath := filepath.Join(getRootDir(), "logs")
-	logFile := filepath.Join(logPath, fmt.Sprintf("%s.log", name))
+	// Tạo logger mới
+	logger := createLogger(name)
+	loggers[name] = logger
 
-	if err := os.MkdirAll(logPath, 0755); err != nil {
-		panic(fmt.Sprintf("Could not create logs directory at %s: %v", logPath, err))
-	}
+	return logger
+}
 
-	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic(fmt.Sprintf("Could not open log file %s: %v", logFile, err))
-	}
-
+// createLogger tạo một logger mới với cấu hình
+func createLogger(name string) *logrus.Logger {
 	logger := logrus.New()
-	logger.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp:   true,
-		TimestampFormat: "2006-01-02 15:04:05.000",
-		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-			s := strings.Split(f.Function, ".")
-			funcName := s[len(s)-1]
-			return funcName, filepath.Base(f.File)
-		},
-	})
-	mw := io.MultiWriter(os.Stdout, file)
-	logger.SetOutput(mw)
-	logger.SetReportCaller(true)
-	logger.SetLevel(logrus.DebugLevel)
 
+	// Set log level
+	level, err := logrus.ParseLevel(config.Level)
+	if err != nil {
+		level = logrus.InfoLevel
+	}
+	logger.SetLevel(level)
+
+	// Set formatter
+	if config.Format == "json" {
+		logger.SetFormatter(&logrus.JSONFormatter{
+			TimestampFormat: "2006-01-02 15:04:05.000",
+			FieldMap: logrus.FieldMap{
+				logrus.FieldKeyTime:  "timestamp",
+				logrus.FieldKeyLevel: "level",
+				logrus.FieldKeyMsg:   "message",
+				logrus.FieldKeyFunc:  "function",
+				logrus.FieldKeyFile:  "file",
+			},
+		})
+	} else {
+		logger.SetFormatter(&logrus.TextFormatter{
+			FullTimestamp:   true,
+			TimestampFormat: "2006-01-02 15:04:05.000",
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+				s := strings.Split(f.Function, ".")
+				funcName := s[len(s)-1]
+				return funcName, fmt.Sprintf("%s:%d", filepath.Base(f.File), f.Line)
+			},
+		})
+	}
+
+	// Set output
+	var writers []io.Writer
+
+	// File output với rotation
+	if config.Output == "file" || config.Output == "both" {
+		logFile := getLogFilePath(name)
+		fileWriter := &lumberjack.Logger{
+			Filename:   logFile,
+			MaxSize:    config.MaxSize,    // MB
+			MaxBackups: config.MaxBackups, // Số file cũ giữ lại
+			MaxAge:     config.MaxAge,     // Số ngày
+			Compress:   config.Compress,   // Nén file cũ
+		}
+		writers = append(writers, fileWriter)
+	}
+
+	// Stdout output
+	if config.Output == "stdout" || config.Output == "both" {
+		writers = append(writers, os.Stdout)
+	}
+
+	// MultiWriter để ghi vào nhiều destinations
+	if len(writers) > 0 {
+		mw := io.MultiWriter(writers...)
+		logger.SetOutput(mw)
+	}
+
+	// Bật caller logging
+	logger.SetReportCaller(true)
+
+	// Thêm service name vào mỗi log entry
+	logger = logger.WithField("service", name).Logger
+
+	// Log thông tin khởi tạo
 	logger.WithFields(logrus.Fields{
-		"log_file": logFile,
+		"log_file": getLogFilePath(name),
 		"level":    logger.GetLevel().String(),
+		"format":   config.Format,
+		"output":   config.Output,
 	}).Info("Logger initialized successfully")
 
-	loggers[name] = logger
 	return logger
+}
+
+// getLogFilePath trả về đường dẫn file log cho logger name
+func getLogFilePath(name string) string {
+	logPath := getLogPath()
+	var filename string
+
+	switch name {
+	case "app":
+		filename = config.AppFile
+	case "audit":
+		filename = config.AuditFile
+	case "performance":
+		filename = config.PerformanceFile
+	case "error":
+		filename = config.ErrorFile
+	default:
+		filename = fmt.Sprintf("%s.log", name)
+	}
+
+	return filepath.Join(logPath, filename)
+}
+
+// GetAppLogger trả về logger chính của ứng dụng
+func GetAppLogger() *logrus.Logger {
+	return GetLogger("app")
+}
+
+// GetAuditLogger trả về logger cho audit
+func GetAuditLogger() *logrus.Logger {
+	return GetLogger("audit")
+}
+
+// GetPerformanceLogger trả về logger cho performance
+func GetPerformanceLogger() *logrus.Logger {
+	return GetLogger("performance")
+}
+
+// GetErrorLogger trả về logger cho errors
+func GetErrorLogger() *logrus.Logger {
+	return GetLogger("error")
 }

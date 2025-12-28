@@ -61,6 +61,9 @@ type Customer struct {
 	PosReferralCode   string        `json:"posReferralCode,omitempty" bson:"posReferralCode,omitempty" extract:"PosData\\.referral_code,converter=string,optional,merge=overwrite"`          // Mã giới thiệu
 	PosIsBlock        bool          `json:"posIsBlock,omitempty" bson:"posIsBlock,omitempty" extract:"PosData\\.is_block,converter=bool,optional,merge=overwrite"`                           // Trạng thái block
 
+	// ===== ORGANIZATION =====
+	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+
 	// ===== METADATA =====
 	Sources   []string `json:"sources" bson:"sources"`     // ["pancake", "pos"] - Track nguồn dữ liệu
 	CreatedAt int64    `json:"createdAt" bson:"createdAt"` // Thời gian tạo

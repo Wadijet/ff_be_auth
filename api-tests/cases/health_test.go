@@ -30,13 +30,25 @@ func TestHealthCheck(t *testing.T) {
 		err = json.NewDecoder(resp.Body).Decode(&result)
 		assert.NoError(t, err, "Phải parse được JSON response")
 
-		// Kiểm tra kết quả
-		assert.Equal(t, "healthy", result["status"], "Status phải là 'healthy'")
-		assert.NotNil(t, result["timestamp"], "Phải có trường timestamp")
+		// Kiểm tra kết quả - Response format: {code, message, data: {status, timestamp, services}, status}
+		assert.Equal(t, "success", result["status"], "Status phải là 'success'")
+		
+		data, ok := result["data"].(map[string]interface{})
+		assert.True(t, ok, "Phải có trường data")
+		if ok {
+			assert.Equal(t, "healthy", data["status"], "Data status phải là 'healthy'")
+			assert.NotNil(t, data["timestamp"], "Phải có trường timestamp trong data")
+		}
 
 		// In kết quả test
 		fmt.Printf("✅ Health Check thành công:\n")
-		fmt.Printf("   - Status: %v\n", result["status"])
-		fmt.Printf("   - Timestamp: %v\n", result["timestamp"])
+		fmt.Printf("   - Response Status: %v\n", result["status"])
+		if ok {
+			fmt.Printf("   - Health Status: %v\n", data["status"])
+			fmt.Printf("   - Timestamp: %v\n", data["timestamp"])
+			if services, ok := data["services"].(map[string]interface{}); ok {
+				fmt.Printf("   - Services: %v\n", services)
+			}
+		}
 	})
 }

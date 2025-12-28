@@ -4,6 +4,8 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -167,6 +169,11 @@ func NewBaseServiceMongo[T any](collection *mongo.Collection) *BaseServiceMongoI
 func (s *BaseServiceMongoImpl[T]) InsertOne(ctx context.Context, data T) (T, error) {
 	var zero T
 
+	// ✅ Validate system data protection
+	if err := validateSystemDataInsert(ctx, data); err != nil {
+		return zero, err
+	}
+
 	// Chuyển data thành map để thêm timestamps
 	dataMap, err := utility.ToMap(data)
 	if err != nil {
@@ -205,6 +212,13 @@ func (s *BaseServiceMongoImpl[T]) InsertOne(ctx context.Context, data T) (T, err
 
 // InsertMany tạo nhiều bản ghi trong database
 func (s *BaseServiceMongoImpl[T]) InsertMany(ctx context.Context, data []T) ([]T, error) {
+	// ✅ Validate system data protection cho từng item
+	for _, item := range data {
+		if err := validateSystemDataInsert(ctx, item); err != nil {
+			return nil, err
+		}
+	}
+
 	var documents []interface{}
 	now := time.Now().UnixMilli()
 
@@ -331,10 +345,25 @@ func (s *BaseServiceMongoImpl[T]) UpdateOne(ctx context.Context, filter interfac
 		opts = options.Update().SetUpsert(false)
 	}
 
+	// ✅ Lấy document hiện tại để kiểm tra IsSystem
+	var existing T
+	err := s.collection.FindOne(ctx, filter).Decode(&existing)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return zero, common.ErrNotFound
+		}
+		return zero, common.ConvertMongoError(err)
+	}
+
 	// Chuyển update thành UpdateData
 	updateData, err := ToUpdateData(update)
 	if err != nil {
 		return zero, common.ErrInvalidFormat
+	}
+
+	// ✅ Validate system data protection
+	if err := validateSystemDataUpdate(ctx, existing, updateData); err != nil {
+		return zero, err
 	}
 
 	// Thêm updatedAt vào $set
@@ -376,10 +405,30 @@ func (s *BaseServiceMongoImpl[T]) UpdateMany(ctx context.Context, filter interfa
 		opts = options.Update().SetUpsert(false)
 	}
 
+	// ✅ Kiểm tra tất cả documents match filter có IsSystem không
+	// Lấy tất cả documents sẽ bị update
+	cursor, err := s.collection.Find(ctx, filter)
+	if err != nil {
+		return 0, common.ConvertMongoError(err)
+	}
+	defer cursor.Close(ctx)
+
+	var existingDocs []T
+	if err := cursor.All(ctx, &existingDocs); err != nil {
+		return 0, common.ConvertMongoError(err)
+	}
+
 	// Chuyển update thành UpdateData
 	updateData, err := ToUpdateData(update)
 	if err != nil {
 		return 0, common.ErrInvalidFormat
+	}
+
+	// ✅ Validate system data protection cho từng document
+	for _, existing := range existingDocs {
+		if err := validateSystemDataUpdate(ctx, existing, updateData); err != nil {
+			return 0, err
+		}
 	}
 
 	// Thêm updatedAt vào $set
@@ -405,6 +454,21 @@ func (s *BaseServiceMongoImpl[T]) DeleteOne(ctx context.Context, filter interfac
 		filter = bson.D{}
 	}
 
+	// ✅ Lấy document cần xóa để kiểm tra IsSystem
+	var existing T
+	err := s.collection.FindOne(ctx, filter).Decode(&existing)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return common.ErrNotFound
+		}
+		return common.ConvertMongoError(err)
+	}
+
+	// ✅ Validate system data protection
+	if err := validateSystemDataDelete(ctx, existing); err != nil {
+		return err
+	}
+
 	result, err := s.collection.DeleteOne(ctx, filter)
 	if err != nil {
 		return common.ConvertMongoError(err)
@@ -421,6 +485,25 @@ func (s *BaseServiceMongoImpl[T]) DeleteOne(ctx context.Context, filter interfac
 func (s *BaseServiceMongoImpl[T]) DeleteMany(ctx context.Context, filter interface{}) (int64, error) {
 	if filter == nil {
 		filter = bson.D{}
+	}
+
+	// ✅ Kiểm tra tất cả documents match filter có IsSystem không
+	cursor, err := s.collection.Find(ctx, filter)
+	if err != nil {
+		return 0, common.ConvertMongoError(err)
+	}
+	defer cursor.Close(ctx)
+
+	var existingDocs []T
+	if err := cursor.All(ctx, &existingDocs); err != nil {
+		return 0, common.ConvertMongoError(err)
+	}
+
+	// ✅ Validate system data protection cho từng document
+	for _, existing := range existingDocs {
+		if err := validateSystemDataDelete(ctx, existing); err != nil {
+			return 0, err
+		}
 	}
 
 	result, err := s.collection.DeleteMany(ctx, filter)
@@ -446,26 +529,94 @@ func (s *BaseServiceMongoImpl[T]) FindOneAndUpdate(ctx context.Context, filter i
 		opts = options.FindOneAndUpdate()
 	}
 
-	// Thêm updatedAt vào update
-	updateMap, err := utility.ToMap(update)
+	// ✅ Lấy document hiện tại để kiểm tra IsSystem (nếu có)
+	var existing T
+	err := s.collection.FindOne(ctx, filter).Decode(&existing)
+	isExisting := err == nil
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		// Lỗi khác ngoài không tìm thấy
+		return zero, common.ConvertMongoError(err)
+	}
+
+	// Chuyển update thành UpdateData để validate
+	updateData, err := ToUpdateData(update)
 	if err != nil {
 		return zero, common.ErrInvalidFormat
 	}
 
-	if setMap, ok := updateMap["$set"].(map[string]interface{}); ok {
-		setMap["updatedAt"] = time.Now().UnixMilli()
-		updateMap["$set"] = setMap
+	if isExisting {
+		// Document tồn tại, kiểm tra IsSystem
+		if err := validateSystemDataUpdate(ctx, existing, updateData); err != nil {
+			return zero, err
+		}
 	} else {
-		updateMap["$set"] = bson.M{"updatedAt": time.Now().UnixMilli()}
+		// Document không tồn tại, sẽ tạo mới, validate insert
+		// Kiểm tra IsSystem trong updateData
+		if updateData.Set != nil {
+			if isSystem, ok := updateData.Set["isSystem"].(bool); ok && isSystem {
+				// Nếu context cho phép insert system data (quá trình init), bỏ qua validation
+				if !isSystemDataInsertAllowed(ctx) {
+					return zero, common.NewError(
+						common.ErrCodeBusinessOperation,
+						"Không thể tạo dữ liệu với IsSystem = true. Chỉ hệ thống mới có thể tạo dữ liệu system",
+						common.StatusForbidden,
+						nil,
+					)
+				}
+			}
+		}
 	}
 
+	// Thêm updatedAt vào updateData
+	if updateData.Set == nil {
+		updateData.Set = make(map[string]interface{})
+	}
+	updateData.Set["updatedAt"] = time.Now().UnixMilli()
+
 	var result T
-	err = s.collection.FindOneAndUpdate(ctx, filter, updateMap, opts).Decode(&result)
+	err = s.collection.FindOneAndUpdate(ctx, filter, updateData, opts).Decode(&result)
 	if err != nil {
 		return zero, common.ConvertMongoError(err)
 	}
 
+	// ✅ Nếu là upsert (tạo mới), validate insert
+	if !isExisting {
+		// Document mới được tạo, validate insert
+		if err := validateSystemDataInsert(ctx, result); err != nil {
+			// Nếu validation fail, cần rollback (xóa document vừa tạo)
+			if id, ok := getIDFromModel(result); ok {
+				s.collection.DeleteOne(ctx, bson.M{"_id": id})
+			}
+			return zero, err
+		}
+	}
+
 	return result, nil
+}
+
+// getIDFromModel lấy ID từ model bằng reflection
+func getIDFromModel(data interface{}) (primitive.ObjectID, bool) {
+	v := reflect.ValueOf(data)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return primitive.NilObjectID, false
+	}
+
+	// Thử field ID
+	field := v.FieldByName("ID")
+	if !field.IsValid() {
+		return primitive.NilObjectID, false
+	}
+
+	if field.Kind() == reflect.Interface {
+		if id, ok := field.Interface().(primitive.ObjectID); ok {
+			return id, true
+		}
+	}
+
+	return primitive.NilObjectID, false
 }
 
 // FindOneAndDelete tìm và xóa một document
@@ -480,8 +631,23 @@ func (s *BaseServiceMongoImpl[T]) FindOneAndDelete(ctx context.Context, filter i
 		opts = options.FindOneAndDelete()
 	}
 
+	// ✅ Lấy document cần xóa để kiểm tra IsSystem
+	var existing T
+	err := s.collection.FindOne(ctx, filter).Decode(&existing)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return zero, common.ErrNotFound
+		}
+		return zero, common.ConvertMongoError(err)
+	}
+
+	// ✅ Validate system data protection
+	if err := validateSystemDataDelete(ctx, existing); err != nil {
+		return zero, err
+	}
+
 	var result T
-	err := s.collection.FindOneAndDelete(ctx, filter, opts).Decode(&result)
+	err = s.collection.FindOneAndDelete(ctx, filter, opts).Decode(&result)
 	if err != nil {
 		return zero, common.ConvertMongoError(err)
 	}
@@ -639,10 +805,22 @@ func (s *BaseServiceMongoImpl[T]) UpdateById(ctx context.Context, id primitive.O
 	var zero T
 	filter := bson.M{"_id": id}
 
+	// ✅ Lấy document hiện tại để kiểm tra IsSystem
+	var existing T
+	err := s.collection.FindOne(ctx, filter).Decode(&existing)
+	if err != nil {
+		return zero, common.ConvertMongoError(err)
+	}
+
 	// Chuyển data thành UpdateData
 	updateData, err := ToUpdateData(data)
 	if err != nil {
 		return zero, common.ErrInvalidFormat
+	}
+
+	// ✅ Validate system data protection
+	if err := validateSystemDataUpdate(ctx, existing, updateData); err != nil {
+		return zero, err
 	}
 
 	// Thêm updatedAt vào $set
@@ -682,6 +860,18 @@ func (s *BaseServiceMongoImpl[T]) UpdateById(ctx context.Context, id primitive.O
 // Returns:
 //   - error: Lỗi nếu có
 func (s *BaseServiceMongoImpl[T]) DeleteById(ctx context.Context, id primitive.ObjectID) error {
+	// ✅ Lấy document cần xóa để kiểm tra IsSystem
+	var existing T
+	err := s.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&existing)
+	if err != nil {
+		return common.ConvertMongoError(err)
+	}
+
+	// ✅ Validate system data protection
+	if err := validateSystemDataDelete(ctx, existing); err != nil {
+		return err
+	}
+
 	filter := bson.M{"_id": id}
 	result, err := s.collection.DeleteOne(ctx, filter)
 	if err != nil {
@@ -707,11 +897,44 @@ func (s *BaseServiceMongoImpl[T]) Upsert(ctx context.Context, filter interface{}
 		"filter":     filter,
 	}).Debug("Upsert: Bắt đầu upsert")
 
+	// ✅ Kiểm tra document hiện tại (nếu có) để validate update
+	var existing T
+	err := s.collection.FindOne(ctx, filter).Decode(&existing)
+	isExisting := err == nil
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return zero, common.ConvertMongoError(err)
+	}
+
 	// Chuyển data thành UpdateData
 	updateData, err := ToUpdateData(data)
 	if err != nil {
 		logrus.WithError(err).Error("Upsert: Lỗi chuyển đổi data thành UpdateData")
 		return zero, common.ErrInvalidFormat
+	}
+
+	// ✅ Validate system data protection
+	if isExisting {
+		// Document tồn tại, validate update
+		if err := validateSystemDataUpdate(ctx, existing, updateData); err != nil {
+			return zero, err
+		}
+	} else {
+		// Document không tồn tại, sẽ tạo mới, validate insert
+		// Cần tạo model từ updateData để validate
+		// Tạm thời validate qua updateData.Set
+		if updateData.Set != nil {
+			if isSystem, ok := updateData.Set["isSystem"].(bool); ok && isSystem {
+				// Nếu context cho phép insert system data (quá trình init), bỏ qua validation
+				if !isSystemDataInsertAllowed(ctx) {
+					return zero, common.NewError(
+						common.ErrCodeBusinessOperation,
+						"Không thể tạo dữ liệu với IsSystem = true. Chỉ hệ thống mới có thể tạo dữ liệu system",
+						common.StatusForbidden,
+						nil,
+					)
+				}
+			}
+		}
 	}
 
 	// Thêm timestamps
@@ -871,6 +1094,18 @@ func (s *BaseServiceMongoImpl[T]) UpsertMany(ctx context.Context, filter interfa
 		return []T{}, nil
 	}
 
+	// ✅ Validate system data protection cho từng item (insert case)
+	for _, item := range data {
+		if err := validateSystemDataInsert(ctx, item); err != nil {
+			return nil, err
+		}
+	}
+
+	// ✅ Kiểm tra documents hiện tại (nếu có) để validate update
+	// Với UpsertMany khó validate chính xác vì không biết document nào match với item nào
+	// Tạm thời chỉ validate insert, và nếu có document system thì sẽ bị chặn ở UpdateMany
+	// Note: UpsertMany thường dùng cho bulk import, ít khi dùng để update system data
+
 	// Tạo các models cho bulk write
 	var models []mongo.WriteModel
 	now := time.Now().UnixMilli()
@@ -961,3 +1196,229 @@ func (s *BaseServiceMongoImpl[T]) DocumentExists(ctx context.Context, filter int
 
 	return count > 0, nil
 }
+
+// ====================================
+// BẢO VỆ DỮ LIỆU HỆ THỐNG (IsSystem)
+// ====================================
+
+// Context key type để đánh dấu quá trình init cho phép tạo system data
+// Lưu ý: Key này là private và chỉ được sử dụng nội bộ trong package services
+type systemDataContextKey string
+
+const allowSystemDataInsertKey systemDataContextKey = "allow_system_data_insert"
+
+// withSystemDataInsertAllowed tạo context cho phép insert system data (dùng trong quá trình init)
+// Hàm này là unexported để tránh bị gọi từ bên ngoài package
+func withSystemDataInsertAllowed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, allowSystemDataInsertKey, true)
+}
+
+// isSystemDataInsertAllowed kiểm tra xem context có cho phép insert system data không
+func isSystemDataInsertAllowed(ctx context.Context) bool {
+	allowed, ok := ctx.Value(allowSystemDataInsertKey).(bool)
+	return ok && allowed
+}
+
+// getIsSystemValue lấy giá trị IsSystem từ model bằng reflection
+func getIsSystemValue(data interface{}) (bool, bool) {
+	v := reflect.ValueOf(data)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return false, false
+	}
+
+	field := v.FieldByName("IsSystem")
+	if !field.IsValid() || !field.CanInterface() {
+		return false, false
+	}
+
+	if field.Kind() == reflect.Bool {
+		return field.Bool(), true
+	}
+
+	return false, false
+}
+
+// setIsSystemValue set giá trị IsSystem cho model bằng reflection
+func setIsSystemValue(data interface{}, value bool) {
+	v := reflect.ValueOf(data)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return
+	}
+
+	field := v.FieldByName("IsSystem")
+	if !field.IsValid() || !field.CanSet() {
+		return
+	}
+
+	if field.Kind() == reflect.Bool {
+		field.SetBool(value)
+	}
+}
+
+// validateSystemDataInsert kiểm tra và bảo vệ khi insert dữ liệu system
+func validateSystemDataInsert(ctx context.Context, data interface{}) error {
+	isSystem, hasField := getIsSystemValue(data)
+	if !hasField {
+		return nil // Model không có field IsSystem, không cần validate
+	}
+
+	// Nếu context cho phép insert system data (quá trình init), bỏ qua validation
+	if isSystemDataInsertAllowed(ctx) {
+		return nil // Cho phép insert system data trong quá trình init
+	}
+
+	// Không cho phép user tạo dữ liệu với IsSystem = true
+	if isSystem {
+		return common.NewError(
+			common.ErrCodeBusinessOperation,
+			"Không thể tạo dữ liệu với IsSystem = true. Chỉ hệ thống mới có thể tạo dữ liệu system",
+			common.StatusForbidden,
+			nil,
+		)
+	}
+
+	// Đảm bảo IsSystem = false khi tạo mới
+	setIsSystemValue(data, false)
+	return nil
+}
+
+// validateSystemDataDelete kiểm tra và bảo vệ khi xóa dữ liệu system
+func validateSystemDataDelete(ctx context.Context, data interface{}) error {
+	isSystem, hasField := getIsSystemValue(data)
+	if !hasField {
+		return nil // Model không có field IsSystem, không cần validate
+	}
+
+	// Không cho phép xóa dữ liệu system (kể cả admin)
+	if isSystem {
+		// Lấy tên model để hiển thị trong error message
+		modelType := reflect.TypeOf(data)
+		if modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
+		}
+		modelName := modelType.Name()
+
+		return common.NewError(
+			common.ErrCodeBusinessOperation,
+			fmt.Sprintf("Không thể xóa %s vì đây là dữ liệu hệ thống mặc định", modelName),
+			common.StatusForbidden,
+			nil,
+		)
+	}
+
+	return nil
+}
+
+// validateSystemDataUpdate kiểm tra và bảo vệ khi update dữ liệu system
+// Cho phép admin sửa một số field nhất định (IsActive, config fields)
+// Không cho phép sửa các field quan trọng (IsSystem, Name, EventType, ChannelType, etc.)
+func validateSystemDataUpdate(ctx context.Context, existingData interface{}, update *UpdateData) error {
+	isSystem, hasField := getIsSystemValue(existingData)
+	if !hasField {
+		// Model không có field IsSystem, nhưng vẫn cần check nếu user cố set IsSystem = true
+		if update.Set != nil {
+			if isSystemVal, ok := update.Set["isSystem"].(bool); ok && isSystemVal {
+				return common.NewError(
+					common.ErrCodeBusinessOperation,
+					"Không thể set IsSystem = true. Chỉ hệ thống mới có thể tạo dữ liệu system",
+					common.StatusForbidden,
+					nil,
+				)
+			}
+			delete(update.Set, "isSystem")
+		}
+		return nil
+	}
+
+	// Kiểm tra user có phải admin không
+	isAdmin, _ := IsUserAdministratorFromContext(ctx)
+
+	if isSystem {
+		// Dữ liệu system: chỉ admin mới được sửa, và chỉ một số field nhất định
+		if !isAdmin {
+			return common.NewError(
+				common.ErrCodeBusinessOperation,
+				"Chỉ Administrator mới có thể sửa dữ liệu hệ thống",
+				common.StatusForbidden,
+				nil,
+			)
+		}
+
+		// Admin có thể sửa, nhưng không cho phép sửa các field quan trọng
+		if update.Set != nil {
+			// Không cho phép thay đổi IsSystem
+			if isSystemVal, ok := update.Set["isSystem"].(bool); ok && !isSystemVal {
+				return common.NewError(
+					common.ErrCodeBusinessOperation,
+					"Không thể thay đổi IsSystem của dữ liệu hệ thống",
+					common.StatusForbidden,
+					nil,
+				)
+			}
+			delete(update.Set, "isSystem")
+
+			// Lấy tên model để xác định các field không được sửa
+			modelType := reflect.TypeOf(existingData)
+			if modelType.Kind() == reflect.Ptr {
+				modelType = modelType.Elem()
+			}
+
+			// Các field không được sửa (tùy theo model)
+			protectedFields := getProtectedFieldsForModel(modelType.Name())
+
+			for _, fieldName := range protectedFields {
+				if _, ok := update.Set[fieldName]; ok {
+					return common.NewError(
+						common.ErrCodeBusinessOperation,
+						fmt.Sprintf("Không thể thay đổi %s của dữ liệu hệ thống", fieldName),
+						common.StatusForbidden,
+						nil,
+					)
+				}
+			}
+		}
+	} else {
+		// Dữ liệu không phải system: không cho phép set IsSystem = true
+		if update.Set != nil {
+			if isSystemVal, ok := update.Set["isSystem"].(bool); ok && isSystemVal {
+				return common.NewError(
+					common.ErrCodeBusinessOperation,
+					"Không thể set IsSystem = true. Chỉ hệ thống mới có thể tạo dữ liệu system",
+					common.StatusForbidden,
+					nil,
+				)
+			}
+			delete(update.Set, "isSystem")
+		}
+	}
+
+	return nil
+}
+
+// getProtectedFieldsForModel trả về danh sách các field không được sửa của dữ liệu system
+// Tùy theo từng model, có các field quan trọng khác nhau
+func getProtectedFieldsForModel(modelName string) []string {
+	// Các field chung không được sửa cho tất cả model có IsSystem
+	commonProtected := []string{"name"}
+
+	// Các field đặc thù theo model
+	switch modelName {
+	case "NotificationChannelSender":
+		return append(commonProtected, "channelType")
+	case "NotificationTemplate":
+		return append(commonProtected, "eventType", "channelType")
+	case "NotificationChannel":
+		return append(commonProtected, "channelType")
+	case "NotificationRoutingRule":
+		return append(commonProtected, "eventType")
+	default:
+		return commonProtected
+	}
+}
+

@@ -18,6 +18,10 @@ type PcPosVariation struct {
 	Fields         []interface{}          `json:"fields" bson:"fields" extract:"PosData\\.fields,optional"`                                            // Các trường thuộc tính (extract từ PosData["fields"])
 	Images         []string               `json:"images" bson:"images" extract:"PosData\\.images,optional"`                                            // Danh sách hình ảnh (extract từ PosData["images"])
 	PosData        map[string]interface{} `json:"posData" bson:"posData"`                                                                              // Dữ liệu gốc từ Pancake POS API
-	CreatedAt      int64                  `json:"createdAt" bson:"createdAt"`                                                                          // Thời gian tạo
-	UpdatedAt      int64                  `json:"updatedAt" bson:"updatedAt"`                                                                          // Thời gian cập nhật
+
+	// ===== ORGANIZATION =====
+	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+
+	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo
+	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật
 }

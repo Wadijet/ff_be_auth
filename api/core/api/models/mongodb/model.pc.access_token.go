@@ -13,6 +13,10 @@ type AccessToken struct {
 	Value         string               `json:"value" bson:"value"`                 // Giá trị của access token
 	AssignedUsers []primitive.ObjectID `json:"assignedUsers" bson:"assignedUsers"` // Danh sách người dùng được gán access token
 	Status        byte                 `json:"status" bson:"status"`               // Trạng thái của access token (0 = active, 1 = inactive)
-	CreatedAt     int64                `json:"createdAt" bson:"createdAt"`         // Thời gian tạo access token
-	UpdatedAt     int64                `json:"updatedAt" bson:"updatedAt"`         // Thời gian cập nhật access token
+
+	// ===== ORGANIZATION =====
+	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+
+	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo access token
+	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật access token
 }

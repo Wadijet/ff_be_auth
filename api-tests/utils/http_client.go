@@ -11,9 +11,10 @@ import (
 
 // HTTPClient là wrapper cho http.Client với các tiện ích
 type HTTPClient struct {
-	client  *http.Client
-	baseURL string
-	token   string
+	client            *http.Client
+	baseURL          string
+	token            string
+	activeRoleID     string // Header X-Active-Role-ID cho organization context
 }
 
 // NewHTTPClient tạo mới một HTTP client
@@ -29,6 +30,12 @@ func NewHTTPClient(baseURL string, timeout int) *HTTPClient {
 // SetToken thiết lập token cho các request tiếp theo
 func (c *HTTPClient) SetToken(token string) {
 	c.token = token
+}
+
+// SetActiveRoleID thiết lập active role ID cho organization context
+// Header này sẽ được gửi kèm trong request để xác định organization context
+func (c *HTTPClient) SetActiveRoleID(roleID string) {
+	c.activeRoleID = roleID
 }
 
 // Request thực hiện HTTP request
@@ -56,6 +63,10 @@ func (c *HTTPClient) Request(method, path string, body interface{}) (*http.Respo
 	req.Header.Set("Content-Type", "application/json")
 	if c.token != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+	}
+	// Thêm header X-Active-Role-ID cho organization context
+	if c.activeRoleID != "" {
+		req.Header.Set("X-Active-Role-ID", c.activeRoleID)
 	}
 
 	// Thực hiện request

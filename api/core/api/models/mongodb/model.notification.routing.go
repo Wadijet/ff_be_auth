@@ -11,6 +11,7 @@ type NotificationRoutingRule struct {
 	OrganizationIDs []primitive.ObjectID `json:"organizationIds" bson:"organizationIds"`                         // Teams nào nhận (có thể nhiều)
 	ChannelTypes    []string             `json:"channelTypes,omitempty" bson:"channelTypes,omitempty"`          // Filter channels theo type (optional: email, telegram, webhook)
 	IsActive        bool                 `json:"isActive" bson:"isActive" index:"single:1"`
+	IsSystem        bool                 `json:"-" bson:"isSystem" index:"single:1"`                     // true = dữ liệu hệ thống, không thể xóa (chỉ dùng nội bộ, không expose ra API)
 	CreatedAt       int64                `json:"createdAt" bson:"createdAt"`
 	UpdatedAt       int64                `json:"updatedAt" bson:"updatedAt"`
 }

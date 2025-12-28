@@ -30,6 +30,10 @@ type PcPosOrder struct {
 	WarehouseInfo   map[string]interface{} `json:"warehouseInfo" bson:"warehouseInfo" extract:"PosData\\.warehouse_info,optional"`                                      // Thông tin kho hàng (extract từ PosData["warehouse_info"])
 	CustomerInfo    map[string]interface{} `json:"customerInfo" bson:"customerInfo" extract:"PosData\\.customer,optional"`                                              // Thông tin khách hàng (extract từ PosData["customer"])
 	PosData         map[string]interface{} `json:"posData" bson:"posData"`                                                                                              // Dữ liệu gốc từ Pancake POS API
-	CreatedAt       int64                  `json:"createdAt" bson:"createdAt"`                                                                                          // Thời gian tạo
-	UpdatedAt       int64                  `json:"updatedAt" bson:"updatedAt"`                                                                                          // Thời gian cập nhật
+
+	// ===== ORGANIZATION =====
+	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+
+	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo
+	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật
 }

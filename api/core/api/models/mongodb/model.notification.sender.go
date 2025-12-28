@@ -8,9 +8,10 @@ import (
 type NotificationChannelSender struct {
 	ID             primitive.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`
 	OrganizationID *primitive.ObjectID `json:"organizationId,omitempty" bson:"organizationId,omitempty" index:"single:1"` // null = global, có giá trị = company/group level
-	ChannelType    string              `json:"channelType" bson:"channelType" index:"single:1"`                          // email, telegram, webhook
+	ChannelType    string              `json:"channelType" bson:"channelType" index:"single:1"`                           // email, telegram, webhook
 	Name           string              `json:"name" bson:"name" index:"single:1"`
 	IsActive       bool                `json:"isActive" bson:"isActive" index:"single:1"`
+	IsSystem       bool                `json:"-" bson:"isSystem" index:"single:1"` // true = dữ liệu hệ thống, không thể xóa (chỉ dùng nội bộ, không expose ra API)
 
 	// Email sender config
 	SMTPHost     string `json:"smtpHost,omitempty" bson:"smtpHost,omitempty"`
@@ -27,4 +28,3 @@ type NotificationChannelSender struct {
 	CreatedAt int64 `json:"createdAt" bson:"createdAt"`
 	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"`
 }
-

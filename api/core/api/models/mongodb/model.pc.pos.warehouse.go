@@ -16,6 +16,10 @@ type PcPosWarehouse struct {
 	DistrictId  string                 `json:"districtId" bson:"districtId" extract:"PanCakeData\\.district_id,converter=string,optional"`    // ID quận/huyện (extract từ PanCakeData["district_id"])
 	CommuneId   string                 `json:"communeId" bson:"communeId" extract:"PanCakeData\\.commune_id,converter=string,optional"`       // ID phường/xã (extract từ PanCakeData["commune_id"])
 	PanCakeData map[string]interface{} `json:"panCakeData" bson:"panCakeData"`                                                                // Dữ liệu gốc từ Pancake POS API
-	CreatedAt   int64                  `json:"createdAt" bson:"createdAt"`                                                                    // Thời gian tạo
-	UpdatedAt   int64                  `json:"updatedAt" bson:"updatedAt"`                                                                    // Thời gian cập nhật
+
+	// ===== ORGANIZATION =====
+	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+
+	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo
+	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật
 }

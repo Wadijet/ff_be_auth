@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -49,7 +48,8 @@ func getEnvPath() string {
 	// Tìm thư mục config
 	currentDir, err := os.Getwd()
 	if err != nil {
-		log.Printf("Không thể lấy được thư mục hiện tại: %v\n", err)
+		// Sử dụng fmt.Printf vì logger có thể chưa được init ở đây
+		fmt.Printf("Không thể lấy được thư mục hiện tại: %v\n", err)
 		return ""
 	}
 
@@ -75,13 +75,15 @@ func getEnvPath() string {
 func NewConfig(files ...string) *Configuration {
 	envPath := getEnvPath()
 	if envPath == "" {
-		log.Printf("Không tìm thấy thư mục config/env")
+		// Sử dụng fmt.Printf vì logger có thể chưa được init ở đây
+		fmt.Printf("Không tìm thấy thư mục config/env\n")
 		return nil
 	}
 
 	err := godotenv.Load(envPath)
 	if err != nil {
-		log.Printf("Không thể load file env tại %s: %v\n", envPath, err)
+		// Sử dụng fmt.Printf vì logger có thể chưa được init ở đây
+		fmt.Printf("Không thể load file env tại %s: %v\n", envPath, err)
 		return nil
 	}
 

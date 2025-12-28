@@ -11,6 +11,7 @@ type NotificationChannel struct {
 	ChannelType    string               `json:"channelType" bson:"channelType" index:"single:1"`        // email, telegram, webhook
 	Name           string               `json:"name" bson:"name" index:"single:1"`
 	IsActive       bool                 `json:"isActive" bson:"isActive" index:"single:1"`
+	IsSystem       bool                 `json:"-" bson:"isSystem" index:"single:1"`              // true = dữ liệu hệ thống, không thể xóa (chỉ dùng nội bộ, không expose ra API)
 
 	// Sender configs (dự phòng - thứ tự ưu tiên)
 	SenderIDs []primitive.ObjectID `json:"senderIds,omitempty" bson:"senderIds,omitempty"` // Mảng sender IDs (thứ tự ưu tiên), null/empty = dùng inheritance

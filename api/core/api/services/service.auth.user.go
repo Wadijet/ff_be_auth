@@ -12,6 +12,7 @@ import (
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/common"
 	"meta_commerce/core/global"
+	"meta_commerce/core/logger"
 	"meta_commerce/core/utility"
 
 	"github.com/sirupsen/logrus"
@@ -309,15 +310,51 @@ func (s *UserService) LoginWithFirebase(ctx context.Context, input *dto.Firebase
 			Hwid:     input.Hwid,
 			JwtToken: tokenMap["token"],
 		})
+		logrus.WithFields(logrus.Fields{
+			"user_id": user.ID.Hex(),
+			"hwid":    input.Hwid,
+			"token":   tokenMap["token"][:20] + "...",
+		}).Debug("LoginWithFirebase: Thêm token mới vào tokens array")
 	} else {
 		user.Tokens[idTokenExist].JwtToken = tokenMap["token"]
+		logrus.WithFields(logrus.Fields{
+			"user_id": user.ID.Hex(),
+			"hwid":    input.Hwid,
+			"token":   tokenMap["token"][:20] + "...",
+		}).Debug("LoginWithFirebase: Cập nhật token trong tokens array")
 	}
 
-	// 9. Lưu user
+	// Log số lượng tokens trước khi lưu
 	logrus.WithFields(logrus.Fields{
-		"user_id": user.ID.Hex(),
+		"user_id":      user.ID.Hex(),
+		"tokens_count": len(user.Tokens),
+		"hwid":         input.Hwid,
+	}).Debug("LoginWithFirebase: Số lượng tokens trước khi lưu")
+
+	// 9. Lưu user - Sử dụng UpdateData để đảm bảo update đúng các field
+	logrus.WithFields(logrus.Fields{
+		"user_id":      user.ID.Hex(),
+		"token_length": len(user.Token),
+		"tokens_count": len(user.Tokens),
 	}).Debug("LoginWithFirebase: Bắt đầu cập nhật token vào user")
-	updatedUser, err := s.BaseServiceMongoImpl.UpdateById(ctx, user.ID, user)
+
+	// Sử dụng UpdateData để update chỉ các field cần thiết
+	tokenUpdateData := &UpdateData{
+		Set: map[string]interface{}{
+			"token":  user.Token,
+			"tokens": user.Tokens,
+		},
+	}
+	
+	// Log trước khi update để debug - dùng GetAppLogger để ghi vào file
+	logger.GetAppLogger().WithFields(logrus.Fields{
+		"user_id":      user.ID.Hex(),
+		"token_length": len(user.Token),
+		"tokens_count": len(user.Tokens),
+		"update_data_set_keys": []string{"token", "tokens"},
+	}).Error("🔄 [LOGIN] LoginWithFirebase: Chuẩn bị update token với UpdateData - FORCE LOG")
+	
+	updatedUser, err := s.BaseServiceMongoImpl.UpdateById(ctx, user.ID, tokenUpdateData)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"user_id": user.ID.Hex(),
@@ -326,9 +363,39 @@ func (s *UserService) LoginWithFirebase(ctx context.Context, input *dto.Firebase
 		return nil, err
 	}
 
+	// Verify token đã được lưu - dùng GetAppLogger để ghi vào file
+	tokenMatch := updatedUser.Token == user.Token
+	logger.GetAppLogger().WithFields(logrus.Fields{
+		"user_id":      updatedUser.ID.Hex(),
+		"token_length": len(updatedUser.Token),
+		"tokens_count": len(updatedUser.Tokens),
+		"token_match":  tokenMatch,
+	}).Error("✅ [LOGIN] LoginWithFirebase: Đã cập nhật token vào user - verify - FORCE LOG")
+	
+	if !tokenMatch {
+		logger.GetAppLogger().WithFields(logrus.Fields{
+			"user_id":         updatedUser.ID.Hex(),
+			"expected_token":  user.Token[:min(50, len(user.Token))] + "...",
+			"actual_token":    updatedUser.Token[:min(50, len(updatedUser.Token))] + "...",
+		}).Error("❌ [LOGIN] LoginWithFirebase: Token không khớp sau khi update!")
+	}
+
 	logrus.WithFields(logrus.Fields{
-		"user_id": updatedUser.ID.Hex(),
+		"user_id":      updatedUser.ID.Hex(),
+		"tokens_count": len(updatedUser.Tokens),
+		"hwid":         input.Hwid,
 	}).Debug("LoginWithFirebase: Đã cập nhật token vào user")
+
+	// Log token cuối cùng trong tokens array để verify
+	if len(updatedUser.Tokens) > 0 {
+		lastToken := updatedUser.Tokens[len(updatedUser.Tokens)-1]
+		logrus.WithFields(logrus.Fields{
+			"user_id":      updatedUser.ID.Hex(),
+			"last_hwid":    lastToken.Hwid,
+			"last_token":   lastToken.JwtToken[:20] + "...",
+			"tokens_count": len(updatedUser.Tokens),
+		}).Debug("LoginWithFirebase: Token cuối cùng trong tokens array")
+	}
 
 	// 10. Nếu chưa có admin nào, tự động set user đầu tiên làm admin
 	// Đây là phương án phổ biến: "First user becomes admin"
@@ -368,4 +435,12 @@ func getUpdateDataKeys(updateData *UpdateData) []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// min helper function
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

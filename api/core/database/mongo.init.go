@@ -3,8 +3,8 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
 	"meta_commerce/core/global"
+	"meta_commerce/core/logger"
 	"reflect"
 	"strconv"
 	"strings"
@@ -45,7 +45,7 @@ func EnsureDatabaseAndCollections(client *mongo.Client) error {
 		}
 	}
 	if !dbExists {
-		log.Printf("Database %s does not exist, will create automatically by creating collections", dbName)
+		logger.GetAppLogger().Infof("Database %s does not exist, will create automatically by creating collections", dbName)
 	}
 
 	// Tạo database nếu chưa tồn tại
@@ -73,14 +73,14 @@ func EnsureDatabaseAndCollections(client *mongo.Client) error {
 		}
 		// Tạo collection nếu chưa tồn tại
 		if !exists {
-			log.Printf("Collection %s chưa tồn tại, tạo mới.", collectionName)
+			logger.GetAppLogger().Infof("Collection %s chưa tồn tại, tạo mới.", collectionName)
 			if err := db.CreateCollection(ctx, collectionName); err != nil {
 				return fmt.Errorf("failed to create collection %s: %w", collectionName, err)
 			}
 		}
 	}
 
-	log.Printf("Database and collections are ensured in database: %s", dbName)
+	logger.GetAppLogger().Infof("Database and collections are ensured in database: %s", dbName)
 	return nil
 }
 

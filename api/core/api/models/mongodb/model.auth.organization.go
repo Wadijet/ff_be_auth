@@ -24,6 +24,7 @@ type Organization struct {
 	Path      string              `json:"path" bson:"path" index:"single:1"`                        // Đường dẫn cây (ví dụ: "/system/root_group/company1/dept1")
 	Level     int                 `json:"level" bson:"level" index:"single:1"`                      // Cấp độ (-1 = system root, 0 = group, 1 = company, 2 = department, ...)
 	IsActive  bool                `json:"isActive" bson:"isActive" index:"single:1"`                // Trạng thái hoạt động
+	IsSystem  bool                `json:"-" bson:"isSystem" index:"single:1"`                       // true = dữ liệu hệ thống, không thể xóa (chỉ dùng nội bộ, không expose ra API)
 	CreatedAt int64               `json:"createdAt" bson:"createdAt"`                               // Thời gian tạo
 	UpdatedAt int64               `json:"updatedAt" bson:"updatedAt"`                               // Thời gian cập nhật
 }

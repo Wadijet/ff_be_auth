@@ -11,6 +11,10 @@ type PcPosCategory struct {
 	ShopId     int64                  `json:"shopId" bson:"shopId" index:"text" extract:"PosData\\.shop_id,converter=int64,optional"` // ID của shop (extract từ PosData["shop_id"])
 	Name       string                 `json:"name" bson:"name" index:"text" extract:"PosData\\.name,converter=string,optional"`       // Tên danh mục (extract từ PosData["name"])
 	PosData    map[string]interface{} `json:"posData" bson:"posData"`                                                                 // Dữ liệu gốc từ Pancake POS API
-	CreatedAt  int64                  `json:"createdAt" bson:"createdAt"`                                                             // Thời gian tạo
-	UpdatedAt  int64                  `json:"updatedAt" bson:"updatedAt"`                                                             // Thời gian cập nhật
+
+	// ===== ORGANIZATION =====
+	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+
+	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo
+	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật
 }

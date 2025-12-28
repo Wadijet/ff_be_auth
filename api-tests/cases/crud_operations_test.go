@@ -42,6 +42,23 @@ func TestCRUDOperations(t *testing.T) {
 		// Vẫn tiếp tục test, có thể sẽ fail ở phần tạo Role
 	}
 
+	// Lấy danh sách roles của user để set active role
+	resp, body, err := client.GET("/auth/roles")
+	if err == nil && resp.StatusCode == http.StatusOK {
+		var result map[string]interface{}
+		json.Unmarshal(body, &result)
+		if data, ok := result["data"].([]interface{}); ok && len(data) > 0 {
+			firstRole, ok := data[0].(map[string]interface{})
+			if ok {
+				roleID, ok := firstRole["roleId"].(string)
+				if ok {
+					client.SetActiveRoleID(roleID)
+					fmt.Printf("✅ Set active role ID: %s\n", roleID)
+				}
+			}
+		}
+	}
+
 	// Test Role CRUD Operations
 	t.Run("🎭 Role CRUD Operations", func(t *testing.T) {
 		var roleID string

@@ -25,3 +25,6 @@ func NewNotificationTemplateService() (*NotificationTemplateService, error) {
 	}, nil
 }
 
+// ✅ Các method InsertOne, DeleteById, UpdateById đã được xử lý bởi BaseServiceMongoImpl
+// với cơ chế bảo vệ dữ liệu hệ thống chung (IsSystem)
+

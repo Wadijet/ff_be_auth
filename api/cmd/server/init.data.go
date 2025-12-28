@@ -46,4 +46,12 @@ func InitDefaultData() {
 		logrus.Info("FIREBASE_ADMIN_UID not set")
 		logrus.Info("User đầu tiên login sẽ tự động trở thành admin (First user becomes admin)")
 	}
+
+	// 5. Khởi tạo dữ liệu mặc định cho hệ thống notification
+	// Tạo các sender và template mặc định (global), các thông tin như token/password sẽ để trống để admin bổ sung sau
+	if err := initService.InitNotificationData(); err != nil {
+		logrus.Warnf("Failed to initialize notification data: %v", err)
+	} else {
+		logrus.Info("Notification data initialized successfully")
+	}
 }

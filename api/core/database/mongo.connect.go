@@ -3,8 +3,8 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
 	"meta_commerce/config"
+	"meta_commerce/core/logger"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -53,16 +53,16 @@ func GetInstance(c *config.Configuration) (*mongo.Client, error) {
 		return nil, fmt.Errorf("failed to ping MongoDB: %w", err)
 	}
 
-	log.Println("Successfully connected to MongoDB")
+	logger.GetAppLogger().Info("Successfully connected to MongoDB")
 	return client, nil
 }
 
 // CloseInstance closes the MongoDB client connection.
 func CloseInstance(client *mongo.Client) error {
 	if err := client.Disconnect(context.TODO()); err != nil {
-		log.Printf("Failed to disconnect MongoDB client: %v", err)
+		logger.GetAppLogger().WithError(err).Error("Failed to disconnect MongoDB client")
 		return err
 	}
-	log.Println("Successfully disconnected from MongoDB")
+	logger.GetAppLogger().Info("Successfully disconnected from MongoDB")
 	return nil
 }

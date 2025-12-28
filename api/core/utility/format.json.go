@@ -3,12 +3,12 @@ package utility
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 
 	"github.com/valyala/fasthttp"
 
 	"meta_commerce/core/common"
 	"meta_commerce/core/global"
+	"meta_commerce/core/logger"
 )
 
 // JSON thiết lập header và trả về dữ liệu JSON
@@ -22,7 +22,7 @@ func JSON(ctx *fasthttp.RequestCtx, data map[string]interface{}) {
 	res, err := json.Marshal(data)
 
 	if err != nil {
-		log.Println("Error Convert to JSON")
+		logger.GetAppLogger().WithError(err).Error("Error Convert to JSON")
 		data["error"] = err
 	}
 
