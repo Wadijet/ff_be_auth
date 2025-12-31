@@ -37,7 +37,7 @@ type PcPosCustomer struct {
 	PosData map[string]interface{} `json:"posData,omitempty" bson:"posData,omitempty"` // Dữ liệu gốc từ POS API
 
 	// ===== ORGANIZATION =====
-	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+	OwnerOrganizationID primitive.ObjectID `json:"ownerOrganizationId" bson:"ownerOrganizationId" index:"single:1"` // Tổ chức sở hữu dữ liệu (phân quyền)
 
 	// ===== METADATA =====
 	PosUpdatedAt int64 `json:"posUpdatedAt" bson:"posUpdatedAt" extract:"PosData\\.updated_at,converter=time,format=2006-01-02T15:04:05Z,optional"` // Thời gian cập nhật từ POS (extract từ PosData["updated_at"])

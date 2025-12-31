@@ -15,7 +15,7 @@ type AccessToken struct {
 	Status        byte                 `json:"status" bson:"status"`               // Trạng thái của access token (0 = active, 1 = inactive)
 
 	// ===== ORGANIZATION =====
-	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+	OwnerOrganizationID primitive.ObjectID `json:"ownerOrganizationId" bson:"ownerOrganizationId" index:"single:1"` // Tổ chức sở hữu dữ liệu (phân quyền)
 
 	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo access token
 	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật access token

@@ -173,15 +173,15 @@ func (h *UserHandler) HandleGetUserRoles(c fiber.Ctx) error {
 		"path":   c.Path(),
 		"method": c.Method(),
 	}).Error("🔵 [HANDLER] HandleGetUserRoles called - FORCE LOG")
-	
+
 	// Lấy user ID từ context
 	userID := c.Locals("user_id")
 	logger.GetAppLogger().WithFields(logrus.Fields{
-		"path":       c.Path(),
-		"user_id":    userID,
+		"path":        c.Path(),
+		"user_id":     userID,
 		"has_user_id": userID != nil,
 	}).Error("🔵 [HANDLER] Checking user_id in context - FORCE LOG")
-	
+
 	if userID == nil {
 		logger.GetAppLogger().WithFields(logrus.Fields{
 			"path": c.Path(),
@@ -202,9 +202,18 @@ func (h *UserHandler) HandleGetUserRoles(c fiber.Ctx) error {
 	filter := bson.M{"userId": objID}
 	userRoles, err := h.userRoleService.Find(context.Background(), filter, nil)
 	if err != nil {
+		logger.GetAppLogger().WithFields(logrus.Fields{
+			"user_id": objID.Hex(),
+			"error":   err.Error(),
+		}).Error("❌ Failed to get user roles")
 		h.HandleResponse(c, nil, err)
 		return nil
 	}
+	
+	logger.GetAppLogger().WithFields(logrus.Fields{
+		"user_id":    objID.Hex(),
+		"roles_count": len(userRoles),
+	}).Info("📋 Found user roles")
 
 	// Lấy thông tin chi tiết của từng role với organization
 	// Mỗi role tương ứng với một organization - đây là "context làm việc"
@@ -213,17 +222,40 @@ func (h *UserHandler) HandleGetUserRoles(c fiber.Ctx) error {
 		// Lấy role
 		role, err := h.roleService.FindOneById(context.Background(), userRole.RoleID)
 		if err != nil {
+			logger.GetAppLogger().WithFields(logrus.Fields{
+				"role_id": userRole.RoleID.Hex(),
+				"error":   err.Error(),
+			}).Warn("⚠️ Failed to get role, skipping")
 			continue
 		}
 
-		// Lấy organization - CHỈ lấy organization trực tiếp của role
+		// Validate OwnerOrganizationID không được zero
+		if role.OwnerOrganizationID.IsZero() {
+			logger.GetAppLogger().WithFields(logrus.Fields{
+				"role_id": role.ID.Hex(),
+				"role_name": role.Name,
+			}).Warn("⚠️ Role has zero OwnerOrganizationID, skipping")
+			continue
+		}
+
+		// Lấy organization - CHỈ lấy organization trực tiếp của role (logic business)
 		// KHÔNG lấy children/parents organizations
 		organizationService, err := services.NewOrganizationService()
 		if err != nil {
+			logger.GetAppLogger().WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Warn("⚠️ Failed to create organization service, skipping")
 			continue
 		}
-		org, err := organizationService.FindOneById(context.Background(), role.OrganizationID)
+		// Dùng OwnerOrganizationID trực tiếp (đã bỏ OrganizationID)
+		orgID := role.OwnerOrganizationID
+		org, err := organizationService.FindOneById(context.Background(), orgID)
 		if err != nil {
+			logger.GetAppLogger().WithFields(logrus.Fields{
+				"role_id": role.ID.Hex(),
+				"organization_id": orgID.Hex(),
+				"error": err.Error(),
+			}).Warn("⚠️ Failed to get organization, skipping")
 			continue
 		}
 
@@ -233,15 +265,21 @@ func (h *UserHandler) HandleGetUserRoles(c fiber.Ctx) error {
 		// Mỗi role = một context làm việc
 		// Organization được tự động suy ra từ role khi user chọn role
 		result = append(result, map[string]interface{}{
-			"roleId":            role.ID.Hex(),
-			"roleName":          role.Name,
-			"organizationId":    org.ID.Hex(),
-			"organizationName":  org.Name,
-			"organizationCode":  org.Code,
-			"organizationType":  org.Type,
-			"organizationLevel": org.Level,
+			"roleId":             role.ID.Hex(),
+			"roleName":           role.Name,
+			"ownerOrganizationId": org.ID.Hex(), // Nhất quán với model Role (OwnerOrganizationID)
+			"organizationName":   org.Name,
+			"organizationCode":   org.Code,
+			"organizationType":   org.Type,
+			"organizationLevel":  org.Level,
 		})
 	}
+
+	logger.GetAppLogger().WithFields(logrus.Fields{
+		"user_id":      objID.Hex(),
+		"result_count": len(result),
+		"user_roles_count": len(userRoles),
+	}).Info("✅ Returning roles with organizations")
 
 	h.HandleResponse(c, result, nil)
 	return nil

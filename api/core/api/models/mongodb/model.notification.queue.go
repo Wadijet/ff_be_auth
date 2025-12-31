@@ -6,9 +6,9 @@ import (
 
 // NotificationQueueItem - Queue item để xử lý
 type NotificationQueueItem struct {
-	ID             primitive.ObjectID            `json:"id,omitempty" bson:"_id,omitempty"`
-	EventType      string                        `json:"eventType" bson:"eventType" index:"single:1"`
-	OrganizationID primitive.ObjectID            `json:"organizationId" bson:"organizationId" index:"single:1"`
+	ID                 primitive.ObjectID            `json:"id,omitempty" bson:"_id,omitempty"`
+	EventType          string                        `json:"eventType" bson:"eventType" index:"single:1"`
+	OwnerOrganizationID primitive.ObjectID            `json:"ownerOrganizationId" bson:"ownerOrganizationId" index:"single:1"` // Tổ chức sở hữu dữ liệu (phân quyền)
 	ChannelID      primitive.ObjectID            `json:"channelId" bson:"channelId" index:"single:1"`
 	Recipient      string                        `json:"recipient" bson:"recipient"` // Email, chatId, webhook URL
 	Payload        map[string]interface{}        `json:"payload" bson:"payload"`

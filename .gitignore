@@ -62,3 +62,7 @@ server.exe
 server_test.exe
 api/server.exe
 api/cmd/server/__debug_bin*
+
+# Workspace shared docs (junction/symlink)
+# Thu muc nay la junction tro den docs workspace, khong can track trong git
+docs-shared/

@@ -56,7 +56,7 @@ func GetUserAllowedOrganizationIDs(ctx context.Context, userID primitive.ObjectI
 			continue
 		}
 
-		orgID := role.OrganizationID
+		orgID := role.OwnerOrganizationID
 
 		// 3. Lấy RolePermissions của role
 		rolePermissions, err := rolePermissionService.Find(ctx, bson.M{"roleId": role.ID}, nil)
@@ -95,29 +95,9 @@ func GetUserAllowedOrganizationIDs(ctx context.Context, userID primitive.ObjectI
 		}
 	}
 
-	// 6. Convert map thành slice
-	allowedOrgIDs := make([]primitive.ObjectID, 0, len(allowedOrgIDsMap))
+	// 6. Convert map thành slice (KHÔNG tự động thêm parents)
+	result := make([]primitive.ObjectID, 0, len(allowedOrgIDsMap))
 	for orgID := range allowedOrgIDsMap {
-		allowedOrgIDs = append(allowedOrgIDs, orgID)
-	}
-
-	// 7. Tự động thêm parent organizations (inverse lookup)
-	allAllowedOrgIDsMap := make(map[primitive.ObjectID]bool)
-	for orgID := range allowedOrgIDsMap {
-		allAllowedOrgIDsMap[orgID] = true
-
-		// Lấy parent IDs
-		parentIDs, err := organizationService.GetParentIDs(ctx, orgID)
-		if err == nil {
-			for _, parentID := range parentIDs {
-				allAllowedOrgIDsMap[parentID] = true
-			}
-		}
-	}
-
-	// 8. Convert map thành slice cuối cùng
-	result := make([]primitive.ObjectID, 0, len(allAllowedOrgIDsMap))
-	for orgID := range allAllowedOrgIDsMap {
 		result = append(result, orgID)
 	}
 

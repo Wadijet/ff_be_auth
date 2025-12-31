@@ -18,16 +18,17 @@ import (
 // InitService là cấu trúc chứa các phương thức khởi tạo dữ liệu ban đầu cho hệ thống
 // Bao gồm khởi tạo người dùng, vai trò, quyền và các quan hệ giữa chúng
 type InitService struct {
-	userService                *UserService                // Service xử lý người dùng
-	roleService             *RoleService                  // Service xử lý vai trò
-	permissionService          *PermissionService          // Service xử lý quyền
-	rolePermissionService      *RolePermissionService      // Service xử lý quan hệ vai trò-quyền
-	userRoleService            *UserRoleService            // Service xử lý quan hệ người dùng-vai trò
-	organizationService            *OrganizationService            // Service xử lý tổ chức
-	notificationSenderService      *NotificationSenderService      // Service xử lý notification sender
-	notificationTemplateService    *NotificationTemplateService    // Service xử lý notification template
-	notificationChannelService     *NotificationChannelService     // Service xử lý notification channel
-	notificationRoutingService     *NotificationRoutingService     // Service xử lý notification routing
+	userService                 *UserService                 // Service xử lý người dùng
+	roleService                 *RoleService                 // Service xử lý vai trò
+	permissionService           *PermissionService           // Service xử lý quyền
+	rolePermissionService       *RolePermissionService       // Service xử lý quan hệ vai trò-quyền
+	userRoleService             *UserRoleService             // Service xử lý quan hệ người dùng-vai trò
+	organizationService         *OrganizationService         // Service xử lý tổ chức
+	organizationShareService    *OrganizationShareService    // Service xử lý organization share
+	notificationSenderService   *NotificationSenderService   // Service xử lý notification sender
+	notificationTemplateService *NotificationTemplateService // Service xử lý notification template
+	notificationChannelService  *NotificationChannelService  // Service xử lý notification channel
+	notificationRoutingService  *NotificationRoutingService  // Service xử lý notification routing
 }
 
 // NewInitService tạo mới một đối tượng InitService
@@ -87,18 +88,24 @@ func NewInitService() (*InitService, error) {
 		return nil, fmt.Errorf("failed to create notification routing service: %v", err)
 	}
 
+	organizationShareService, err := NewOrganizationShareService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create organization share service: %v", err)
+	}
+
 	return &InitService{
 		userService:                 userService,
-		roleService:                  roleService,
-		permissionService:            permissionService,
+		roleService:                 roleService,
+		permissionService:           permissionService,
 		rolePermissionService:       rolePermissionService,
-		userRoleService:              userRoleService,
-	organizationService:            organizationService,
-	notificationSenderService:      notificationSenderService,
-	notificationTemplateService:    notificationTemplateService,
-	notificationChannelService:      notificationChannelService,
-	notificationRoutingService:     notificationRoutingService,
-}, nil
+		userRoleService:             userRoleService,
+		organizationService:         organizationService,
+		organizationShareService:    organizationShareService,
+		notificationSenderService:   notificationSenderService,
+		notificationTemplateService: notificationTemplateService,
+		notificationChannelService:  notificationChannelService,
+		notificationRoutingService:  notificationRoutingService,
+	}, nil
 }
 
 // InitDefaultNotificationTeam khởi tạo team mặc định cho hệ thống notification
@@ -185,6 +192,14 @@ var InitialPermissions = []models.Permission{
 	{Name: "Organization.Read", Describe: "Quyền xem danh sách tổ chức", Group: "Auth", Category: "Organization"},
 	{Name: "Organization.Update", Describe: "Quyền cập nhật tổ chức", Group: "Auth", Category: "Organization"},
 	{Name: "Organization.Delete", Describe: "Quyền xóa tổ chức", Group: "Auth", Category: "Organization"},
+
+	// Quản lý chia sẻ dữ liệu giữa các tổ chức: Thêm, xem, sửa, xóa
+	{Name: "OrganizationShare.Insert", Describe: "Quyền tạo chia sẻ dữ liệu giữa các tổ chức (CRUD)", Group: "Auth", Category: "OrganizationShare"},
+	{Name: "OrganizationShare.Read", Describe: "Quyền xem danh sách chia sẻ dữ liệu giữa các tổ chức", Group: "Auth", Category: "OrganizationShare"},
+	{Name: "OrganizationShare.Update", Describe: "Quyền cập nhật chia sẻ dữ liệu giữa các tổ chức", Group: "Auth", Category: "OrganizationShare"},
+	{Name: "OrganizationShare.Delete", Describe: "Quyền xóa chia sẻ dữ liệu giữa các tổ chức", Group: "Auth", Category: "OrganizationShare"},
+	// Quyền đặc biệt cho route CreateShare (có validation riêng về quyền với fromOrg)
+	{Name: "OrganizationShare.Create", Describe: "Quyền tạo chia sẻ dữ liệu giữa các tổ chức (route đặc biệt)", Group: "Auth", Category: "OrganizationShare"},
 
 	// Quản lý vai trò: Thêm, xem, sửa, xóa vai trò
 	{Name: "Role.Insert", Describe: "Quyền tạo vai trò", Group: "Auth", Category: "Role"},
@@ -453,6 +468,8 @@ func (h *InitService) GetRootOrganization() (*models.Organization, error) {
 // InitRole khởi tạo vai trò Administrator mặc định
 // Tạo vai trò và gán tất cả các quyền cho vai trò này
 // Role Administrator phải thuộc System Organization (Level -1)
+// Lưu ý: Role chỉ có OwnerOrganizationID (đã bỏ OrganizationID)
+//   - OwnerOrganizationID: Phân quyền sở hữu dữ liệu + Logic business
 func (h *InitService) InitRole() error {
 	// Lấy System Organization (Level -1)
 	rootOrg, err := h.GetRootOrganization()
@@ -470,19 +487,17 @@ func (h *InitService) InitRole() error {
 	roleExists := false
 
 	if err == nil {
-		// Nếu đã tồn tại, kiểm tra OrganizationID
+		// Nếu đã tồn tại, kiểm tra và cập nhật OwnerOrganizationID nếu cần
 		bsonBytes, _ := bson.Marshal(adminRole)
 		err = bson.Unmarshal(bsonBytes, &modelRole)
 		if err == nil {
 			roleExists = true
-			// Nếu chưa có OrganizationID, cập nhật
-			if modelRole.OrganizationID.IsZero() {
+			// Nếu chưa có OwnerOrganizationID, cập nhật
+			if modelRole.OwnerOrganizationID.IsZero() {
 				updateData := bson.M{
-					"$set": bson.M{
-						"organizationId": rootOrg.ID,
-					},
+					"ownerOrganizationId": rootOrg.ID, // Phân quyền dữ liệu + Logic business
 				}
-				_, err = h.roleService.UpdateOne(context.TODO(), bson.M{"_id": modelRole.ID}, updateData, nil)
+				_, err = h.roleService.UpdateOne(context.TODO(), bson.M{"_id": modelRole.ID}, bson.M{"$set": updateData}, nil)
 				if err != nil {
 					return fmt.Errorf("failed to update administrator role with organization: %v", err)
 				}
@@ -490,13 +505,13 @@ func (h *InitService) InitRole() error {
 		}
 	}
 
-	// Nếu chưa tồn tại, tạo mới vai trò Administrator với OrganizationID
+	// Nếu chưa tồn tại, tạo mới vai trò Administrator
 	if !roleExists {
 		newAdminRole := models.Role{
-			Name:           "Administrator",
-			Describe:       "Vai trò quản trị hệ thống",
-			OrganizationID: rootOrg.ID, // Gán vào Organization Root
-			IsSystem:       true,        // Đánh dấu là dữ liệu hệ thống
+			Name:                "Administrator",
+			Describe:            "Vai trò quản trị hệ thống",
+			OwnerOrganizationID: rootOrg.ID, // Phân quyền dữ liệu + Logic business
+			IsSystem:            true,       // Đánh dấu là dữ liệu hệ thống
 		}
 
 		// Lưu vai trò vào database
@@ -896,19 +911,28 @@ func (h *InitService) InitNotificationData() error {
 	currentTime := time.Now().Unix()
 	var err error
 
-	// ==================================== 0. KHỞI TẠO TEAM MẶC ĐỊNH CHO NOTIFICATION =============================================
+	// ==================================== 0. LẤY SYSTEM ORGANIZATION =============================================
+	// Dữ liệu mẫu notification là dữ liệu hệ thống, thuộc về System Organization (level -1)
+	systemOrg, err := h.GetRootOrganization()
+	if err != nil {
+		return fmt.Errorf("failed to get system organization: %v", err)
+	}
+
+	// ==================================== 0.1. KHỞI TẠO TEAM MẶC ĐỊNH CHO NOTIFICATION =============================================
 	// Tạo Tech Team thuộc System Organization để có thể tạo channel và routing rule mặc định
+	// (Channels và Routing Rules cần thuộc về một team cụ thể, không thể thuộc System Organization trực tiếp)
 	techTeam, err := h.InitDefaultNotificationTeam()
 	if err != nil {
 		return fmt.Errorf("failed to initialize default notification team: %v", err)
 	}
 
-	// ==================================== 1. KHỞI TẠO NOTIFICATION SENDERS (GLOBAL) =============================================
+	// ==================================== 1. KHỞI TẠO NOTIFICATION SENDERS CHO SYSTEM ORGANIZATION =============================================
+	// Senders là dữ liệu hệ thống, thuộc về System Organization để có thể được share với tất cả organizations
 	// Sender cho Email
 	emailSenderFilter := bson.M{
-		"organizationId": nil,
-		"channelType":    "email",
-		"name":           "Email Sender Mặc Định",
+		"ownerOrganizationId": systemOrg.ID,
+		"channelType":         "email",
+		"name":                "Email Sender Mặc Định",
 	}
 	_, err = h.notificationSenderService.FindOne(ctx, emailSenderFilter, nil)
 	if err != nil && err != common.ErrNotFound {
@@ -916,19 +940,19 @@ func (h *InitService) InitNotificationData() error {
 	}
 	if err == common.ErrNotFound {
 		emailSender := models.NotificationChannelSender{
-			OrganizationID: nil, // Global sender
-			ChannelType:    "email",
-			Name:           "Email Sender Mặc Định",
-			IsActive:       false, // Tắt mặc định, admin cần cấu hình token/password trước khi bật
-			IsSystem:       true,  // Đánh dấu là dữ liệu hệ thống, không thể xóa
-			SMTPHost:       "",   // Admin cần bổ sung
-			SMTPPort:       587,  // Port mặc định
-			SMTPUsername:   "",   // Admin cần bổ sung
-			SMTPPassword:   "",   // Admin cần bổ sung
-			FromEmail:      "",   // Admin cần bổ sung
-			FromName:       "",   // Admin cần bổ sung
-			CreatedAt:      currentTime,
-			UpdatedAt:      currentTime,
+			OwnerOrganizationID: &systemOrg.ID, // Thuộc về System Organization (dữ liệu hệ thống) - Phân quyền dữ liệu
+			ChannelType:         "email",
+			Name:                "Email Sender Mặc Định",
+			IsActive:            false, // Tắt mặc định, admin cần cấu hình token/password trước khi bật
+			IsSystem:            true,  // Đánh dấu là dữ liệu hệ thống, không thể xóa
+			SMTPHost:            "",    // Admin cần bổ sung
+			SMTPPort:            587,   // Port mặc định
+			SMTPUsername:        "",    // Admin cần bổ sung
+			SMTPPassword:        "",    // Admin cần bổ sung
+			FromEmail:           "",    // Admin cần bổ sung
+			FromName:            "",    // Admin cần bổ sung
+			CreatedAt:           currentTime,
+			UpdatedAt:           currentTime,
 		}
 		_, err = h.notificationSenderService.InsertOne(ctx, emailSender)
 		if err != nil {
@@ -938,9 +962,9 @@ func (h *InitService) InitNotificationData() error {
 
 	// Sender cho Telegram
 	telegramSenderFilter := bson.M{
-		"organizationId": nil,
-		"channelType":    "telegram",
-		"name":           "Telegram Bot Mặc Định",
+		"ownerOrganizationId": systemOrg.ID,
+		"channelType":         "telegram",
+		"name":                "Telegram Bot Mặc Định",
 	}
 	_, err = h.notificationSenderService.FindOne(ctx, telegramSenderFilter, nil)
 	if err != nil && err != common.ErrNotFound {
@@ -948,15 +972,15 @@ func (h *InitService) InitNotificationData() error {
 	}
 	if err == common.ErrNotFound {
 		telegramSender := models.NotificationChannelSender{
-			OrganizationID: nil, // Global sender
-			ChannelType:    "telegram",
-			Name:           "Telegram Bot Mặc Định",
-			IsActive:       false, // Tắt mặc định, admin cần cấu hình bot token trước khi bật
-			IsSystem:       true,  // Đánh dấu là dữ liệu hệ thống, không thể xóa
-			BotToken:       "",   // Admin cần bổ sung
-			BotUsername:    "",   // Admin cần bổ sung
-			CreatedAt:      currentTime,
-			UpdatedAt:      currentTime,
+			OwnerOrganizationID: &systemOrg.ID, // Thuộc về System Organization (dữ liệu hệ thống) - Phân quyền dữ liệu
+			ChannelType:         "telegram",
+			Name:                "Telegram Bot Mặc Định",
+			IsActive:            false, // Tắt mặc định, admin cần cấu hình bot token trước khi bật
+			IsSystem:            true,  // Đánh dấu là dữ liệu hệ thống, không thể xóa
+			BotToken:            "",    // Admin cần bổ sung
+			BotUsername:         "",    // Admin cần bổ sung
+			CreatedAt:           currentTime,
+			UpdatedAt:           currentTime,
 		}
 		_, err = h.notificationSenderService.InsertOne(ctx, telegramSender)
 		if err != nil {
@@ -966,9 +990,9 @@ func (h *InitService) InitNotificationData() error {
 
 	// Sender cho Webhook
 	webhookSenderFilter := bson.M{
-		"organizationId": nil,
-		"channelType":    "webhook",
-		"name":           "Webhook Sender Mặc Định",
+		"ownerOrganizationId": systemOrg.ID,
+		"channelType":         "webhook",
+		"name":                "Webhook Sender Mặc Định",
 	}
 	_, err = h.notificationSenderService.FindOne(ctx, webhookSenderFilter, nil)
 	if err != nil && err != common.ErrNotFound {
@@ -976,13 +1000,13 @@ func (h *InitService) InitNotificationData() error {
 	}
 	if err == common.ErrNotFound {
 		webhookSender := models.NotificationChannelSender{
-			OrganizationID: nil, // Global sender
-			ChannelType:    "webhook",
-			Name:           "Webhook Sender Mặc Định",
-			IsActive:       false, // Tắt mặc định, admin cần cấu hình trước khi bật
-			IsSystem:       true,  // Đánh dấu là dữ liệu hệ thống, không thể xóa
-			CreatedAt:      currentTime,
-			UpdatedAt:      currentTime,
+			OwnerOrganizationID: &systemOrg.ID, // Thuộc về System Organization (dữ liệu hệ thống) - Phân quyền dữ liệu
+			ChannelType:         "webhook",
+			Name:                "Webhook Sender Mặc Định",
+			IsActive:            false, // Tắt mặc định, admin cần cấu hình trước khi bật
+			IsSystem:            true,  // Đánh dấu là dữ liệu hệ thống, không thể xóa
+			CreatedAt:           currentTime,
+			UpdatedAt:           currentTime,
 		}
 		_, err = h.notificationSenderService.InsertOne(ctx, webhookSender)
 		if err != nil {
@@ -990,20 +1014,21 @@ func (h *InitService) InitNotificationData() error {
 		}
 	}
 
-	// ==================================== 2. KHỞI TẠO NOTIFICATION TEMPLATES (GLOBAL) =============================================
+	// ==================================== 2. KHỞI TẠO NOTIFICATION TEMPLATES CHO SYSTEM ORGANIZATION =============================================
+	// Templates là dữ liệu hệ thống, thuộc về System Organization để có thể được share với tất cả organizations
 	// Template cho event conversation_unreplied - Email
 	convUnrepliedEmailFilter := bson.M{
-		"organizationId": nil,
-		"eventType":      "conversation_unreplied",
-		"channelType":    "email",
+		"ownerOrganizationId": systemOrg.ID,
+		"eventType":           "conversation_unreplied",
+		"channelType":         "email",
 	}
 	_, err = h.notificationTemplateService.FindOne(ctx, convUnrepliedEmailFilter, nil)
 	if err == common.ErrNotFound {
 		template := models.NotificationTemplate{
-			OrganizationID: nil, // Global template
-			EventType:      "conversation_unreplied",
-			ChannelType:    "email",
-			Subject:        "Cảnh báo: Cuộc trò chuyện chưa được trả lời",
+			OwnerOrganizationID: &systemOrg.ID, // Thuộc về System Organization (dữ liệu hệ thống) - Phân quyền dữ liệu
+			EventType:           "conversation_unreplied",
+			ChannelType:         "email",
+			Subject:             "Cảnh báo: Cuộc trò chuyện chưa được trả lời",
 			Content: `Xin chào,
 
 Bạn có một cuộc trò chuyện chưa được trả lời trong {{minutes}} phút.
@@ -1038,17 +1063,17 @@ Hệ thống thông báo`,
 
 	// Template cho event conversation_unreplied - Telegram
 	convUnrepliedTelegramFilter := bson.M{
-		"organizationId": nil,
-		"eventType":      "conversation_unreplied",
-		"channelType":    "telegram",
+		"ownerOrganizationId": systemOrg.ID,
+		"eventType":           "conversation_unreplied",
+		"channelType":         "telegram",
 	}
 	_, err = h.notificationTemplateService.FindOne(ctx, convUnrepliedTelegramFilter, nil)
 	if err == common.ErrNotFound {
 		template := models.NotificationTemplate{
-			OrganizationID: nil, // Global template
-			EventType:      "conversation_unreplied",
-			ChannelType:    "telegram",
-			Subject:        "", // Telegram không có subject
+			OwnerOrganizationID: &systemOrg.ID, // Thuộc về System Organization (dữ liệu hệ thống) - Phân quyền dữ liệu
+			EventType:           "conversation_unreplied",
+			ChannelType:         "telegram",
+			Subject:             "", // Telegram không có subject
 			Content: `🚨 *Cảnh báo: Cuộc trò chuyện chưa được trả lời*
 
 Bạn có một cuộc trò chuyện chưa được trả lời trong *{{minutes}}* phút.
@@ -1080,23 +1105,23 @@ Vui lòng kiểm tra và phản hồi sớm nhất có thể.`,
 
 	// Template cho event conversation_unreplied - Webhook
 	convUnrepliedWebhookFilter := bson.M{
-		"organizationId": nil,
-		"eventType":      "conversation_unreplied",
-		"channelType":    "webhook",
+		"ownerOrganizationId": systemOrg.ID,
+		"eventType":           "conversation_unreplied",
+		"channelType":         "webhook",
 	}
 	_, err = h.notificationTemplateService.FindOne(ctx, convUnrepliedWebhookFilter, nil)
 	if err == common.ErrNotFound {
 		template := models.NotificationTemplate{
-			OrganizationID: nil, // Global template
-			EventType:      "conversation_unreplied",
-			ChannelType:    "webhook",
-			Subject:        "", // Webhook không có subject
-			Content: `{"eventType":"conversation_unreplied","conversationId":"{{conversationId}}","minutes":{{minutes}},"customerName":"{{customerName}}","lastMessageAt":"{{lastMessageAt}}","baseUrl":"{{baseUrl}}"}`,
-			Variables: []string{"conversationId", "minutes", "customerName", "lastMessageAt", "baseUrl"},
-			IsActive:  true,
-			IsSystem:  true, // Đánh dấu là dữ liệu hệ thống, không thể xóa
-			CreatedAt: currentTime,
-			UpdatedAt: currentTime,
+			OwnerOrganizationID: &systemOrg.ID, // Thuộc về System Organization (dữ liệu hệ thống) - Phân quyền dữ liệu
+			EventType:           "conversation_unreplied",
+			ChannelType:         "webhook",
+			Subject:             "", // Webhook không có subject
+			Content:             `{"eventType":"conversation_unreplied","conversationId":"{{conversationId}}","minutes":{{minutes}},"customerName":"{{customerName}}","lastMessageAt":"{{lastMessageAt}}","baseUrl":"{{baseUrl}}"}`,
+			Variables:           []string{"conversationId", "minutes", "customerName", "lastMessageAt", "baseUrl"},
+			IsActive:            true,
+			IsSystem:            true, // Đánh dấu là dữ liệu hệ thống, không thể xóa
+			CreatedAt:           currentTime,
+			UpdatedAt:           currentTime,
 		}
 		_, err = h.notificationTemplateService.InsertOne(ctx, template)
 		if err != nil {
@@ -1107,21 +1132,21 @@ Vui lòng kiểm tra và phản hồi sớm nhất có thể.`,
 	// ==================================== 3. KHỞI TẠO NOTIFICATION CHANNELS CHO TECH TEAM =============================================
 	// Channel Email mặc định cho Tech Team
 	emailChannelFilter := bson.M{
-		"organizationId": techTeam.ID,
-		"channelType":    "email",
-		"name":           "Email Channel Mặc Định",
+		"ownerOrganizationId": techTeam.ID,
+		"channelType":         "email",
+		"name":                "Email Channel Mặc Định",
 	}
 	_, err = h.notificationChannelService.FindOne(ctx, emailChannelFilter, nil)
 	if err == common.ErrNotFound {
 		emailChannel := models.NotificationChannel{
-			OrganizationID: techTeam.ID,
-			ChannelType:    "email",
-			Name:           "Email Channel Mặc Định",
-			IsActive:       false, // Tắt mặc định, admin cần cấu hình recipients trước khi bật
-			IsSystem:       true,  // Đánh dấu là dữ liệu hệ thống, không thể xóa
-			Recipients:     []string{}, // Admin cần bổ sung email addresses
-			CreatedAt:      currentTime,
-			UpdatedAt:      currentTime,
+			OwnerOrganizationID: techTeam.ID, // Thuộc về Tech Team - Phân quyền dữ liệu
+			ChannelType:         "email",
+			Name:                "Email Channel Mặc Định",
+			IsActive:            false,      // Tắt mặc định, admin cần cấu hình recipients trước khi bật
+			IsSystem:            true,       // Đánh dấu là dữ liệu hệ thống, không thể xóa
+			Recipients:          []string{}, // Admin cần bổ sung email addresses
+			CreatedAt:           currentTime,
+			UpdatedAt:           currentTime,
 		}
 		_, err = h.notificationChannelService.InsertOne(ctx, emailChannel)
 		if err != nil {
@@ -1131,21 +1156,21 @@ Vui lòng kiểm tra và phản hồi sớm nhất có thể.`,
 
 	// Channel Telegram mặc định cho Tech Team
 	telegramChannelFilter := bson.M{
-		"organizationId": techTeam.ID,
-		"channelType":    "telegram",
-		"name":           "Telegram Channel Mặc Định",
+		"ownerOrganizationId": techTeam.ID,
+		"channelType":         "telegram",
+		"name":                "Telegram Channel Mặc Định",
 	}
 	_, err = h.notificationChannelService.FindOne(ctx, telegramChannelFilter, nil)
 	if err == common.ErrNotFound {
 		telegramChannel := models.NotificationChannel{
-			OrganizationID: techTeam.ID,
-			ChannelType:    "telegram",
-			Name:           "Telegram Channel Mặc Định",
-			IsActive:       false, // Tắt mặc định, admin cần cấu hình chat IDs trước khi bật
-			IsSystem:       true,  // Đánh dấu là dữ liệu hệ thống, không thể xóa
-			ChatIDs:        []string{}, // Admin cần bổ sung Telegram chat IDs
-			CreatedAt:      currentTime,
-			UpdatedAt:      currentTime,
+			OwnerOrganizationID: techTeam.ID, // Thuộc về Tech Team - Phân quyền dữ liệu
+			ChannelType:         "telegram",
+			Name:                "Telegram Channel Mặc Định",
+			IsActive:            false,      // Tắt mặc định, admin cần cấu hình chat IDs trước khi bật
+			IsSystem:            true,       // Đánh dấu là dữ liệu hệ thống, không thể xóa
+			ChatIDs:             []string{}, // Admin cần bổ sung Telegram chat IDs
+			CreatedAt:           currentTime,
+			UpdatedAt:           currentTime,
 		}
 		_, err = h.notificationChannelService.InsertOne(ctx, telegramChannel)
 		if err != nil {
@@ -1155,22 +1180,22 @@ Vui lòng kiểm tra và phản hồi sớm nhất có thể.`,
 
 	// Channel Webhook mặc định cho Tech Team
 	webhookChannelFilter := bson.M{
-		"organizationId": techTeam.ID,
-		"channelType":    "webhook",
-		"name":           "Webhook Channel Mặc Định",
+		"ownerOrganizationId": techTeam.ID,
+		"channelType":         "webhook",
+		"name":                "Webhook Channel Mặc Định",
 	}
 	_, err = h.notificationChannelService.FindOne(ctx, webhookChannelFilter, nil)
 	if err == common.ErrNotFound {
 		webhookChannel := models.NotificationChannel{
-			OrganizationID: techTeam.ID,
-			ChannelType:    "webhook",
-			Name:           "Webhook Channel Mặc Định",
-			IsActive:       false, // Tắt mặc định, admin cần cấu hình webhook URL trước khi bật
-			IsSystem:       true,  // Đánh dấu là dữ liệu hệ thống, không thể xóa
-			WebhookURL:     "",   // Admin cần bổ sung webhook URL
-			WebhookHeaders: map[string]string{}, // Admin có thể bổ sung headers nếu cần
-			CreatedAt:      currentTime,
-			UpdatedAt:      currentTime,
+			OwnerOrganizationID: techTeam.ID, // Thuộc về Tech Team - Phân quyền dữ liệu
+			ChannelType:         "webhook",
+			Name:                "Webhook Channel Mặc Định",
+			IsActive:            false,               // Tắt mặc định, admin cần cấu hình webhook URL trước khi bật
+			IsSystem:            true,                // Đánh dấu là dữ liệu hệ thống, không thể xóa
+			WebhookURL:          "",                  // Admin cần bổ sung webhook URL
+			WebhookHeaders:      map[string]string{}, // Admin có thể bổ sung headers nếu cần
+			CreatedAt:           currentTime,
+			UpdatedAt:           currentTime,
 		}
 		_, err = h.notificationChannelService.InsertOne(ctx, webhookChannel)
 		if err != nil {
@@ -1372,23 +1397,23 @@ Hệ thống thông báo`,
 	for _, event := range systemEvents {
 		// Email template
 		emailFilter := bson.M{
-			"organizationId": nil,
-			"eventType":      event.eventType,
-			"channelType":    "email",
+			"ownerOrganizationId": systemOrg.ID,
+			"eventType":           event.eventType,
+			"channelType":         "email",
 		}
 		_, err = h.notificationTemplateService.FindOne(ctx, emailFilter, nil)
 		if err == common.ErrNotFound {
 			template := models.NotificationTemplate{
-				OrganizationID: nil,
-				EventType:      event.eventType,
-				ChannelType:    "email",
-				Subject:        event.subject,
-				Content:        event.content,
-				Variables:      event.variables,
-				IsActive:       true,
-				IsSystem:       true, // Đánh dấu là dữ liệu hệ thống, không thể xóa
-				CreatedAt:      currentTime,
-				UpdatedAt:      currentTime,
+				OwnerOrganizationID: &systemOrg.ID, // Thuộc về System Organization (dữ liệu hệ thống) - Phân quyền dữ liệu
+				EventType:           event.eventType,
+				ChannelType:         "email",
+				Subject:             event.subject,
+				Content:             event.content,
+				Variables:           event.variables,
+				IsActive:            true,
+				IsSystem:            true, // Đánh dấu là dữ liệu hệ thống, không thể xóa
+				CreatedAt:           currentTime,
+				UpdatedAt:           currentTime,
 			}
 			_, err = h.notificationTemplateService.InsertOne(ctx, template)
 			if err != nil {
@@ -1398,9 +1423,9 @@ Hệ thống thông báo`,
 
 		// Telegram template
 		telegramFilter := bson.M{
-			"organizationId": nil,
-			"eventType":      event.eventType,
-			"channelType":    "telegram",
+			"ownerOrganizationId": systemOrg.ID,
+			"eventType":           event.eventType,
+			"channelType":         "telegram",
 		}
 		_, err = h.notificationTemplateService.FindOne(ctx, telegramFilter, nil)
 		if err == common.ErrNotFound {
@@ -1411,16 +1436,16 @@ Hệ thống thông báo`,
 			telegramContent = strings.ReplaceAll(telegramContent, "- ", "• ")
 
 			template := models.NotificationTemplate{
-				OrganizationID: nil,
-				EventType:      event.eventType,
-				ChannelType:    "telegram",
-				Subject:        "",
-				Content:        telegramContent,
-				Variables:      event.variables,
-				IsActive:       true,
-				IsSystem:       true, // Đánh dấu là dữ liệu hệ thống, không thể xóa
-				CreatedAt:      currentTime,
-				UpdatedAt:      currentTime,
+				OwnerOrganizationID: &systemOrg.ID, // Thuộc về System Organization (dữ liệu hệ thống) - Phân quyền dữ liệu
+				EventType:           event.eventType,
+				ChannelType:         "telegram",
+				Subject:             "",
+				Content:             telegramContent,
+				Variables:           event.variables,
+				IsActive:            true,
+				IsSystem:            true, // Đánh dấu là dữ liệu hệ thống, không thể xóa
+				CreatedAt:           currentTime,
+				UpdatedAt:           currentTime,
 			}
 			_, err = h.notificationTemplateService.InsertOne(ctx, template)
 			if err != nil {
@@ -1430,9 +1455,9 @@ Hệ thống thông báo`,
 
 		// Webhook template (JSON format)
 		webhookFilter := bson.M{
-			"organizationId": nil,
-			"eventType":      event.eventType,
-			"channelType":    "webhook",
+			"ownerOrganizationId": systemOrg.ID,
+			"eventType":           event.eventType,
+			"channelType":         "webhook",
 		}
 		_, err = h.notificationTemplateService.FindOne(ctx, webhookFilter, nil)
 		if err == common.ErrNotFound {
@@ -1444,16 +1469,16 @@ Hệ thống thông báo`,
 			jsonContent := fmt.Sprintf(`{"eventType":"%s",%s}`, event.eventType, strings.Join(jsonVars, ","))
 
 			template := models.NotificationTemplate{
-				OrganizationID: nil,
-				EventType:      event.eventType,
-				ChannelType:    "webhook",
-				Subject:        "",
-				Content:        jsonContent,
-				Variables:      event.variables,
-				IsActive:       true,
-				IsSystem:       true, // Đánh dấu là dữ liệu hệ thống, không thể xóa
-				CreatedAt:      currentTime,
-				UpdatedAt:      currentTime,
+				OwnerOrganizationID: &systemOrg.ID, // Thuộc về System Organization (dữ liệu hệ thống) - Phân quyền dữ liệu
+				EventType:           event.eventType,
+				ChannelType:         "webhook",
+				Subject:             "",
+				Content:             jsonContent,
+				Variables:           event.variables,
+				IsActive:            true,
+				IsSystem:            true, // Đánh dấu là dữ liệu hệ thống, không thể xóa
+				CreatedAt:           currentTime,
+				UpdatedAt:           currentTime,
 			}
 			_, err = h.notificationTemplateService.InsertOne(ctx, template)
 			if err != nil {
@@ -1462,7 +1487,28 @@ Hệ thống thông báo`,
 		}
 	}
 
-	// ==================================== 5. KHỞI TẠO ROUTING RULES MẶC ĐỊNH CHO SYSTEM EVENTS =============================================
+	// ==================================== 5. KHỞI TẠO ROUTING RULES MẶC ĐỊNH =============================================
+	// Routing rule cho event conversation_unreplied
+	convUnrepliedRoutingFilter := bson.M{
+		"eventType": "conversation_unreplied",
+	}
+	_, err = h.notificationRoutingService.FindOne(ctx, convUnrepliedRoutingFilter, nil)
+	if err == common.ErrNotFound {
+		routingRule := models.NotificationRoutingRule{
+			EventType:       "conversation_unreplied",
+			OrganizationIDs: []primitive.ObjectID{techTeam.ID},        // Thuộc về Tech Team
+			ChannelTypes:    []string{"email", "telegram", "webhook"}, // Tất cả channel types
+			IsActive:        false,                                    // Tắt mặc định, admin cần bật sau khi cấu hình channels
+			IsSystem:        true,                                     // Đánh dấu là dữ liệu hệ thống, không thể xóa
+			CreatedAt:       currentTime,
+			UpdatedAt:       currentTime,
+		}
+		_, err = h.notificationRoutingService.InsertOne(ctx, routingRule)
+		if err != nil {
+			return fmt.Errorf("failed to create routing rule for conversation_unreplied: %v", err)
+		}
+	}
+
 	// Tạo routing rules để kết nối system events với Tech Team
 	for _, event := range systemEvents {
 		routingFilter := bson.M{
@@ -1472,16 +1518,115 @@ Hệ thống thông báo`,
 		if err == common.ErrNotFound {
 			routingRule := models.NotificationRoutingRule{
 				EventType:       event.eventType,
-				OrganizationIDs: []primitive.ObjectID{techTeam.ID},
+				OrganizationIDs: []primitive.ObjectID{techTeam.ID},        // Thuộc về Tech Team
 				ChannelTypes:    []string{"email", "telegram", "webhook"}, // Tất cả channel types
-				IsActive:       false, // Tắt mặc định, admin cần bật sau khi cấu hình channels
-				IsSystem:       true,  // Đánh dấu là dữ liệu hệ thống, không thể xóa
-				CreatedAt:      currentTime,
-				UpdatedAt:      currentTime,
+				IsActive:        false,                                    // Tắt mặc định, admin cần bật sau khi cấu hình channels
+				IsSystem:        true,                                     // Đánh dấu là dữ liệu hệ thống, không thể xóa
+				CreatedAt:       currentTime,
+				UpdatedAt:       currentTime,
 			}
 			_, err = h.notificationRoutingService.InsertOne(ctx, routingRule)
 			if err != nil {
 				return fmt.Errorf("failed to create routing rule for %s: %v", event.eventType, err)
+			}
+		}
+	}
+
+	// ==================================== 6. TẠO ORGANIZATION SHARE ĐỂ SHARE DỮ LIỆU NOTIFICATION =============================================
+	// Share dữ liệu notification (senders, templates) từ System Organization đến tất cả organizations khác
+	// Đây là dữ liệu hệ thống, cần được share để các organizations có thể sử dụng
+	// Phân biệt:
+	// - Phân quyền dữ liệu: Senders/Templates thuộc System Organization (ownerOrganizationId = systemOrg.ID)
+	// - Logic kinh doanh: Senders/Templates được share với tất cả organizations để sử dụng
+	err = h.initNotificationDataShare(ctx, systemOrg.ID, currentTime)
+	if err != nil {
+		return fmt.Errorf("failed to initialize notification data share: %v", err)
+	}
+
+	return nil
+}
+
+// initNotificationDataShare tạo OrganizationShare để share dữ liệu notification từ System Organization
+// đến tất cả organizations khác (trừ System Organization)
+func (h *InitService) initNotificationDataShare(ctx context.Context, systemOrgID primitive.ObjectID, currentTime int64) error {
+	// Lấy tất cả organizations (trừ System Organization)
+	allOrgsFilter := bson.M{
+		"_id":      bson.M{"$ne": systemOrgID}, // Loại trừ System Organization
+		"isActive": true,
+	}
+	allOrgs, err := h.organizationService.Find(ctx, allOrgsFilter, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get all organizations: %v", err)
+	}
+
+	// Permissions cần share cho notification data
+	notificationPermissions := []string{
+		"NotificationSender.Read",
+		"NotificationTemplate.Read",
+	}
+
+	// Tạo share cho mỗi organization
+	for _, org := range allOrgs {
+		// Kiểm tra share đã tồn tại chưa
+		existingShareFilter := bson.M{
+			"ownerOrganizationId": systemOrgID,
+			"toOrgId":             org.ID,
+		}
+		existingShare, err := h.organizationShareService.FindOne(ctx, existingShareFilter, nil)
+		if err != nil && err != common.ErrNotFound {
+			// Lỗi khác, bỏ qua organization này
+			continue
+		}
+
+		if err == common.ErrNotFound {
+			// Chưa có share, tạo mới
+			share := models.OrganizationShare{
+				OwnerOrganizationID: systemOrgID,
+				ToOrgID:             org.ID,
+				PermissionNames:     notificationPermissions, // Share với permissions cụ thể cho notification
+				CreatedAt:           currentTime,
+				CreatedBy:           primitive.NilObjectID, // System-initiated share
+			}
+			_, err = h.organizationShareService.InsertOne(ctx, share)
+			if err != nil {
+				// Log lỗi nhưng không dừng quá trình init
+				// Có thể organization này chưa sẵn sàng hoặc có vấn đề khác
+				continue
+			}
+		} else {
+			// Đã có share, kiểm tra xem có cần cập nhật permissions không
+			// Nếu share hiện tại không có notification permissions, thêm vào
+			hasNotificationPerms := false
+			if existingShare.PermissionNames != nil {
+				for _, perm := range existingShare.PermissionNames {
+					if perm == "NotificationSender.Read" || perm == "NotificationTemplate.Read" {
+						hasNotificationPerms = true
+						break
+					}
+				}
+			}
+
+			// Nếu share hiện tại có permissionNames = nil hoặc [] (share tất cả), không cần cập nhật
+			if len(existingShare.PermissionNames) > 0 && !hasNotificationPerms {
+				// Thêm notification permissions vào share hiện có
+				updatedPerms := append(existingShare.PermissionNames, notificationPermissions...)
+				// Loại bỏ duplicates
+				permMap := make(map[string]bool)
+				uniquePerms := []string{}
+				for _, perm := range updatedPerms {
+					if !permMap[perm] {
+						permMap[perm] = true
+						uniquePerms = append(uniquePerms, perm)
+					}
+				}
+
+				updateFilter := bson.M{"_id": existingShare.ID}
+				updateData := bson.M{"$set": bson.M{"permissionNames": uniquePerms}}
+				_, err = h.organizationShareService.UpdateOne(ctx, updateFilter, updateData, nil)
+				if err != nil {
+					// Log lỗi nhưng không dừng quá trình init
+					continue
+				}
 			}
 		}
 	}

@@ -128,17 +128,17 @@ func (h *NotificationTriggerHandler) HandleTriggerNotification(c fiber.Ctx) erro
 			// Tạo queue item cho mỗi recipient
 			for _, recipient := range recipients {
 				queueItems = append(queueItems, &models.NotificationQueueItem{
-					ID:             primitive.NewObjectID(),
-					EventType:      req.EventType,
-					OrganizationID: route.OrganizationID,
-					ChannelID:      route.ChannelID,
-					Recipient:      recipient,
-					Payload:        req.Payload,
-					Status:         "pending",
-					RetryCount:     0,
-					MaxRetries:     3,
-					CreatedAt:      time.Now().Unix(),
-					UpdatedAt:      time.Now().Unix(),
+					ID:                  primitive.NewObjectID(),
+					EventType:           req.EventType,
+					OwnerOrganizationID: route.OrganizationID, // Phân quyền dữ liệu - queue item thuộc về organization này
+					ChannelID:           route.ChannelID,
+					Recipient:           recipient,
+					Payload:             req.Payload,
+					Status:              "pending",
+					RetryCount:          0,
+					MaxRetries:          3,
+					CreatedAt:           time.Now().Unix(),
+					UpdatedAt:           time.Now().Unix(),
 				})
 			}
 		}
@@ -172,4 +172,3 @@ func SafeHandlerWrapper(c fiber.Ctx, fn func() error) error {
 	}
 	return nil
 }
-

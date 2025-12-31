@@ -42,7 +42,7 @@ func (tf *TestFixtures) CreateTestUser(firebaseIDToken string) (email, firebaseU
 	// Đăng nhập bằng Firebase để tạo/lấy user
 	loginPayload := map[string]interface{}{
 		"idToken": firebaseIDToken,
-		"hwid":     "test_device_123",
+		"hwid":    "test_device_123",
 	}
 
 	resp, body, err := tf.client.POST("/auth/login/firebase", loginPayload)
@@ -74,6 +74,16 @@ func (tf *TestFixtures) CreateTestUser(firebaseIDToken string) (email, firebaseU
 	firebaseUID, _ = data["firebaseUid"].(string)
 
 	return email, firebaseUID, token, nil
+}
+
+// CreateTestUserDirect tạo user trực tiếp trong database (bypass Firebase) - CHỈ DÙNG CHO TEST
+// Tạo user với email và FirebaseUID giả để test nhanh hơn
+// Lưu ý: User này sẽ không thể login qua Firebase, chỉ dùng để test database operations
+// ⚠️ KHÔNG KHUYẾN NGHỊ: Hệ thống yêu cầu Firebase authentication, không thể bypass
+func (tf *TestFixtures) CreateTestUserDirect(email, name string) (userID, token string, err error) {
+	// Hệ thống yêu cầu Firebase authentication, không thể tạo user trực tiếp
+	// Sử dụng CreateTestUser() với Firebase ID token thay thế
+	return "", "", fmt.Errorf("không thể tạo user trực tiếp - cần Firebase authentication. Sử dụng CreateTestUser() với Firebase ID token")
 }
 
 // GetRootOrganizationID lấy Organization Root ID
@@ -130,9 +140,9 @@ func (tf *TestFixtures) CreateTestRole(token, name, describe, organizationID str
 	}
 
 	payload := map[string]interface{}{
-		"name":           name,
-		"describe":       describe,
-		"organizationId": organizationID, // BẮT BUỘC
+		"name":                name,
+		"describe":            describe,
+		"ownerOrganizationId": organizationID, // BẮT BUỘC - Phân quyền dữ liệu
 	}
 
 	resp, body, err := tf.client.POST("/role/insert-one", payload)
@@ -244,7 +254,7 @@ func (tf *TestFixtures) CreateAdminUser(firebaseIDToken string) (email, firebase
 	if resp.StatusCode == http.StatusOK {
 		loginPayload := map[string]interface{}{
 			"idToken": firebaseIDToken,
-			"hwid":     "test_device_123",
+			"hwid":    "test_device_123",
 		}
 
 		// Tạo client mới không có token để login
@@ -398,9 +408,9 @@ func (tf *TestFixtures) SetupOrganizationTestData(token, userID string) (*Organi
 	}
 
 	data := &OrganizationTestData{}
-	
+
 	fmt.Printf("🔧 Bắt đầu setup organization test data...\n")
-	
+
 	// Thử set user làm admin nếu chưa có quyền (chỉ khi chưa có admin trong hệ thống)
 	// API /init/set-administrator chỉ hoạt động khi chưa có admin
 	resp, _, _ := tf.client.POST(fmt.Sprintf("/init/set-administrator/%s", userID), nil)

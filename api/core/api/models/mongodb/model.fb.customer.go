@@ -27,7 +27,7 @@ type FbCustomer struct {
 	PanCakeData map[string]interface{} `json:"panCakeData,omitempty" bson:"panCakeData,omitempty"` // Dữ liệu gốc từ Pancake API
 
 	// ===== ORGANIZATION =====
-	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+	OwnerOrganizationID primitive.ObjectID `json:"ownerOrganizationId" bson:"ownerOrganizationId" index:"single:1"` // Tổ chức sở hữu dữ liệu (phân quyền)
 
 	// ===== METADATA =====
 	PanCakeUpdatedAt int64 `json:"panCakeUpdatedAt" bson:"panCakeUpdatedAt" extract:"PanCakeData\\.updated_at,converter=time,format=2006-01-02T15:04:05.000000,optional"` // Thời gian cập nhật từ Pancake (extract từ PanCakeData["updated_at"])

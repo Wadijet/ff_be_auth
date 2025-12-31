@@ -14,7 +14,7 @@ type PcPosShop struct {
 	PanCakeData map[string]interface{} `json:"panCakeData" bson:"panCakeData"`                                                          // Dữ liệu gốc từ Pancake POS API
 
 	// ===== ORGANIZATION =====
-	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+	OwnerOrganizationID primitive.ObjectID `json:"ownerOrganizationId" bson:"ownerOrganizationId" index:"single:1"` // Tổ chức sở hữu dữ liệu (phân quyền)
 
 	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo
 	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật

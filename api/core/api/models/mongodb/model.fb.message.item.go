@@ -14,7 +14,7 @@ type FbMessageItem struct {
 	InsertedAt     int64                  `json:"insertedAt" bson:"insertedAt" index:"text" extract:"MessageData\\.inserted_at,converter=time,format=2006-01-02T15:04:05.000000,optional"` // Thời gian insert message (extract từ MessageData["inserted_at"])
 
 	// ===== ORGANIZATION =====
-	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+	OwnerOrganizationID primitive.ObjectID `json:"ownerOrganizationId" bson:"ownerOrganizationId" index:"single:1"` // Tổ chức sở hữu dữ liệu (phân quyền)
 
 	CreatedAt int64 `json:"createdAt" bson:"createdAt"` // Thời gian tạo document
 	UpdatedAt int64 `json:"updatedAt" bson:"updatedAt"` // Thời gian cập nhật document

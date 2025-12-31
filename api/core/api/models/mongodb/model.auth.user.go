@@ -8,7 +8,8 @@ import (
 // Token chứa token xác thực mới nhất của người dùng
 // Tokens chứa danh sách các token, mỗi thiết bị khác nhau sẽ có một token riêng để xác thực (bằng hwid)
 type User struct {
-	ID            primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`                            // ID của người dùng
+	_Relationships struct{}          `relationship:"collection:user_roles,field:userId,message:Không thể xóa user vì có %d role đang được gán cho user này. Vui lòng gỡ các role trước."` // Relationship definitions - không export, chỉ dùng cho tag parsing
+	ID             primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`                                                                                                                      // ID của người dùng
 	Name          string             `json:"name" bson:"name"`                                             // Tên của người dùng
 	Email         string             `json:"email,omitempty" bson:"email,omitempty" index:"unique,sparse"` // Email của người dùng (sparse để cho phép null) - Optional vì dùng Firebase
 	Password      string             `json:"-" bson:"password,omitempty"`                                  // DEPRECATED: Không còn sử dụng - Firebase quản lý authentication

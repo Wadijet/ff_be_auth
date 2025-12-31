@@ -40,10 +40,21 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertOne(c fiber.Ctx) error 
 			return nil
 		}
 
-		// ✅ Tự động gán organizationId nếu model có field OrganizationID
-		activeOrgID := h.getActiveOrganizationID(c)
-		if activeOrgID != nil && !activeOrgID.IsZero() {
-			h.setOrganizationID(input, *activeOrgID)
+		// ✅ Xử lý ownerOrganizationId: Cho phép chỉ định từ request hoặc dùng context
+		ownerOrgIDFromRequest := h.getOwnerOrganizationIDFromModel(input)
+		if ownerOrgIDFromRequest != nil && !ownerOrgIDFromRequest.IsZero() {
+			// Có ownerOrganizationId trong request → Validate quyền
+			if err := h.validateUserHasAccessToOrg(c, *ownerOrgIDFromRequest); err != nil {
+				h.HandleResponse(c, nil, err)
+				return nil
+			}
+			// ✅ Có quyền → Giữ nguyên ownerOrganizationId từ request
+		} else {
+			// Không có trong request → Dùng context (backward compatible)
+			activeOrgID := h.getActiveOrganizationID(c)
+			if activeOrgID != nil && !activeOrgID.IsZero() {
+				h.setOrganizationID(input, *activeOrgID)
+			}
 		}
 
 		// ✅ Lưu userID vào context để service có thể check admin
@@ -81,11 +92,22 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) InsertMany(c fiber.Ctx) error
 			return nil
 		}
 
-		// ✅ Tự động gán organizationId cho tất cả items nếu model có field OrganizationID
-		activeOrgID := h.getActiveOrganizationID(c)
-		if activeOrgID != nil && !activeOrgID.IsZero() {
-			for i := range inputs {
-				h.setOrganizationID(&inputs[i], *activeOrgID)
+		// ✅ Xử lý ownerOrganizationId cho tất cả items: Cho phép chỉ định từ request hoặc dùng context
+		for i := range inputs {
+			ownerOrgIDFromRequest := h.getOwnerOrganizationIDFromModel(&inputs[i])
+			if ownerOrgIDFromRequest != nil && !ownerOrgIDFromRequest.IsZero() {
+				// Có ownerOrganizationId trong request → Validate quyền
+				if err := h.validateUserHasAccessToOrg(c, *ownerOrgIDFromRequest); err != nil {
+					h.HandleResponse(c, nil, err)
+					return nil
+				}
+				// ✅ Có quyền → Giữ nguyên ownerOrganizationId từ request
+			} else {
+				// Không có trong request → Dùng context (backward compatible)
+				activeOrgID := h.getActiveOrganizationID(c)
+				if activeOrgID != nil && !activeOrgID.IsZero() {
+					h.setOrganizationID(&inputs[i], *activeOrgID)
+				}
 			}
 		}
 
@@ -112,7 +134,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOne(c fiber.Ctx) error {
 			return nil
 		}
 
-		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		// ✅ Tự động thêm filter ownerOrganizationId nếu model có field OwnerOrganizationID (phân quyền dữ liệu)
 		filter = h.applyOrganizationFilter(c, filter)
 
 		options, err := h.processMongoOptions(c, true)
@@ -158,7 +180,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindOneById(c fiber.Ctx) erro
 			return nil
 		}
 
-		// ✅ Validate organizationId trước khi query nếu model có field OrganizationID
+		// ✅ Validate ownerOrganizationId trước khi query nếu model có field OwnerOrganizationID (phân quyền dữ liệu)
 		if err := h.validateOrganizationAccess(c, id); err != nil {
 			h.HandleResponse(c, nil, err)
 			return nil
@@ -235,7 +257,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) FindWithPagination(c fiber.Ct
 			return nil
 		}
 
-		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		// ✅ Tự động thêm filter ownerOrganizationId nếu model có field OwnerOrganizationID (phân quyền dữ liệu)
 		filter = h.applyOrganizationFilter(c, filter)
 
 		options, err := h.processMongoOptions(c, false)
@@ -297,7 +319,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Find(c fiber.Ctx) error {
 			return nil
 		}
 
-		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		// ✅ Tự động thêm filter ownerOrganizationId nếu model có field OwnerOrganizationID (phân quyền dữ liệu)
 		filter = h.applyOrganizationFilter(c, filter)
 
 		options, err := h.processMongoOptions(c, false)
@@ -339,7 +361,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateOne(c fiber.Ctx) error 
 			return nil
 		}
 
-		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		// ✅ Tự động thêm filter ownerOrganizationId nếu model có field OwnerOrganizationID (phân quyền dữ liệu)
 		filter = h.applyOrganizationFilter(c, filter)
 
 		// Parse input thành map để chỉ update các trường được chỉ định
@@ -349,8 +371,33 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateOne(c fiber.Ctx) error 
 			return nil
 		}
 
-		// ✅ Không cho phép update organizationId trực tiếp (bảo mật)
-		delete(updateData, "organizationId")
+		// ✅ Xử lý ownerOrganizationId: Cho phép update với validation quyền
+		// Lưu ý: UpdateOne không có document ID riêng, cần validate qua filter
+		// Nếu có ownerOrganizationId trong updateData, validate quyền với organization mới
+		if newOwnerOrgIDStr, ok := updateData["ownerOrganizationId"].(string); ok && newOwnerOrgIDStr != "" {
+			// Parse ObjectID
+			newOwnerOrgID, err := primitive.ObjectIDFromHex(newOwnerOrgIDStr)
+			if err != nil {
+				h.HandleResponse(c, nil, common.NewError(
+					common.ErrCodeValidationFormat,
+					"ownerOrganizationId không hợp lệ",
+					common.StatusBadRequest,
+					err,
+				))
+				return nil
+			}
+
+			// Validate user có quyền với organization mới
+			if err := h.validateUserHasAccessToOrg(c, newOwnerOrgID); err != nil {
+				h.HandleResponse(c, nil, err)
+				return nil
+			}
+
+			// ✅ Có quyền → Cho phép update (giữ nguyên ownerOrganizationId trong updateData)
+		} else {
+			// Không có ownerOrganizationId trong update → Xóa nếu có (giữ nguyên logic cũ)
+			delete(updateData, "ownerOrganizationId")
+		}
 
 		// Tạo update data với $set operator
 		update := &services.UpdateData{
@@ -380,7 +427,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateMany(c fiber.Ctx) error
 			return nil
 		}
 
-		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		// ✅ Tự động thêm filter ownerOrganizationId nếu model có field OwnerOrganizationID (phân quyền dữ liệu)
 		filter = h.applyOrganizationFilter(c, filter)
 
 		// Parse input thành map để chỉ update các trường được chỉ định
@@ -390,8 +437,33 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateMany(c fiber.Ctx) error
 			return nil
 		}
 
-		// ✅ Không cho phép update organizationId trực tiếp (bảo mật)
-		delete(updateData, "organizationId")
+		// ✅ Xử lý ownerOrganizationId: Cho phép update với validation quyền
+		// Lưu ý: UpdateMany không có document ID riêng, cần validate qua filter
+		// Nếu có ownerOrganizationId trong updateData, validate quyền với organization mới
+		if newOwnerOrgIDStr, ok := updateData["ownerOrganizationId"].(string); ok && newOwnerOrgIDStr != "" {
+			// Parse ObjectID
+			newOwnerOrgID, err := primitive.ObjectIDFromHex(newOwnerOrgIDStr)
+			if err != nil {
+				h.HandleResponse(c, nil, common.NewError(
+					common.ErrCodeValidationFormat,
+					"ownerOrganizationId không hợp lệ",
+					common.StatusBadRequest,
+					err,
+				))
+				return nil
+			}
+
+			// Validate user có quyền với organization mới
+			if err := h.validateUserHasAccessToOrg(c, newOwnerOrgID); err != nil {
+				h.HandleResponse(c, nil, err)
+				return nil
+			}
+
+			// ✅ Có quyền → Cho phép update (giữ nguyên ownerOrganizationId trong updateData)
+		} else {
+			// Không có ownerOrganizationId trong update → Xóa nếu có (giữ nguyên logic cũ)
+			delete(updateData, "ownerOrganizationId")
+		}
 
 		// Tạo update data với $set operator
 		update := &services.UpdateData{
@@ -436,7 +508,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) error
 			return nil
 		}
 
-		// ✅ Validate organizationId trước khi update nếu model có field OrganizationID
+		// ✅ Validate quyền với document hiện tại trước khi update
 		if err := h.validateOrganizationAccess(c, id); err != nil {
 			h.HandleResponse(c, nil, err)
 			return nil
@@ -454,8 +526,32 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpdateById(c fiber.Ctx) error
 			return nil
 		}
 
-		// ✅ Không cho phép update organizationId trực tiếp (bảo mật)
-		delete(updateData, "organizationId")
+		// ✅ Xử lý ownerOrganizationId: Cho phép update với validation quyền
+		if newOwnerOrgIDStr, ok := updateData["ownerOrganizationId"].(string); ok && newOwnerOrgIDStr != "" {
+			// Parse ObjectID
+			newOwnerOrgID, err := primitive.ObjectIDFromHex(newOwnerOrgIDStr)
+			if err != nil {
+				h.HandleResponse(c, nil, common.NewError(
+					common.ErrCodeValidationFormat,
+					"ownerOrganizationId không hợp lệ",
+					common.StatusBadRequest,
+					err,
+				))
+				return nil
+			}
+
+			// Validate user có quyền với organization mới
+			if err := h.validateUserHasAccessToOrg(c, newOwnerOrgID); err != nil {
+				h.HandleResponse(c, nil, err)
+				return nil
+			}
+
+			// ✅ Có quyền cả 2 (document hiện tại + organization mới) → Cho phép update
+			// Giữ nguyên ownerOrganizationId trong updateData
+		} else {
+			// Không có ownerOrganizationId trong update → Xóa nếu có (giữ nguyên logic cũ)
+			delete(updateData, "ownerOrganizationId")
+		}
 
 		// Tạo update data với $set operator
 		update := &services.UpdateData{
@@ -514,7 +610,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) DeleteMany(c fiber.Ctx) error
 			return nil
 		}
 
-		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		// ✅ Tự động thêm filter ownerOrganizationId nếu model có field OwnerOrganizationID (phân quyền dữ liệu)
 		filter = h.applyOrganizationFilter(c, filter)
 
 		count, err := h.BaseService.DeleteMany(c.Context(), filter)
@@ -724,7 +820,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) error {
 			return nil
 		}
 
-		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		// ✅ Tự động thêm filter ownerOrganizationId nếu model có field OwnerOrganizationID (phân quyền dữ liệu)
 		filter = h.applyOrganizationFilter(c, filter)
 
 		// Parse request body thành struct T (model) để struct tag `extract` có thể hoạt động
@@ -740,10 +836,21 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) Upsert(c fiber.Ctx) error {
 			return nil
 		}
 
-		// ✅ Tự động gán organizationId nếu model có field OrganizationID
-		activeOrgID := h.getActiveOrganizationID(c)
-		if activeOrgID != nil && !activeOrgID.IsZero() {
-			h.setOrganizationID(input, *activeOrgID)
+		// ✅ Xử lý ownerOrganizationId: Cho phép chỉ định từ request hoặc dùng context
+		ownerOrgIDFromRequest := h.getOwnerOrganizationIDFromModel(input)
+		if ownerOrgIDFromRequest != nil && !ownerOrgIDFromRequest.IsZero() {
+			// Có ownerOrganizationId trong request → Validate quyền
+			if err := h.validateUserHasAccessToOrg(c, *ownerOrgIDFromRequest); err != nil {
+				h.HandleResponse(c, nil, err)
+				return nil
+			}
+			// ✅ Có quyền → Giữ nguyên ownerOrganizationId từ request
+		} else {
+			// Không có trong request → Dùng context (backward compatible)
+			activeOrgID := h.getActiveOrganizationID(c)
+			if activeOrgID != nil && !activeOrgID.IsZero() {
+				h.setOrganizationID(input, *activeOrgID)
+			}
 		}
 
 		// Gọi Upsert với struct T - extract sẽ tự động chạy trong ToMap() khi ToUpdateData() được gọi
@@ -771,7 +878,7 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpsertMany(c fiber.Ctx) error
 			return nil
 		}
 
-		// ✅ Tự động thêm filter organizationId nếu model có field OrganizationID
+		// ✅ Tự động thêm filter ownerOrganizationId nếu model có field OwnerOrganizationID (phân quyền dữ liệu)
 		filter = h.applyOrganizationFilter(c, filter)
 
 		var inputs []T
@@ -780,11 +887,22 @@ func (h *BaseHandler[T, CreateInput, UpdateInput]) UpsertMany(c fiber.Ctx) error
 			return nil
 		}
 
-		// ✅ Tự động gán organizationId cho tất cả items nếu model có field OrganizationID
-		activeOrgID := h.getActiveOrganizationID(c)
-		if activeOrgID != nil && !activeOrgID.IsZero() {
-			for i := range inputs {
-				h.setOrganizationID(&inputs[i], *activeOrgID)
+		// ✅ Xử lý ownerOrganizationId cho tất cả items: Cho phép chỉ định từ request hoặc dùng context
+		for i := range inputs {
+			ownerOrgIDFromRequest := h.getOwnerOrganizationIDFromModel(&inputs[i])
+			if ownerOrgIDFromRequest != nil && !ownerOrgIDFromRequest.IsZero() {
+				// Có ownerOrganizationId trong request → Validate quyền
+				if err := h.validateUserHasAccessToOrg(c, *ownerOrgIDFromRequest); err != nil {
+					h.HandleResponse(c, nil, err)
+					return nil
+				}
+				// ✅ Có quyền → Giữ nguyên ownerOrganizationId từ request
+			} else {
+				// Không có trong request → Dùng context (backward compatible)
+				activeOrgID := h.getActiveOrganizationID(c)
+				if activeOrgID != nil && !activeOrgID.IsZero() {
+					h.setOrganizationID(&inputs[i], *activeOrgID)
+				}
 			}
 		}
 

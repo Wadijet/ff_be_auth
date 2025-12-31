@@ -469,6 +469,11 @@ func (s *BaseServiceMongoImpl[T]) DeleteOne(ctx context.Context, filter interfac
 		return err
 	}
 
+	// ✅ Validate relationships từ struct tag
+	if err := validateRelationshipsDelete(ctx, existing); err != nil {
+		return err
+	}
+
 	result, err := s.collection.DeleteOne(ctx, filter)
 	if err != nil {
 		return common.ConvertMongoError(err)
@@ -499,9 +504,12 @@ func (s *BaseServiceMongoImpl[T]) DeleteMany(ctx context.Context, filter interfa
 		return 0, common.ConvertMongoError(err)
 	}
 
-	// ✅ Validate system data protection cho từng document
+	// ✅ Validate system data protection và relationships cho từng document
 	for _, existing := range existingDocs {
 		if err := validateSystemDataDelete(ctx, existing); err != nil {
+			return 0, err
+		}
+		if err := validateRelationshipsDelete(ctx, existing); err != nil {
 			return 0, err
 		}
 	}
@@ -643,6 +651,11 @@ func (s *BaseServiceMongoImpl[T]) FindOneAndDelete(ctx context.Context, filter i
 
 	// ✅ Validate system data protection
 	if err := validateSystemDataDelete(ctx, existing); err != nil {
+		return zero, err
+	}
+
+	// ✅ Validate relationships từ struct tag
+	if err := validateRelationshipsDelete(ctx, existing); err != nil {
 		return zero, err
 	}
 
@@ -869,6 +882,11 @@ func (s *BaseServiceMongoImpl[T]) DeleteById(ctx context.Context, id primitive.O
 
 	// ✅ Validate system data protection
 	if err := validateSystemDataDelete(ctx, existing); err != nil {
+		return err
+	}
+
+	// ✅ Validate relationships từ struct tag
+	if err := validateRelationshipsDelete(ctx, existing); err != nil {
 		return err
 	}
 
@@ -1315,6 +1333,52 @@ func validateSystemDataDelete(ctx context.Context, data interface{}) error {
 	return nil
 }
 
+// validateRelationshipsDelete kiểm tra các quan hệ được định nghĩa trong struct tag trước khi xóa
+// Tự động đọc struct tag `relationship` và kiểm tra xem có record nào đang tham chiếu tới record này không
+func validateRelationshipsDelete(ctx context.Context, data interface{}) error {
+	// Lấy type của struct
+	modelType := reflect.TypeOf(data)
+	if modelType.Kind() == reflect.Ptr {
+		modelType = modelType.Elem()
+	}
+
+	// Parse relationship tags từ struct
+	relationships := ParseRelationshipTag(modelType)
+	if len(relationships) == 0 {
+		return nil // Không có relationship tag, không cần kiểm tra
+	}
+
+	// Lấy ID từ record
+	recordID, ok := getIDFromModel(data)
+	if !ok {
+		// Nếu không có ID, không thể kiểm tra quan hệ
+		// Có thể là record mới chưa có ID, bỏ qua
+		return nil
+	}
+
+	// Chuyển đổi sang RelationshipCheck để sử dụng hàm có sẵn
+	checks := make([]RelationshipCheck, 0, len(relationships))
+	for _, rel := range relationships {
+		// Bỏ qua nếu có cascade flag (sẽ xóa cascade)
+		if rel.Cascade {
+			continue
+		}
+
+		checks = append(checks, RelationshipCheck{
+			CollectionName: rel.CollectionName,
+			FieldName:      rel.FieldName,
+			ErrorMessage:   rel.ErrorMessage,
+			Optional:       rel.Optional,
+		})
+	}
+
+	if len(checks) > 0 {
+		return CheckRelationshipExists(ctx, recordID, checks)
+	}
+
+	return nil
+}
+
 // validateSystemDataUpdate kiểm tra và bảo vệ khi update dữ liệu system
 // Cho phép admin sửa một số field nhất định (IsActive, config fields)
 // Không cho phép sửa các field quan trọng (IsSystem, Name, EventType, ChannelType, etc.)
@@ -1340,7 +1404,7 @@ func validateSystemDataUpdate(ctx context.Context, existingData interface{}, upd
 	isAdmin, _ := IsUserAdministratorFromContext(ctx)
 
 	if isSystem {
-		// Dữ liệu system: chỉ admin mới được sửa, và chỉ một số field nhất định
+		// Dữ liệu system: chỉ admin mới được sửa
 		if !isAdmin {
 			return common.NewError(
 				common.ErrCodeBusinessOperation,
@@ -1350,39 +1414,9 @@ func validateSystemDataUpdate(ctx context.Context, existingData interface{}, upd
 			)
 		}
 
-		// Admin có thể sửa, nhưng không cho phép sửa các field quan trọng
-		if update.Set != nil {
-			// Không cho phép thay đổi IsSystem
-			if isSystemVal, ok := update.Set["isSystem"].(bool); ok && !isSystemVal {
-				return common.NewError(
-					common.ErrCodeBusinessOperation,
-					"Không thể thay đổi IsSystem của dữ liệu hệ thống",
-					common.StatusForbidden,
-					nil,
-				)
-			}
-			delete(update.Set, "isSystem")
-
-			// Lấy tên model để xác định các field không được sửa
-			modelType := reflect.TypeOf(existingData)
-			if modelType.Kind() == reflect.Ptr {
-				modelType = modelType.Elem()
-			}
-
-			// Các field không được sửa (tùy theo model)
-			protectedFields := getProtectedFieldsForModel(modelType.Name())
-
-			for _, fieldName := range protectedFields {
-				if _, ok := update.Set[fieldName]; ok {
-					return common.NewError(
-						common.ErrCodeBusinessOperation,
-						fmt.Sprintf("Không thể thay đổi %s của dữ liệu hệ thống", fieldName),
-						common.StatusForbidden,
-						nil,
-					)
-				}
-			}
-		}
+		// ✅ Admin có quyền sửa TẤT CẢ các field của dữ liệu hệ thống, kể cả protected fields và isSystem
+		// Không cần chặn bất kỳ field nào vì admin là người quản trị hệ thống
+		// Logic cũ đã được bỏ để cho phép admin linh hoạt quản lý dữ liệu hệ thống
 	} else {
 		// Dữ liệu không phải system: không cho phép set IsSystem = true
 		if update.Set != nil {
@@ -1403,6 +1437,8 @@ func validateSystemDataUpdate(ctx context.Context, existingData interface{}, upd
 
 // getProtectedFieldsForModel trả về danh sách các field không được sửa của dữ liệu system
 // Tùy theo từng model, có các field quan trọng khác nhau
+// LƯU Ý: Hàm này hiện tại không được sử dụng vì admin có quyền sửa tất cả các field của dữ liệu hệ thống
+// Giữ lại để có thể sử dụng trong tương lai nếu cần áp dụng logic bảo vệ field cho non-admin users
 func getProtectedFieldsForModel(modelName string) []string {
 	// Các field chung không được sửa cho tất cả model có IsSystem
 	commonProtected := []string{"name"}
@@ -1421,4 +1457,3 @@ func getProtectedFieldsForModel(modelName string) []string {
 		return commonProtected
 	}
 }
-

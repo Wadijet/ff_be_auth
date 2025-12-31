@@ -38,6 +38,11 @@ func (c *HTTPClient) SetActiveRoleID(roleID string) {
 	c.activeRoleID = roleID
 }
 
+// GetToken lấy token hiện tại
+func (c *HTTPClient) GetToken() string {
+	return c.token
+}
+
 // Request thực hiện HTTP request
 func (c *HTTPClient) Request(method, path string, body interface{}) (*http.Response, []byte, error) {
 	// Tạo URL đầy đủ

@@ -187,17 +187,17 @@ func AuthMiddleware(requirePermission string) fiber.Handler {
 		if authHeader == "" {
 			// Ghi log vào file để debug
 			logrus.WithFields(logrus.Fields{
-				"path": c.Path(),
+				"path":   c.Path(),
 				"method": c.Method(),
 			}).Error("❌ Missing Authorization header")
 			HandleErrorResponse(c, common.ErrTokenMissing)
 			return nil
 		}
-		
+
 		// Log để đảm bảo middleware được gọi - dùng GetAppLogger để ghi vào file
 		logger.GetAppLogger().WithFields(logrus.Fields{
-			"path": c.Path(),
-			"method": c.Method(),
+			"path":            c.Path(),
+			"method":          c.Method(),
 			"has_auth_header": authHeader != "",
 		}).Error("🔍 [AUTH] AuthMiddleware processing request - FORCE LOG")
 
@@ -232,17 +232,17 @@ func AuthMiddleware(requirePermission string) fiber.Handler {
 		// Cách 1: Query field "token" (token mới nhất) - ĐÂY LÀ CÁCH CHÍNH
 		query = bson.M{"token": token}
 		logger.GetAppLogger().WithFields(logrus.Fields{
-			"path":         c.Path(),
-			"query":        query,
-			"token_length": len(token),
+			"path":          c.Path(),
+			"query":         query,
+			"token_length":  len(token),
 			"token_preview": tokenPreview,
 		}).Error("🔍 [AUTH] Executing Query 1: token field - FORCE LOG")
 		user, err = authManager.UserCRUD.FindOne(context.Background(), query, nil)
 		if err != nil {
 			logger.GetAppLogger().WithFields(logrus.Fields{
-				"path":    c.Path(),
-				"query":   query,
-				"error":   err.Error(),
+				"path":     c.Path(),
+				"query":    query,
+				"error":    err.Error(),
 				"has_user": false,
 			}).Error("❌ [AUTH] Query 1 FAILED - FORCE LOG")
 		} else {
@@ -419,10 +419,19 @@ func AuthMiddleware(requirePermission string) fiber.Handler {
 		// Log để debug - dùng Info level để đảm bảo hiển thị
 		fmt.Printf("[AUTH] 🔐 Checking permissions - User: %s, Roles: %d, Path: %s, Permission: %s, ActiveRole: %s\n",
 			user.Email, len(userRoles), c.Path(), requirePermission, roleID.Hex())
+
+		// Log chi tiết các role IDs của user để debug
+		userRoleIDs := make([]string, 0, len(userRoles))
+		for _, userRole := range userRoles {
+			userRoleIDs = append(userRoleIDs, userRole.RoleID.Hex())
+		}
+		fmt.Printf("[AUTH] 🔍 User role IDs: %v, Active role ID: %s\n", userRoleIDs, roleID.Hex())
+
 		logrus.WithFields(logrus.Fields{
 			"user_id":        user.ID.Hex(),
 			"user_email":     user.Email,
 			"roles_count":    len(userRoles),
+			"user_role_ids":  userRoleIDs,
 			"path":           c.Path(),
 			"permission":     requirePermission,
 			"active_role_id": roleID.Hex(),
@@ -450,24 +459,41 @@ func AuthMiddleware(requirePermission string) fiber.Handler {
 		// Validate user có role này không
 		hasRole := false
 		for _, userRole := range userRoles {
-			if userRole.RoleID == roleID {
+			// So sánh ObjectID - dùng .Hex() để đảm bảo so sánh đúng
+			if userRole.RoleID.Hex() == roleID.Hex() {
 				hasRole = true
+				fmt.Printf("[AUTH] ✅ Found matching role: %s\n", roleID.Hex())
 				break
 			}
 		}
 
-		// Nếu user không có role này, từ chối truy cập
+		// Nếu user không có role này, reject request và trả về role IDs hợp lệ (an toàn hơn fallback)
 		if !hasRole {
+			// Lấy danh sách role IDs hợp lệ để trả về trong error response
+			validRoleIDs := make([]string, 0, len(userRoles))
+			for _, userRole := range userRoles {
+				validRoleIDs = append(validRoleIDs, userRole.RoleID.Hex())
+			}
+			
+			fmt.Printf("[AUTH] ⚠️ User does not have role %s, rejecting request. Valid roles: %v\n", roleID.Hex(), validRoleIDs)
 			logrus.WithFields(logrus.Fields{
 				"user_id":        user.ID.Hex(),
 				"active_role_id": roleID.Hex(),
+				"valid_role_ids": validRoleIDs,
 				"path":           c.Path(),
-			}).Error("❌ User does not have this role")
+			}).Warn("⚠️ User does not have this role, rejecting request")
+			
+			// Reject với error code đặc biệt và trả về role IDs hợp lệ
+			// Frontend có thể catch error này và tự động refresh role list
 			HandleErrorResponse(c, common.NewError(
 				common.ErrCodeAuthRole,
 				"Người dùng không có quyền sử dụng role này. Vui lòng chọn role khác hoặc liên hệ quản trị viên.",
 				common.StatusForbidden,
-				nil,
+				map[string]interface{}{
+					"invalidRoleId": roleID.Hex(),
+					"validRoleIds":  validRoleIDs,
+					"errorCode":     "ROLE_CONTEXT_INVALID",
+				},
 			))
 			return nil
 		}

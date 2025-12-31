@@ -12,7 +12,7 @@ Tất cả tài liệu AI context đã được di chuyển đến:
 
 Vui lòng tham chiếu đến:
 - [AI Context README](../../../docs/ai-context/README.md) - Hướng dẫn đầy đủ
-- [AI Context Frontend](../../../docs/ai-context/AI_CONTEXT_FRONTEND.md) - File chính
+- [FolkForm API Context](../../../docs/ai-context/folkform-api-context.md) - File chính
 
 ## 📝 Lý Do Di Chuyển
 

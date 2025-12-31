@@ -15,27 +15,14 @@ import (
 // TestAdminFullAPIs kiểm tra các API admin với user có full quyền
 func TestAdminFullAPIs(t *testing.T) {
 	baseURL := "http://localhost:8080/api/v1"
-	waitForHealth(baseURL, 10, 1*time.Second, t)
 
-	// Khởi tạo dữ liệu mặc định trước
-	initTestData(t, baseURL)
-
-	fixtures := utils.NewTestFixtures(baseURL)
-
-	// Lấy Firebase ID token từ environment variable
-	firebaseIDToken := utils.GetTestFirebaseIDToken()
-	if firebaseIDToken == "" {
-		t.Skip("Skipping test: TEST_FIREBASE_ID_TOKEN environment variable not set")
-	}
-
-	// Tạo admin user với full quyền
-	adminEmail, _, adminToken, _, err := fixtures.CreateAdminUser(firebaseIDToken)
+	// Setup test với admin user có full quyền
+	fixtures, adminEmail, adminToken, client, err := utils.SetupTestWithAdminUser(t, baseURL)
 	if err != nil {
-		t.Fatalf("❌ Không thể tạo admin user: %v", err)
+		t.Fatalf("❌ Không thể setup test: %v", err)
 	}
-
-	client := utils.NewHTTPClient(baseURL, 10)
-	client.SetToken(adminToken)
+	_ = fixtures // Có thể dùng cho các test khác
+	// adminToken đã được set trong client, nhưng vẫn cần để gọi GetRootOrganizationID
 
 	// Test 1: Set Administrator cho user khác
 	t.Run("👑 Set Administrator", func(t *testing.T) {
@@ -95,9 +82,9 @@ func TestAdminFullAPIs(t *testing.T) {
 		}
 
 		payload := map[string]interface{}{
-			"name":           fmt.Sprintf("TestRole_%d", time.Now().UnixNano()),
-			"describe":       "Test Role Description",
-			"organizationId": rootOrgID, // BẮT BUỘC
+			"name":                fmt.Sprintf("TestRole_%d", time.Now().UnixNano()),
+			"describe":            "Test Role Description",
+			"ownerOrganizationId": rootOrgID, // BẮT BUỘC - Phân quyền dữ liệu
 		}
 
 		resp, body, err := client.POST("/role/insert-one", payload)
@@ -162,6 +149,12 @@ func TestAdminFullAPIs(t *testing.T) {
 
 	// Test 6: Block/Unblock user
 	t.Run("🔒 Block/Unblock User", func(t *testing.T) {
+		// Lấy Firebase ID token
+		firebaseIDToken := utils.GetTestFirebaseIDToken()
+		if firebaseIDToken == "" {
+			t.Skip("Skipping test: TEST_FIREBASE_ID_TOKEN environment variable not set")
+		}
+
 		// Tạo user để block
 		userEmail, _, _, err := fixtures.CreateTestUser(firebaseIDToken)
 		if err != nil {
@@ -217,11 +210,11 @@ func TestAdminFullAPIs(t *testing.T) {
 			return
 		}
 
-		// Tạo role trước (phải có organizationId)
+		// Tạo role trước (phải có ownerOrganizationId - phân quyền dữ liệu)
 		rolePayload := map[string]interface{}{
-			"name":           fmt.Sprintf("TestRole_%d", time.Now().UnixNano()),
-			"describe":       "Test Role",
-			"organizationId": rootOrgID, // BẮT BUỘC
+			"name":                fmt.Sprintf("TestRole_%d", time.Now().UnixNano()),
+			"describe":            "Test Role",
+			"ownerOrganizationId": rootOrgID, // BẮT BUỘC - Phân quyền dữ liệu
 		}
 
 		resp, body, err := client.POST("/role/insert-one", rolePayload)
@@ -247,6 +240,12 @@ func TestAdminFullAPIs(t *testing.T) {
 		if roleID == "" {
 			t.Skip("⚠️ Không thể tạo role, bỏ qua test set role")
 			return
+		}
+
+		// Lấy Firebase ID token
+		firebaseIDToken := utils.GetTestFirebaseIDToken()
+		if firebaseIDToken == "" {
+			t.Skip("Skipping test: TEST_FIREBASE_ID_TOKEN environment variable not set")
 		}
 
 		// Tạo user để set role

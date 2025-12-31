@@ -9,7 +9,7 @@ type AuthLog struct {
 	ID        primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`              // ID của vai trò
 	UserID    primitive.ObjectID `json:"userId,omitempty" bson:"userId,omitempty"`       // ID của người dùng
 	RoleID   primitive.ObjectID `json:"roleId,omitempty" bson:"roleId,omitempty"`       // ID của vai trò
-	OrganizationID primitive.ObjectID `json:"organizationId,omitempty" bson:"organizationId,omitempty"` // ID tổ chức
+	OwnerOrganizationID primitive.ObjectID `json:"ownerOrganizationId,omitempty" bson:"ownerOrganizationId,omitempty"` // Tổ chức sở hữu dữ liệu (phân quyền)
 	Collection string             `json:"collection,omitempty" bson:"collection,omitempty"` // Tên bảng	
 	Action    string             `json:"action,omitempty" bson:"action,omitempty"`       // Hành động
 	Describe  string             `json:"describe,omitempty" bson:"describe,omitempty"`   // Mô tả hành động

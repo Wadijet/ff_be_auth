@@ -100,7 +100,7 @@ Tài liệu context chi tiết, đầy đủ để cung cấp cho AI assistants 
 **Vị trí mới:** `../../docs/ai-context/` (Workspace-level)
 
 - [AI Context README](../../docs/ai-context/README.md) - Hướng dẫn sử dụng tài liệu AI context
-- [AI Context Frontend](../../docs/ai-context/AI_CONTEXT_FRONTEND.md) - Tài liệu chính về API (⭐ **BẮT ĐẦU TỪ ĐÂY**)
+- [FolkForm API Context](../../docs/ai-context/folkform-api-context.md) - Tài liệu chính về API (⭐ **BẮT ĐẦU TỪ ĐÂY**)
 - [TypeScript Types & Interfaces](../../docs/ai-context/types-and-interfaces.md) - Tất cả TypeScript types
 - [Frontend Implementation Guide](../../docs/ai-context/frontend-implementation-guide.md) - Hướng dẫn implementation
 - [Code Examples](../../docs/ai-context/examples.md) - Ví dụ code cho React, Vue, Angular, Vanilla JS

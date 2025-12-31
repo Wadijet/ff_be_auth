@@ -33,8 +33,8 @@ func NewNotificationChannelService() (*NotificationChannelService, error) {
 // FindByOrganizationID tìm tất cả channels của một organization, có thể filter theo channelTypes
 func (s *NotificationChannelService) FindByOrganizationID(ctx context.Context, orgID primitive.ObjectID, channelTypes []string) ([]models.NotificationChannel, error) {
 	filter := bson.M{
-		"organizationId": orgID,
-		"isActive":       true,
+		"ownerOrganizationId": orgID, // Phân quyền dữ liệu
+		"isActive":           true,
 	}
 
 	// Filter theo channelTypes nếu có

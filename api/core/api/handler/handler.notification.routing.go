@@ -2,13 +2,14 @@ package handler
 
 import (
 	"fmt"
+	"meta_commerce/core/api/dto"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
 )
 
 // NotificationRoutingHandler xử lý các request liên quan đến Notification Routing Rule
 type NotificationRoutingHandler struct {
-	BaseHandler[models.NotificationRoutingRule, models.NotificationRoutingRule, models.NotificationRoutingRule]
+	BaseHandler[models.NotificationRoutingRule, dto.NotificationRoutingRuleCreateInput, dto.NotificationRoutingRuleUpdateInput]
 }
 
 // NewNotificationRoutingHandler tạo mới NotificationRoutingHandler
@@ -18,8 +19,10 @@ func NewNotificationRoutingHandler() (*NotificationRoutingHandler, error) {
 		return nil, fmt.Errorf("failed to create notification routing service: %v", err)
 	}
 
-	handler := &NotificationRoutingHandler{}
-	handler.BaseService = routingService
+	baseHandler := NewBaseHandler[models.NotificationRoutingRule, dto.NotificationRoutingRuleCreateInput, dto.NotificationRoutingRuleUpdateInput](routingService)
+	handler := &NotificationRoutingHandler{
+		BaseHandler: *baseHandler,
+	}
 
 	// Khởi tạo filterOptions với giá trị mặc định
 	handler.filterOptions = FilterOptions{

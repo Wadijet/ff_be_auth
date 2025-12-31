@@ -81,7 +81,9 @@ func OrganizationContextMiddleware() fiber.Handler {
 		// active_role_id: PRIMARY - đây là context làm việc
 		// active_organization_id: DERIVED - được suy ra từ role
 		c.Locals("active_role_id", activeRoleID.Hex())
-		c.Locals("active_organization_id", role.OrganizationID.Hex())
+		// Dùng OwnerOrganizationID trực tiếp (đã bỏ OrganizationID)
+		orgID := role.OwnerOrganizationID
+		c.Locals("active_organization_id", orgID.Hex())
 
 		return c.Next()
 	}
@@ -124,5 +126,3 @@ func getFirstUserRoleID(ctx context.Context, userID primitive.ObjectID) (primiti
 
 	return userRoles[0].RoleID, nil
 }
-
-

@@ -84,13 +84,13 @@ func (p *Processor) ProcessQueueItem(ctx context.Context, item *models.Notificat
 	}
 
 	// 2. Tìm sender (với fallback)
-	sender, err := p.findSender(ctx, &channel, item.OrganizationID)
+	sender, err := p.findSender(ctx, &channel, item.OwnerOrganizationID)
 	if err != nil {
 		return fmt.Errorf("sender not found: %w", err)
 	}
 
 	// 3. Tìm template
-	template, err := p.templateService.FindTemplate(ctx, item.EventType, channel.ChannelType, item.OrganizationID)
+	template, err := p.templateService.FindTemplate(ctx, item.EventType, channel.ChannelType, item.OwnerOrganizationID)
 	if err != nil {
 		return fmt.Errorf("template not found: %w", err)
 	}
@@ -110,11 +110,11 @@ func (p *Processor) ProcessQueueItem(ctx context.Context, item *models.Notificat
 	// 6. Tạo history record (trước khi gửi)
 	historyID := primitive.NewObjectID()
 	history := &models.NotificationHistory{
-		ID:             historyID,
-		QueueItemID:    item.ID,
-		EventType:      item.EventType,
-		OrganizationID: item.OrganizationID,
-		ChannelID:      item.ChannelID,
+		ID:                 historyID,
+		QueueItemID:        item.ID,
+		EventType:          item.EventType,
+		OwnerOrganizationID: item.OwnerOrganizationID, // Phân quyền dữ liệu
+		ChannelID:          item.ChannelID,
 		ChannelType:    channel.ChannelType,
 		Recipient:      item.Recipient,
 		Status:         "pending",
@@ -287,9 +287,9 @@ func (p *Processor) findSenderByOrganization(ctx context.Context, channelType st
 		"isActive":    true,
 	}
 	if orgID != nil {
-		filter["organizationId"] = *orgID
+		filter["ownerOrganizationId"] = *orgID
 	} else {
-		filter["organizationId"] = nil
+		filter["ownerOrganizationId"] = nil
 	}
 
 	sender, err := p.senderService.FindOne(ctx, filter, nil)

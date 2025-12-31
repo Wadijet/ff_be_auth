@@ -62,7 +62,7 @@ type Customer struct {
 	PosIsBlock        bool          `json:"posIsBlock,omitempty" bson:"posIsBlock,omitempty" extract:"PosData\\.is_block,converter=bool,optional,merge=overwrite"`                           // Trạng thái block
 
 	// ===== ORGANIZATION =====
-	OrganizationID primitive.ObjectID `json:"organizationId" bson:"organizationId" index:"single:1"` // ID tổ chức sở hữu dữ liệu
+	OwnerOrganizationID primitive.ObjectID `json:"ownerOrganizationId" bson:"ownerOrganizationId" index:"single:1"` // Tổ chức sở hữu dữ liệu (phân quyền)
 
 	// ===== METADATA =====
 	Sources   []string `json:"sources" bson:"sources"`     // ["pancake", "pos"] - Track nguồn dữ liệu

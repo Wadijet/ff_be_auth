@@ -15,17 +15,20 @@ const (
 )
 
 // Organization đại diện cho cấu trúc tổ chức hình cây (Hệ thống, Tập đoàn, Công ty, Phòng ban, Bộ phận, Team)
+// Lưu ý: Quan hệ với children (organizations con) được kiểm tra bằng logic tùy chỉnh trong OrganizationService
+// vì cần kiểm tra cả parentId và path, không thể dùng simple foreign key check
 type Organization struct {
-	ID        primitive.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`                        // ID của tổ chức
-	Name      string              `json:"name" bson:"name" index:"single:1"`                        // Tên tổ chức
-	Code      string              `json:"code" bson:"code" index:"unique"`                          // Mã tổ chức (unique)
-	Type      string              `json:"type" bson:"type" index:"single:1"`                        // Loại tổ chức (system, group, company, department, division, team)
-	ParentID  *primitive.ObjectID `json:"parentId,omitempty" bson:"parentId,omitempty" index:"single:1"` // ID tổ chức cha (null nếu là root system)
-	Path      string              `json:"path" bson:"path" index:"single:1"`                        // Đường dẫn cây (ví dụ: "/system/root_group/company1/dept1")
-	Level     int                 `json:"level" bson:"level" index:"single:1"`                      // Cấp độ (-1 = system root, 0 = group, 1 = company, 2 = department, ...)
-	IsActive  bool                `json:"isActive" bson:"isActive" index:"single:1"`                // Trạng thái hoạt động
-	IsSystem  bool                `json:"-" bson:"isSystem" index:"single:1"`                       // true = dữ liệu hệ thống, không thể xóa (chỉ dùng nội bộ, không expose ra API)
-	CreatedAt int64               `json:"createdAt" bson:"createdAt"`                               // Thời gian tạo
-	UpdatedAt int64               `json:"updatedAt" bson:"updatedAt"`                               // Thời gian cập nhật
+	_Relationships struct{}           `relationship:"collection:roles,field:organizationId,message:Không thể xóa tổ chức vì có %d role trực thuộc. Vui lòng xóa hoặc di chuyển các role trước."` // Relationship definitions - không export, chỉ dùng cho tag parsing
+	ID             primitive.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`                                                                                                                      // ID của tổ chức
+	Name           string              `json:"name" bson:"name" index:"single:1"`                                                                                                                   // Tên tổ chức
+	Code           string              `json:"code" bson:"code" index:"unique"`                                                                                                                      // Mã tổ chức (unique)
+	Type           string              `json:"type" bson:"type" index:"single:1"`                                                                                                                   // Loại tổ chức (system, group, company, department, division, team)
+	ParentID       *primitive.ObjectID `json:"parentId,omitempty" bson:"parentId,omitempty" index:"single:1"`                                                                                       // ID tổ chức cha (null nếu là root system)
+	Path           string              `json:"path" bson:"path" index:"single:1"`                                                                                                                   // Đường dẫn cây (ví dụ: "/system/root_group/company1/dept1")
+	Level          int                 `json:"level" bson:"level" index:"single:1"`                                                                                                                  // Cấp độ (-1 = system root, 0 = group, 1 = company, 2 = department, ...)
+	IsActive       bool                `json:"isActive" bson:"isActive" index:"single:1"`                                                                                                           // Trạng thái hoạt động
+	IsSystem       bool                `json:"-" bson:"isSystem" index:"single:1"`                                                                                                                  // true = dữ liệu hệ thống, không thể xóa (chỉ dùng nội bộ, không expose ra API)
+	CreatedAt      int64               `json:"createdAt" bson:"createdAt"`                                                                                                                          // Thời gian tạo
+	UpdatedAt      int64               `json:"updatedAt" bson:"updatedAt"`                                                                                                                          // Thời gian cập nhật
 }
 

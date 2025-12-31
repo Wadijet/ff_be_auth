@@ -15,42 +15,21 @@ import (
 // TestNotificationAPIs kiểm tra các API Notification
 func TestNotificationAPIs(t *testing.T) {
 	baseURL := "http://localhost:8080/api/v1"
-	waitForHealth(baseURL, 10, 1*time.Second, t)
 
-	// Khởi tạo dữ liệu mặc định
-	initTestData(t, baseURL)
-
-	fixtures := utils.NewTestFixtures(baseURL)
-
-	// Tạo user với token
-	firebaseIDToken := utils.GetTestFirebaseIDToken()
-	if firebaseIDToken == "" {
-		t.Skip("Skipping test: TEST_FIREBASE_ID_TOKEN environment variable not set")
-	}
-	_, _, token, err := fixtures.CreateTestUser(firebaseIDToken)
+	// Setup test với user (có thể dùng admin hoặc regular user)
+	// Để test full, dùng admin user
+	fixtures, _, _, client, err := utils.SetupTestWithAdminUser(t, baseURL)
 	if err != nil {
-		t.Fatalf("❌ Không thể tạo user test: %v", err)
-	}
-
-	client := utils.NewHTTPClient(baseURL, 10)
-	client.SetToken(token)
-
-	// Lấy danh sách roles và set active role
-	resp, body, err := client.GET("/auth/roles")
-	if err == nil && resp.StatusCode == http.StatusOK {
-		var result map[string]interface{}
-		json.Unmarshal(body, &result)
-		if data, ok := result["data"].([]interface{}); ok && len(data) > 0 {
-			firstRole, _ := data[0].(map[string]interface{})
-			roleID, _ := firstRole["roleId"].(string)
-			if roleID != "" {
-				client.SetActiveRoleID(roleID)
-			}
+		// Nếu không tạo được admin, thử với regular user
+		fixtures, _, _, client, err = utils.SetupTestWithRegularUser(t, baseURL)
+		if err != nil {
+			t.Fatalf("❌ Không thể setup test: %v", err)
 		}
 	}
+	_ = fixtures // Có thể dùng cho các test khác
 
 	// Lấy Root Organization ID
-	rootOrgID, err := fixtures.GetRootOrganizationID(token)
+	rootOrgID, err := fixtures.GetRootOrganizationID(client.GetToken())
 	if err != nil {
 		t.Logf("⚠️ Không thể lấy Root Organization: %v", err)
 	}
@@ -62,11 +41,11 @@ func TestNotificationAPIs(t *testing.T) {
 		// CREATE
 		t.Run("CREATE - Tạo sender", func(t *testing.T) {
 			payload := map[string]interface{}{
-				"name":        fmt.Sprintf("TestSender_%d", time.Now().UnixNano()),
-				"senderType":  "email",
-				"smtpHost":    "smtp.example.com",
-				"smtpPort":    587,
-				"smtpUser":    "test@example.com",
+				"name":         fmt.Sprintf("TestSender_%d", time.Now().UnixNano()),
+				"senderType":   "email",
+				"smtpHost":     "smtp.example.com",
+				"smtpPort":     587,
+				"smtpUser":     "test@example.com",
 				"smtpPassword": "password123",
 			}
 
@@ -157,10 +136,10 @@ func TestNotificationAPIs(t *testing.T) {
 				data, ok := result["data"].(map[string]interface{})
 				if ok {
 					channelID, _ = data["id"].(string)
-					// Verify organizationId đã được tự động gán
-					orgID, ok := data["organizationId"].(string)
+					// Verify ownerOrganizationId đã được tự động gán (phân quyền dữ liệu)
+					orgID, ok := data["ownerOrganizationId"].(string)
 					if ok {
-						fmt.Printf("✅ Tạo channel thành công với organizationId: %s\n", orgID)
+						fmt.Printf("✅ Tạo channel thành công với ownerOrganizationId: %s\n", orgID)
 					} else {
 						fmt.Printf("✅ Tạo channel thành công: %s\n", channelID)
 					}
@@ -252,11 +231,11 @@ func TestNotificationAPIs(t *testing.T) {
 			// Cần có channel và template trước
 			// Tạm thời test với dữ liệu giả
 			payload := map[string]interface{}{
-				"eventType":     fmt.Sprintf("test.event.%d", time.Now().UnixNano()),
+				"eventType":       fmt.Sprintf("test.event.%d", time.Now().UnixNano()),
 				"organizationIds": []string{rootOrgID},
-				"channelIds":    []string{},
-				"templateId":    "",
-				"priority":      1,
+				"channelIds":      []string{},
+				"templateId":      "",
+				"priority":        1,
 			}
 
 			resp, body, err := client.POST("/notification/routing/insert-one", payload)
@@ -396,4 +375,3 @@ func TestNotificationAPIs(t *testing.T) {
 		})
 	})
 }
-

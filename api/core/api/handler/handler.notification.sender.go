@@ -2,13 +2,14 @@ package handler
 
 import (
 	"fmt"
+	"meta_commerce/core/api/dto"
 	models "meta_commerce/core/api/models/mongodb"
 	"meta_commerce/core/api/services"
 )
 
 // NotificationSenderHandler xử lý các request liên quan đến Notification Sender
 type NotificationSenderHandler struct {
-	BaseHandler[models.NotificationChannelSender, models.NotificationChannelSender, models.NotificationChannelSender]
+	BaseHandler[models.NotificationChannelSender, dto.NotificationChannelSenderCreateInput, dto.NotificationChannelSenderUpdateInput]
 }
 
 // NewNotificationSenderHandler tạo mới NotificationSenderHandler
@@ -18,8 +19,10 @@ func NewNotificationSenderHandler() (*NotificationSenderHandler, error) {
 		return nil, fmt.Errorf("failed to create notification sender service: %v", err)
 	}
 
-	handler := &NotificationSenderHandler{}
-	handler.BaseService = senderService
+	baseHandler := NewBaseHandler[models.NotificationChannelSender, dto.NotificationChannelSenderCreateInput, dto.NotificationChannelSenderUpdateInput](senderService)
+	handler := &NotificationSenderHandler{
+		BaseHandler: *baseHandler,
+	}
 
 	// Khởi tạo filterOptions với giá trị mặc định
 	handler.filterOptions = FilterOptions{

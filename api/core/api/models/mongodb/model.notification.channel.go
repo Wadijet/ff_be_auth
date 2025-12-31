@@ -6,8 +6,9 @@ import (
 
 // NotificationChannel - Cấu hình kênh nhận (recipients) cho team
 type NotificationChannel struct {
-	ID             primitive.ObjectID   `json:"id,omitempty" bson:"_id,omitempty"`
-	OrganizationID primitive.ObjectID   `json:"organizationId" bson:"organizationId" index:"single:1"` // Team ID
+	_Relationships struct{}            `relationship:"collection:notification_queue,field:channelId,message:Không thể xóa channel vì có %d notification đang trong queue. Vui lòng xử lý hoặc xóa các notification trước.|collection:notification_history,field:channelId,message:Không thể xóa channel vì có %d notification trong lịch sử. Vui lòng xóa lịch sử trước."` // Relationship definitions - không export, chỉ dùng cho tag parsing
+	ID                 primitive.ObjectID   `json:"id,omitempty" bson:"_id,omitempty"`
+	OwnerOrganizationID primitive.ObjectID   `json:"ownerOrganizationId" bson:"ownerOrganizationId" index:"single:1"` // Tổ chức sở hữu dữ liệu (phân quyền) - Team ID
 	ChannelType    string               `json:"channelType" bson:"channelType" index:"single:1"`        // email, telegram, webhook
 	Name           string               `json:"name" bson:"name" index:"single:1"`
 	IsActive       bool                 `json:"isActive" bson:"isActive" index:"single:1"`

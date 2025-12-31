@@ -6,8 +6,8 @@ import (
 
 // NotificationTemplate - Template thông báo
 type NotificationTemplate struct {
-	ID             primitive.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`
-	OrganizationID *primitive.ObjectID `json:"organizationId,omitempty" bson:"organizationId,omitempty" index:"single:1"` // null = global
+	ID                 primitive.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`
+	OwnerOrganizationID *primitive.ObjectID `json:"ownerOrganizationId,omitempty" bson:"ownerOrganizationId,omitempty" index:"single:1"` // Tổ chức sở hữu dữ liệu (phân quyền) - null = System Organization
 	EventType      string              `json:"eventType" bson:"eventType" index:"single:1"`                                // conversation_unreplied, order_created, ...
 	ChannelType    string              `json:"channelType" bson:"channelType" index:"single:1"`                           // email, telegram, webhook
 	Subject        string              `json:"subject,omitempty" bson:"subject,omitempty"`                                  // Cho email

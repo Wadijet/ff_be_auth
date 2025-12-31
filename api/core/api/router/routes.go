@@ -143,12 +143,13 @@ var (
 	}
 
 	// Auth Module Collections
-	userConfig     = readOnlyConfig
-	permConfig     = readOnlyConfig
-	roleConfig     = readWriteConfig
-	rolePermConfig = readWriteConfig
-	userRoleConfig = readWriteConfig
-	agentConfig    = readWriteConfig
+	userConfig              = readOnlyConfig
+	permConfig              = readOnlyConfig
+	roleConfig              = readWriteConfig
+	rolePermConfig          = readWriteConfig
+	userRoleConfig          = readWriteConfig
+	agentConfig             = readWriteConfig
+	organizationShareConfig = readWriteConfig
 
 	// Pancake Module Collections
 	accessTokenConfig   = readWriteConfig
@@ -454,6 +455,21 @@ func (r *Router) registerRBACRoutes(router fiber.Router) error {
 	fmt.Printf("Registering organization routes with prefix: /organization\n")
 	r.registerCRUDRoutes(router, "/organization", organizationHandler, readWriteConfig, "Organization")
 	fmt.Printf("Organization routes registered successfully\n")
+
+	// Organization Share routes
+	organizationShareHandler, err := handler.NewOrganizationShareHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create organization share handler: %v", err)
+	}
+	// Route đặc biệt với logic riêng cho CreateShare và DeleteShare (có validation đặc biệt về quyền với fromOrg)
+	// FIX: Dùng registerRouteWithMiddleware với .Use() method (cách đúng) thay vì cách trực tiếp có bug trong Fiber v3
+	orgShareCreateMiddleware := middleware.AuthMiddleware("OrganizationShare.Create")
+	orgShareDeleteMiddleware := middleware.AuthMiddleware("OrganizationShare.Delete")
+	orgContextMiddleware := middleware.OrganizationContextMiddleware()
+	registerRouteWithMiddleware(router, "/organization-share", "POST", "", []fiber.Handler{orgShareCreateMiddleware, orgContextMiddleware}, organizationShareHandler.CreateShare)
+	registerRouteWithMiddleware(router, "/organization-share", "DELETE", "/:id", []fiber.Handler{orgShareDeleteMiddleware, orgContextMiddleware}, organizationShareHandler.DeleteShare)
+	// CRUD routes - đăng ký đầy đủ các operation CRUD (Find, FindById, Update, v.v.)
+	r.registerCRUDRoutes(router, "/organization-share", organizationShareHandler, organizationShareConfig, "OrganizationShare")
 
 	// Agent routes
 	agentHandler, err := handler.NewAgentHandler()
